@@ -8,4 +8,4 @@ export const ANALYSIS_SURVIVAL = "survival";
 
 export const GRAPH_XY = "xy";
 export const GRAPH_SURVIVAL = "survival";
-export const COLUMN_GRAPHS = ["scatter", "bar", "box", "violin"] as const;
+export const COLUMN_GRAPHS = ["scatter", "bar", "box", "violin", "raincloud"] as const;

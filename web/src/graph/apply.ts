@@ -185,7 +185,9 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
       const w = Math.max(0.05, 1 - format.spacing);
       for (const t of traces) {
         const tag = traceTag(t);
-        if (tag && (tag.role === "bar" || tag.role === "box" || tag.role === "violin")) {
+        // drawn outlines (violinTraces.ts) and a raincloud's narrow box keep their width
+        if (tag && (tag.role === "bar" || tag.role === "box" || tag.role === "violin")
+          && t.type !== "scatter" && !t.meta?.fixedWidth) {
           t.width = w;
         }
       }

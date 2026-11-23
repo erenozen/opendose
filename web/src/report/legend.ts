@@ -52,6 +52,9 @@ export function whatIsPlotted(graphType: string | null | undefined,
     case "violin":
       return "Violins show a kernel density estimate of the values with a line at the mean; "
         + "points show individual values.";
+    case "raincloud":
+      return "Rainclouds show a kernel density estimate of the values (half violin), a box with "
+        + "the median and interquartile range, and the individual values beside it.";
     case "estimation": {
       const e = opts.estimation;
       const ci = e?.ci_type === "percentile" ? "percentile" : "bias-corrected and accelerated (BCa)";

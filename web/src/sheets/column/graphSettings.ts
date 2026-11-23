@@ -1,4 +1,4 @@
-// Options of the column graphs (scatter, bar, box, violin), stored on the
+// Options of the column graphs (scatter, bar, box, violin, raincloud), stored on the
 // graph sheet as `settings.column`. Absent fields draw the graph exactly
 // as before these options existed (mean ± SD, fixed-lane jitter, points
 // on bars, no caption); new graphs start from NEW_COLUMN_GRAPH. Pure.
@@ -55,17 +55,28 @@ export interface ColumnGraphSettings {
   superplot: SuperPlotSettings;
   /** Box plots: where the whiskers end (graph/boxStats.ts). */
   whiskers: WhiskerRule;
+  /** Violins: "quartiles" draws the density of graph/kde.ts (bandwidth
+   *  stated in the legend) with quartile lines; "mean" is the plotting
+   *  library's violin with a mean line, kept for violins saved before. */
+  violin: ViolinLook;
 }
+
+export type ViolinLook = "quartiles" | "mean";
+
+export const VIOLIN_LOOKS: readonly (readonly [ViolinLook, string])[] = [
+  ["quartiles", "Quartile lines, bandwidth stated in the legend"],
+  ["mean", "Mean line, bandwidth chosen by the plotting library (not stated)"],
+];
 
 export const DEFAULT_COLUMN_GRAPH: ColumnGraphSettings = {
   summary: "mean_sd", spread: "jitter", points: true, caption: "off",
-  superplot: normalizeSuperPlot(undefined), whiskers: DEFAULT_WHISKERS,
+  superplot: normalizeSuperPlot(undefined), whiskers: DEFAULT_WHISKERS, violin: "mean",
 };
 
 /** What a graph created from now on starts with (merged over the
  *  defaults); saved graphs without these keys keep the old look. */
 export const NEW_COLUMN_GRAPH: Partial<ColumnGraphSettings> = {
-  spread: "symmetric", caption: "below", summary: "auto",
+  spread: "symmetric", caption: "below", summary: "auto", violin: "quartiles",
 };
 
 const SUMMARIES = Object.keys(COLUMN_SUMMARY_LABELS) as ColumnSummary[];
@@ -81,6 +92,7 @@ export function normalizeColumnGraph(raw: unknown): ColumnGraphSettings {
     caption: o.caption === "below" || o.caption === "figure" ? o.caption : d.caption,
     superplot: normalizeSuperPlot(o.superplot),
     whiskers: readWhiskers(o.whiskers),
+    violin: o.violin === "quartiles" ? "quartiles" : d.violin,
   };
 }
 

@@ -628,6 +628,13 @@ const scenes = [
     await s.page.locator(".js-plotly-plot").first().waitFor();
     await settle(s, 1200);
   } },
+  { name: "graphs-raincloud", setup: async (s) => {
+    await fixture(s, "raincloud.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: "Settings", exact: true }));
+    await dialog(s, "Graph settings").getByLabel("Whiskers").waitFor();
+  } },
   { name: "graphs-fit-legend", setup: async (s) => {
     await fixture(s, "fit-legend.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

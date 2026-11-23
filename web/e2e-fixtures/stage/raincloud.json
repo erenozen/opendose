@@ -1,0 +1,155 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Raincloud",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g092",
+ "sheets": [
+  {
+   "id": "d090",
+   "kind": "data",
+   "name": "Group comparison",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "23.1"
+       ],
+       [
+        "25.4"
+       ],
+       [
+        "21.8"
+       ],
+       [
+        "24.9"
+       ],
+       [
+        "22.6"
+       ],
+       [
+        "26"
+       ]
+      ]
+     },
+     {
+      "name": "Treated A",
+      "rows": [
+       [
+        "28.4"
+       ],
+       [
+        "30.2"
+       ],
+       [
+        "27.1"
+       ],
+       [
+        "31.5"
+       ],
+       [
+        "29"
+       ],
+       [
+        "28.8"
+       ]
+      ]
+     },
+     {
+      "name": "Treated B",
+      "rows": [
+       [
+        "35.2"
+       ],
+       [
+        "33.9"
+       ],
+       [
+        "37.4"
+       ],
+       [
+        "34.1"
+       ],
+       [
+        "36.6"
+       ],
+       [
+        "35.8"
+       ]
+      ]
+     },
+     {
+      "name": "Pilot",
+      "rows": [
+       [
+        "30.5"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r091",
+   "kind": "results",
+   "parentId": "d090",
+   "analysis": "column",
+   "options": {
+    "analysis": "column_statistics"
+   },
+   "name": "Column stats of Group comparison"
+  },
+  {
+   "id": "g092",
+   "kind": "graph",
+   "parentId": "d090",
+   "resultsId": "r091",
+   "graphType": "raincloud",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "column": {
+     "spread": "symmetric",
+     "caption": "below",
+     "summary": "auto",
+     "violin": "quartiles"
+    }
+   },
+   "name": "Graph of Group comparison"
+  }
+ ]
+}

@@ -83,7 +83,7 @@ export function ColumnGraph({ graph, table, titles, scheme, result, options, for
         scheme={scheme} yTitle={titles.y} format={format} onFormatChange={onFormatChange}
         rowTitles={table.rowTitles} comparisons={comparisons} results={results}
         summary={resolveSummary(cs.summary, options)} spread={cs.spread} points={cs.points} caption={inFigure}
-        percentile={percentile} whiskers={cs.whiskers} />
+        percentile={percentile} whiskers={cs.whiskers} violin={cs.violin} />
     );
   }
   return plot;

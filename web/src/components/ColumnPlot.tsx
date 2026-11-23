@@ -16,7 +16,9 @@ import {
 import { laneJitter, spreadOffsets, type PointSpread } from "../graph/swarm";
 import { densify } from "../graph/dense";
 import { areaScale, estimateArea, usePlotArea } from "../graph/usePlotArea";
-import { summaryOf, type ColumnSummary } from "../sheets/column/graphSettings";
+import { summaryOf, type ColumnSummary, type ViolinLook } from "../sheets/column/graphSettings";
+import { groupDensity } from "../graph/kde";
+import { RAIN, raincloudTraces, violinTraces } from "../graph/violinTraces";
 import { maxOf, minOf } from "../lib/extent";
 import { boxStats, DEFAULT_WHISKERS, type PercentileMethod, type WhiskerRule } from "../graph/boxStats";
 
@@ -45,6 +47,9 @@ interface Props {
    *  whisker rule (graph/boxStats.ts); default linear and Tukey. */
   percentile?: PercentileMethod;
   whiskers?: WhiskerRule;
+  /** Violins: quartile lines and the stated density (graph/kde.ts), or
+   *  the plotting library's violin with a mean line (saved graphs). */
+  violin?: ViolinLook;
 }
 
 // Prism-style column graphs: scatter (points + mean ± SD), bar, box, violin.
@@ -52,7 +57,7 @@ export default function ColumnPlot({
   datasets, xTitle = "", yTitle = "Value", graphType = "scatter",
   scheme = DEFAULT_SCHEME, format = EMPTY_FORMAT, onFormatChange, rowTitles,
   comparisons, results, summary = "mean_sd", spread = "jitter", points = true, caption,
-  percentile = "linear", whiskers = DEFAULT_WHISKERS,
+  percentile = "linear", whiskers = DEFAULT_WHISKERS, violin = "mean",
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const [dark, setDark] = useState(isDarkMode());
@@ -98,10 +103,16 @@ export default function ColumnPlot({
         .filter((v): v is number => v !== null);
       const est = area ?? estimateArea(el.current, minOf(all), maxOf(all),
         [-0.6, datasets.length - 0.4]);
-      scale = areaScale(est, graphType === "bar" ? 8.5 : 9.5, 0.36);
+      // the rain of a raincloud and the points in a violin keep to a narrow lane
+      scale = graphType === "raincloud" ? areaScale(est, 7, RAIN.rainHalf)
+        : graphType === "violin" ? areaScale(est, 7, 0.2)
+          : areaScale(est, graphType === "bar" ? 8.5 : 9.5, 0.36);
     }
     const offsets = (values: number[]) => (spread === "jitter"
       ? laneJitter(values.length) : spreadOffsets(values, spread, scale));
+    const narrow = (values: number[], step: number) => (spread === "jitter"
+      ? laneJitter(values.length, step) : spreadOffsets(values, spread, scale));
+    const logY = format.y?.scale === "log10";
 
     datasets.forEach((ds, i) => {
       // Values in row-major order, remembering where each came from (row
@@ -149,6 +160,16 @@ export default function ColumnPlot({
           showlegend: false,
           hovertemplate: `${name}: %{y:.4g}<extra></extra>`,
         }, { ds: i, role: "box", rows, keys }) as Plotly.Data);
+        return;
+      }
+      if (graphType === "raincloud" || (graphType === "violin" && violin === "quartiles")) {
+        // the density of graph/kde.ts, stated in the legend (graph/legend.ts)
+        const g = groupDensity(values, logY);
+        const style = { color, name, ink: chrome.ink, ds: i, rows, keys, symbol,
+          edge: chrome.surface };
+        traces.push(...(graphType === "raincloud"
+          ? raincloudTraces(g, values, i, narrow(values, 0.02), percentile, whiskers, style)
+          : violinTraces(g, values, i, narrow(values, 0.04), percentile, style)) as Plotly.Data[]);
         return;
       }
       if (graphType === "violin") {
@@ -261,7 +282,7 @@ export default function ColumnPlot({
     });
   }, [datasets, dark, xTitle, yTitle, graphType, scheme, format, rev, rowTitles,
     comparisons, results, onFormatChange, attach, summary, spread, points, caption, area,
-    measure, draw, attempt, percentile, whiskers]);
+    measure, draw, attempt, percentile, whiskers, violin]);
 
   return (
     <div className="plot" ref={el}>
