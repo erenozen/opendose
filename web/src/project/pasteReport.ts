@@ -240,19 +240,28 @@ export interface ReportPart {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+/** "3 cells were shown rounded in Excel; the full values were used": the
+ *  strip's words, also the first-run paste banner's (guide/paste.ts). */
+export function roundedLabel(n: number, app?: SheetApp): string {
+  return `${n} ${n === 1 ? "cell was" : "cells were"} shown rounded in `
+    + `${app ?? "the spreadsheet"}; the full ${n === 1 ? "value was" : "values were"} used`;
+}
+
+/** The app's full values did not match the pasted text (clipboardHtml.ts
+ *  fullPrecision "mismatch"). */
+export function ignoredLabel(app: SheetApp): string {
+  return `the full values from ${app} did not line up with the pasted text, so the values as shown were used`;
+}
+
 /** The report as the strip's parts, in reading order. */
 export function reportParts(r: PasteReport): ReportPart[] {
   const parts: ReportPart[] = [];
   parts.push({ key: "numbers", label: plural(r.numbers, "number", "numbers"), cells: [], tone: "ok" });
   if (r.rounded.length) {
-    const n = r.rounded.length;
-    parts.push({ key: "rounded", label: `${n} ${n === 1 ? "cell was" : "cells were"} shown rounded in `
-      + `${r.roundedIn ?? "the spreadsheet"}; the full ${n === 1 ? "value was" : "values were"} used`,
-    cells: r.rounded, tone: "info" });
+    parts.push({ key: "rounded", label: roundedLabel(r.rounded.length, r.roundedIn), cells: r.rounded, tone: "info" });
   }
   if (r.fullValuesIgnored) {
-    parts.push({ key: "fullValuesIgnored", label: `the full values from ${r.fullValuesIgnored} did not`
-      + " line up with the pasted text, so the values as shown were used", cells: [], tone: "warn" });
+    parts.push({ key: "fullValuesIgnored", label: ignoredLabel(r.fullValuesIgnored), cells: [], tone: "warn" });
   }
   if (r.blanks.length) {
     parts.push({ key: "blanks", label: `${plural(r.blanks.length, "blank", "blanks")} kept as missing`,

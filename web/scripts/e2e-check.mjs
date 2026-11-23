@@ -1661,6 +1661,49 @@ expect("ambiguous fit banner with concrete fixes for a flat dataset",
     await exampleBanner.waitFor({ timeout: 10000 }).then(() => true, () => false)
     && await p2.getByRole("treeitem", { name: "Pasted data", exact: true }).count() === 0
     && await p2.getByRole("treeitem", { name: "Survival example", exact: true }).count() === 1);
+  // P-05 on the first-run path: paste anywhere reads the clipboard's HTML
+  // as the grid does. The acceptance column (e2e-fixtures/clipboard, shown
+  // 0.12, 0.23, 0.35 for openpyxl's 0.123456, 0.234567, 0.345678) from
+  // every app: the table holds the stored values, the banner says how many
+  // cells were shown rounded; text alone is today's paste; HTML that does
+  // not line up falls back to the text and says so.
+  {
+    expect("a text-only paste anywhere says nothing about rounding", !/shown rounded|full values/.test(pasteText), pasteText);
+    const CLIP = join(here, "..", "e2e-fixtures", "clipboard");
+    const clip = (f) => readFileSync(join(CLIP, f), "utf8");
+    const want = JSON.parse(clip("expected.json")).column.map((r) => r[0].value);
+    const pasteClipOnPage = (text, html) => p2.evaluate(([t, h]) => {
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      const dt = new DataTransfer();
+      dt.setData("text/plain", t);
+      if (h) dt.setData("text/html", h);
+      document.body.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+    }, [text, html]);
+    const cells = () => Promise.all([1, 2, 3].map((r) =>
+      p2.locator(`.data-table input[aria-label="Group A, row ${r}"]`).inputValue()));
+    const undo = async () => {
+      await pasteBanner.getByRole("button", { name: "Undo, restore the example" }).click();
+      await exampleBanner.waitFor({ timeout: 10000 });
+    };
+    for (const [file, app] of [["excel-windows", "Excel"], ["excel-mac", "Excel"], ["sheets", "Google Sheets"],
+      ["calc", "LibreOffice Calc"]]) {
+      await pasteClipOnPage(clip(`column.${file}.txt`), clip(`column.${file}.html`));
+      const note = await pasteBanner.locator("[data-part='rounded']").innerText({ timeout: 10000 }).catch(() => "");
+      const got = await cells();
+      expect(`P-05 first run: ${file}'s column pasted anywhere holds ${want.join(", ")} and the banner says 3 cells were shown rounded in ${app}`,
+        got.map(Number).join(",") === want.join(",")
+        && note === `3 cells were shown rounded in ${app}; the full values were used.`, `${got.join(",")} | ${note}`);
+      await undo();
+    }
+    await pasteClipOnPage(clip("column.excel-windows.txt"), clip("column.mismatch.html"));
+    const misNote = await pasteBanner.locator("[data-part='fullValuesIgnored']").innerText({ timeout: 10000 }).catch(() => "");
+    const misCells = await cells();
+    expect("P-05 first run: HTML that does not line up with the text: the values as shown, and the banner says why",
+      misCells.join(",") === "0.12,0.23,0.35"
+      && misNote === "The full values from Excel did not line up with the pasted text, so the values as shown were used.",
+      `${misCells.join(",")} | ${misNote}`);
+    await undo();
+  }
   // The same dose series pasted into the example's grid, read as Column,
   // then back as XY and confirmed.
   await p2.evaluate((text) => {

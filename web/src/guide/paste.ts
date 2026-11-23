@@ -6,8 +6,9 @@
 import {
   detectDecimal, detectDelimiter, normalizeNumber, splitDelimited,
 } from "../project/importText.ts";
-import { isSpreadsheetError } from "../project/pasteReport.ts";
-import { normalizeTable } from "../project/table.ts";
+import { blockText, fullPrecision, type HtmlGrid, type SheetApp } from "../project/clipboardHtml.ts";
+import { ignoredLabel, isSpreadsheetError, roundedLabel } from "../project/pasteReport.ts";
+import { normalizeTable, parseClipboardGrid } from "../project/table.ts";
 import type { DataTableModel, TableType } from "../project/types.ts";
 import { maxOf } from "../lib/extent.ts";
 
@@ -65,6 +66,33 @@ export function errorValueNote(b: PastedBlock | null): string | null {
   if (!b || !n) return null;
   return `${n} Excel error ${n === 1 ? "value" : "values"} (${b.errors.codes.join(", ")}) `
     + `read as ${n === 1 ? "an empty cell" : "empty cells"}.`;
+}
+
+/** What a spreadsheet's full values did to a paste (P-05): cells it showed
+ *  rounded got their stored value, or its values were not used because
+ *  its table did not line up with the text. */
+export type PasteFullValues = { kind: "full"; app: SheetApp; rounded: number } | { kind: "mismatch"; app: SheetApp };
+
+/** The clipboard text with the stored values of a copy from Excel,
+ *  Google Sheets or LibreOffice Calc (its text/html, clipboardHtml.ts),
+ *  as the grid's paste reads it: a cell shown rounded gets its full
+ *  value. Text from anything else is returned as it is. */
+export function withFullValues(text: string, grid: HtmlGrid | null): { text: string; fullValues: PasteFullValues | null } {
+  const source = fullPrecision(grid?.app ? parseClipboardGrid(text) : [], grid);
+  if (source.kind === "full") {
+    return { text: blockText(source.full.block),
+      fullValues: { kind: "full", app: source.full.app, rounded: source.full.rounded.length } };
+  }
+  if (source.kind === "mismatch") return { text, fullValues: { kind: "mismatch", app: source.app } };
+  return { text, fullValues: null };
+}
+
+/** The paste report's sentence about full values, or null:
+ *  "3 cells were shown rounded in Excel; the full values were used." */
+export function fullValuesNote(f: PasteFullValues | null | undefined): string | null {
+  if (!f || (f.kind === "full" && !f.rounded)) return null;
+  const s = f.kind === "full" ? roundedLabel(f.rounded, f.app) : ignoredLabel(f.app);
+  return `${s[0].toUpperCase()}${s.slice(1)}.`;
 }
 
 /** Values of column c (blank cells dropped). */

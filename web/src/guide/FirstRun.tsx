@@ -1,9 +1,10 @@
 // First run in the workspace (DECISIONS 4; state and rules in
 // firstRun.ts, the paste itself in usePasteAnywhere.ts): the "Example
 // data" banner with the one instruction line and the example chips, and
-// the paste banner (the guessed type, its reason, "Read as", the
-// error-value note, the primary verb and Undo). Both sit at the top of
-// the data pane; one of them at a time.
+// the paste banner (the guessed type, its reason, "Read as", the full
+// values used for cells shown rounded, the error-value note, the primary
+// verb and Undo). Both sit at the top of the data pane; one of them at a
+// time.
 import { useEffect, useId, useRef, useState } from "react";
 import { useProject } from "../app/context";
 import type { DataSheet, TableType } from "../project/types";
@@ -12,6 +13,7 @@ import { Banner, Button } from "../components/ui";
 import {
   isExampleProject, PRIMARY_VERB, setPasteNote, tableNoun, type PasteNote,
 } from "./firstRun";
+import { fullValuesNote } from "./paste";
 import { useFirstRun, usePasteActions } from "./usePasteAnywhere";
 import "./firstRun.css";
 
@@ -71,6 +73,7 @@ function PasteBanner({ note }: { note: PasteNote }) {
   const guessed = note.read.suggestion.type === current;
   const label = tableDef(current).label;
   const n = note.read.block.rows.length;
+  const fullNote = fullValuesNote(note.fullValues);
   const done = () => {
     setPasteNote(null);
     document.getElementById("sheet")?.focus();
@@ -84,6 +87,8 @@ function PasteBanner({ note }: { note: PasteNote }) {
         <p>{guessed ? note.read.suggestion.reason
           : `You chose ${label}. The guess was ${tableDef(note.read.suggestion.type).label}: `
             + note.read.suggestion.reason}</p>
+        {fullNote && <p className="paste-full-note" data-part={note.fullValues?.kind === "mismatch"
+          ? "fullValuesIgnored" : "rounded"}>{fullNote}</p>}
         {note.read.errorNote && <p className="paste-error-note">{note.read.errorNote}</p>}
         {/* A choice, applied by the verb button: a select that rebuilt the
             table on change would do it on every arrow key. */}

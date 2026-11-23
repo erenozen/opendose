@@ -8,7 +8,7 @@
 // data pane both read it) and the rules that need no React. Pure apart
 // from the small store; unit-tested.
 import type { Project, TableType } from "../project/types.ts";
-import type { ReadPaste } from "./paste.ts";
+import type { PasteFullValues, ReadPaste } from "./paste.ts";
 
 /** The button that confirms a pasted table, by table type: it says what
  *  the default analysis does with it, not "Create table". */
@@ -49,9 +49,12 @@ export function usablePaste(read: ReadPaste | null, where: "page" | "grid"): rea
 export interface PasteNote {
   /** The data sheet the paste made. */
   dataId: string;
-  /** The clipboard text, read again when "Read as" changes. */
+  /** The clipboard text, read again when "Read as" changes: with a
+   *  spreadsheet's full values in place of the rounded ones it showed. */
   text: string;
   read: ReadPaste;
+  /** What the spreadsheet's full values did (paste.ts withFullValues). */
+  fullValues?: PasteFullValues | null;
   /** The project before the paste (Undo goes back to it) and the one the
    *  paste made (when nothing changed since, Undo is a plain undo step). */
   before: Project;

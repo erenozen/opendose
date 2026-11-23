@@ -2,8 +2,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildTable, errorValueNote, parsePasted, readPaste, replicateGroups, replicatesPerSet, suggestTableType,
+  buildTable, errorValueNote, fullValuesNote, parsePasted, readPaste, replicateGroups, replicatesPerSet,
+  suggestTableType, withFullValues,
 } from "../paste.ts";
+import { gridFromTable } from "../../project/clipboardHtml.ts";
 
 const tsv = (rows: (string | number)[][]) => rows.map((r) => r.join("\t")).join("\n");
 const guess = (text: string) => suggestTableType(parsePasted(text)).type;
@@ -173,4 +175,38 @@ test("replicatesPerSet: the replicates per data set the guess reads", () => {
   assert.equal(replicatesPerSet(b(["Dose", "A", "B"]), "xy"), 1);
   // table types without replicate subcolumns
   assert.equal(replicatesPerSet(b(["Rep 1", "Rep 2", "Rep 3"]), "column"), 1);
+});
+
+// First-run paste anywhere (P-05): a copy from Excel carries its stored
+// values in text/html (here a hand-built table, node has no DOMParser;
+// e2e-check pastes the clipboard fixtures through the real one).
+type Cell = { text: string; num?: string };
+const htmlGrid = (rows: Cell[][]) => gridFromTable({
+  rows: rows.map((r) => ({ cells: r.map((c) => ({ textContent: c.text,
+    getAttribute: (n: string) => (n === "x:num" && c.num !== undefined ? c.num : null) })) })),
+});
+
+test("withFullValues: cells Excel showed rounded get their stored values, and the note says so", () => {
+  const text = "Dose\tResp\r\n0.12\t1\r\n0.23\t2\r\n0.35\t3\r\n";
+  const grid = htmlGrid([[{ text: "Dose" }, { text: "Resp" }],
+    [{ text: "0.12", num: "0.123456" }, { text: "1", num: "" }],
+    [{ text: "0.23", num: "0.234567" }, { text: "2", num: "" }],
+    [{ text: "0.35", num: "0.345678" }, { text: "3", num: "" }]]);
+  const r = withFullValues(text, grid);
+  assert.deepEqual(r.fullValues, { kind: "full", app: "Excel", rounded: 3 });
+  assert.deepEqual(readPaste(r.text)!.table.x, ["0.123456", "0.234567", "0.345678"]);
+  assert.equal(fullValuesNote(r.fullValues), "3 cells were shown rounded in Excel; the full values were used.");
+});
+
+test("withFullValues: text alone is today's paste; HTML that does not line up is ignored and said", () => {
+  const text = "0.12\t1\n0.23\t2\n";
+  assert.deepEqual(withFullValues(text, null), { text, fullValues: null });
+  assert.equal(fullValuesNote(null), null);
+  const extra = htmlGrid([[{ text: "0.12", num: "0.123456" }, { text: "1" }],
+    [{ text: "0.23", num: "0.234567" }, { text: "2" }], [{ text: "9", num: "9" }, { text: "9" }]]);
+  const r = withFullValues(text, extra);
+  assert.equal(r.text, text);
+  assert.deepEqual(r.fullValues, { kind: "mismatch", app: "Excel" });
+  assert.equal(fullValuesNote(r.fullValues),
+    "The full values from Excel did not line up with the pasted text, so the values as shown were used.");
 });
