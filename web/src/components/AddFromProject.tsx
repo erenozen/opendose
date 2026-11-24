@@ -89,7 +89,11 @@ export default function AddFromProjectHost() {
 
   // One file at a time, in the order given (a dialog may wait on each).
   const queue = (files: File[]) => {
-    for (const f of files) busy.current = busy.current.then(() => addOne(f));
+    for (const f of files) {
+      busy.current = busy.current.then(() => addOne(f)).catch((e: unknown) => {
+        notify(`Could not add “${f.name}”: ${reason(e)}.`, { tone: "error" });
+      });
+    }
   };
   const queueRef = useRef(queue);
   queueRef.current = queue;
