@@ -445,6 +445,27 @@ export const EXPLAINERS: Explainer[] = [
     sources: [{ label: "Plotly: WebGL vs SVG in JavaScript", url: "https://plotly.com/javascript/webgl-vs-svg/" }],
     keywords: "large data big table rows points limit slow performance webgl memory autosave size 100000 500000",
   },
+  {
+    id: "dose-series",
+    title: "Planning a dose series",
+    summary: "Before an IC50 assay: put the concentrations around the expected IC50 with both plateaus covered, and check the expected CI.",
+    body: [
+      "The IC50 is located by the curve's steep part, but its CI also depends on how well the "
+        + "plateaus are known: a fit that has to guess the top or the bottom can put the IC50 "
+        + "almost anywhere. A relative IC50 needs at least two concentrations beyond each bend "
+        + "point, where the curve leaves its plateau (Sebaugh 2011); for a slope of 1 the bend "
+        + "points lie about 0.67 log units either side of the IC50.",
+      "Plan an experiment… computes the expected 95% CI of the IC50 for a planned series from "
+        + "the expected information matrix, and can check it by fitting simulated experiments. "
+        + "It needs an expected IC50, a Hill slope, the plateaus and the scatter of one well: "
+        + "these are assumptions, so try a few values. Shifting the series so that a plateau is "
+        + "missed widens the expected CI and raises a flag.",
+      "Change one thing at a time (the range, the spacing, the replicates) and watch the expected "
+        + "CI. Never give the vehicle a made-up concentration to put it on the log axis.",
+    ],
+    sources: [SRC.sebaugh2011, SRC.sebaughMcCray2003],
+    keywords: "ic50 ec50 dose range concentrations dilution series half-log plateau bend point planning assay design",
+  },
 ];
 
 export const EXPLAINER_ALIASES: Record<string, string> = { superplots: "replicates" };

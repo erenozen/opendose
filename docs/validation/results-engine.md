@@ -3041,3 +3041,55 @@ and the 23.59-animal check, the trade-off table (1 cell: 64 animals, 10
 cells: 25), a 2000-run simulation with seed 7 within 4 Monte Carlo SE
 of 81.26%, and Stop ending a 10000-run simulation early; ui-stage scene
 guided-power-nested.
+
+### P-97 Dose-series planning
+
+`opendose.doseplan` checks a planned dose series before the experiment,
+for the four-parameter logistic of the curve fitter: the expected 95% CI
+of LogIC50 from the expected information matrix (J'J / sigma^2 at the
+assumed curve, with analytic derivatives; columns scaled so the
+condition number does not depend on units; t on n - 4 df), as limits
+and as a fold range; the bend points of Sebaugh & McCray (2003),
+LogIC50 +/- log10(4.6805) / |Hill|, and the number of concentrations
+beyond each, flagged below two (Sebaugh 2011); an IC50 outside the
+range, too few values and a series that cannot separate the parameters
+are flagged too. `simulate_fits` simulates the planned wells with
+`simulate.simulate_xy` and fits each data set with `nlfit.fit_model`
+(asymptotic CIs), reporting the median CI width, the coverage of the
+true LogIC50 with its Monte Carlo SE and the fractions of ambiguous fits
+and fits without a CI; the app runs it in chunks of 10 with progress and
+Stop and pools them in the engine. The slope, plateaus and SD are
+assumptions and the card says so.
+
+References: the asymptotic covariance re-derived by
+`engine/tests/reference/doseplan.py` with scipy curve_fit at the
+noise-free planned curve (MINPACK finite differences, absolute_sigma),
+and a 4000-run curve_fit Monte Carlo; Sebaugh (2011, Pharm Stat 10:128)
+and Sebaugh & McCray (2003, Pharm Stat 2:167) for the plateau rule.
+`engine/tests/test_doseplan.py`:
+
+| Input | Reference | Engine |
+|---|---|---|
+| 8 half-log concentrations 0.0178 to 56.2 uM, expected IC50 1 uM, Hill -1, plateaus 100 and 0, SD 5, triplicates (the plan's acceptance test) | curve_fit covariance: CI width 0.225312 log10 (1.6800-fold) | 0.225312 (to 1e-6), IC50 0.772 to 1.296 uM, both plateaus defined (3 concentrations beyond each bend point) |
+| The same series 1.5 log units higher (0.562 to 1778 uM) | 1.449241 log10 (28.13-fold) | 1.449241, the top plateau flagged (0 concentrations beyond its bend point) |
+| Rising curve, Hill 1.5, plateaus 80 and 10, SD 4, duplicates | 0.219169 | 0.219169 |
+| Monte Carlo of the acceptance series (curve_fit, 4000 runs) | coverage 0.9555, median width 0.2210 | engine fits (300 runs): coverage within 4 Monte Carlo SE, median width within 5%, and within 6% of the asymptotic width |
+
+Also tested: the bend points and the response there (17.6% and 82.4% of
+the span); 4 times the replicates halve the SE; concentration units x
+1e-12 and x 1e12 and response units scaled leave the width unchanged;
+dose order does not matter; missing the top plateau widens the fitted
+CIs more than 5-fold in simulation too; pooled chunks give the pooled
+coverage; zero, repeated or no concentrations, a dilution factor of 1,
+an IC50 of 0, a Hill slope of 0, an SD of 0, equal plateaus, 4 values
+(no df) and a flat range are messages or flags, never a NaN.
+
+Web: `src/guide/__tests__/doseSeries.test.ts` (payload with the
+design's direction, field messages, the series and CI sentences, the
+plan note, simulation rows); "Plan an experiment…" shows the card for
+dose-response curves and saves its sentence in the plan's design notes;
+the "Planning a dose series" explainer in the Help panel. e2e-check
+reads the acceptance CI (0.772 to 1.3 uM, 1.68-fold), the 28.2-fold CI
+and the top-plateau flag after shifting the series, a 30-run simulation
+near the expected width, and axe on the dialog; ui-stage scene
+guided-plan-dose.

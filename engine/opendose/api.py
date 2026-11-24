@@ -4329,6 +4329,40 @@ def _nested_power_sim(data, options):
         **{k: options[k] for k in keys if k in options})}
 
 
+def _dose_plan(data, options):
+    """Planning a dose series (doseplan.plan). data is ignored. options:
+    ic50, hill (negative: falling curve), top, bottom, sd (one well),
+    replicates, and doses [concentrations] or top_dose + n_doses +
+    dilution; ci_level (0.95). With n_sim (and seed) the planned
+    experiment is also simulated and fitted (doseplan.simulate_fits) under
+    "simulation"; plan: false leaves the plan out. With "pool": [the
+    "simulation" results of one run's chunks] instead, the chunks are
+    pooled (doseplan.summarize). Result: {"analysis": "dose_plan",
+    "doses", "expected_ci": {log_width, fold_width, lower, upper, ...},
+    "plateaus", "bend_points", "flags", "se", ...}."""
+    from . import doseplan
+    if options.get("pool") is not None:
+        chunks = options["pool"]
+        if not chunks:
+            raise ValueError("nothing to pool")
+        keys = ("n_sim", "n_failed", "n_ambiguous", "n_no_ci", "n_ci",
+                "n_covered")
+        pooled = {k: sum(int(c[k]) for c in chunks) for k in keys}
+        pooled["log_widths"] = [w for c in chunks for w in c["log_widths"]]
+        return {"analysis": "dose_plan", **pooled,
+                **doseplan.summarize(pooled)}
+    keys = ("ic50", "hill", "top", "bottom", "sd", "replicates", "doses",
+            "top_dose", "n_doses", "dilution", "ci_level")
+    planned = {k: options[k] for k in keys if k in options}
+    out = {"analysis": "dose_plan"}
+    if options.get("plan", True):
+        out.update(doseplan.plan(**planned))
+    if options.get("n_sim"):
+        out["simulation"] = doseplan.simulate_fits(
+            n_sim=options["n_sim"], seed=options.get("seed"), **planned)
+    return out
+
+
 def _randomize(data, options):
     """Randomisation list (power.randomization_list). data is ignored.
     options: n, groups (["A", "B"]), ratio ([1, 1]), method ("block" |
@@ -4351,6 +4385,7 @@ _HANDLERS.update({
     "power": _power,
     "randomize": _randomize,
     "nested_power_sim": _nested_power_sim,
+    "dose_plan": _dose_plan,
 })
 
 

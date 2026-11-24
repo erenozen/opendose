@@ -1575,6 +1575,25 @@ const scenes = [
     await analyzeItem(s, /^Plan an experiment/);
     await dialog(s, "Plan an experiment").waitFor();
   } },
+  // P-97: a dose series that misses the top plateau (flagged), with a
+  // finished simulation check.
+  { name: "guided-plan-dose", setup: async (s) => {
+    await example(s);
+    await analyzeItem(s, /^Plan an experiment/);
+    const pd = dialog(s, "Plan an experiment");
+    await pd.waitFor();
+    await pd.getByRole("group", { name: "What did you measure?" })
+      .getByRole("radio", { name: "A dose-response or other curve" }).check();
+    await pd.getByLabel("Highest concentration").fill("1778");
+    await s.page.waitForFunction(() => /28\.2-fold/.test(
+      document.querySelector(".plan-exp .dose-plan-answer")?.textContent ?? ""), null, { timeout: 60000 });
+    await pd.getByLabel("Simulated experiments").fill("10");
+    await pd.locator(".dose-plan-sim").getByLabel("Seed", { exact: true }).fill("3");
+    await pd.getByRole("button", { name: "Simulate the series" }).click();
+    await pd.locator(".dose-plan-sim .power-kv").waitFor({ timeout: 180000 });
+    await pd.locator(".dose-plan").scrollIntoViewIfNeeded();
+    await settle(s);
+  } },
   { name: "guided-describe", setup: async (s) => {
     await start(s);
     await headerMenu(s, "File", "Describe your experiment…");

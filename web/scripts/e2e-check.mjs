@@ -4346,6 +4346,42 @@ const axeOn = async (pg, sel) => {
     && await page.getByRole("treeitem", { name: "t test of Serum IL-6 (pg/mL) (planned)" }).count() >= 1,
     (await saved.innerText().catch(() => "")).slice(0, 200));
 
+  // (b2) P-97 dose series (engine/tests/test_doseplan.py): 8 half-log
+  // concentrations from 56.2 µM around an expected IC50 of 1 µM, Hill 1,
+  // plateaus 100 and 0, SD 5, triplicates: expected 95% CI 0.772 to
+  // 1.3 µM (1.68-fold), both plateaus defined; from 1778 µM the top
+  // plateau is missed: 28.2-fold and a flag.
+  await navRow("Planned mice").click();
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Plan an experiment…/ }).click();
+  const pd = page.getByRole("dialog", { name: "Plan an experiment" });
+  await pd.waitFor({ timeout: 15000 });
+  await pd.getByRole("group", { name: "What did you measure?" })
+    .getByRole("radio", { name: "A dose-response or other curve" }).check();
+  const doseCi = (re) => page.waitForFunction((src) => new RegExp(src).test(
+    document.querySelector(".plan-exp .dose-plan-answer")?.innerText ?? ""), re.source, { timeout: 60000 })
+    .then(() => true, () => false);
+  expect("dose series (acceptance): expected IC50 CI 0.772 to 1.3 µM, 1.68-fold, both plateaus defined",
+    await doseCi(/Expected 95% CI of the IC50: 0\.772 to 1\.3\sµM, a 1\.68-fold range[\s\S]*The top plateau is defined[\s\S]*The bottom plateau is defined/),
+    await pd.locator(".dose-plan-answer").innerText().catch(() => ""));
+  await pd.getByLabel("Highest concentration").fill("1778");
+  expect("dose series: missing the top plateau widens the CI to 28.2-fold and flags it (Sebaugh 2011)",
+    await doseCi(/0\.188 to 5\.31\sµM, a 28\.2-fold range[\s\S]*The top plateau will not be defined[\s\S]*0 concentrations beyond/),
+    await pd.locator(".dose-plan-answer").innerText().catch(() => ""));
+  await pd.getByLabel("Highest concentration").fill("56.2");
+  await doseCi(/1\.68-fold/);
+  await pd.getByLabel("Simulated experiments").fill("30");
+  await pd.locator(".dose-plan-sim").getByLabel("Seed", { exact: true }).fill("3");
+  await pd.getByRole("button", { name: "Simulate the series" }).click();
+  const doseSim = await pd.locator(".dose-plan-sim .power-kv").innerText({ timeout: 180000 }).catch(() => "");
+  const medFold = Number(/Median CI of the IC50 \(fold range\)\s+([\d.]+)-fold/.exec(doseSim)?.[1]);
+  expect("dose series simulation: 30 fitted experiments, median CI near the expected 1.68-fold",
+    /Simulated experiments\s+30/.test(doseSim) && medFold > 1.5 && medFold < 1.9
+    && /Expected \(from the information matrix\)\s+1\.68-fold/.test(doseSim), doseSim);
+  axeHits.push(...await axeAt(".plan-exp"));
+  await pd.getByRole("button", { name: "Cancel" }).click();
+  await pd.waitFor({ state: "detached", timeout: 10000 });
+
   // (c) the interaction question on a 2 × 2 grouped table
   await newTable("grouped", "Drug by genotype", [2, 3, 2]);
   await pasteAt("Row 1 title", "Vehicle\t9\t10\t11\t9\t10\t11\nDrug\t12\t13\t14\t16\t17\t18\n");
