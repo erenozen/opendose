@@ -256,6 +256,41 @@ expect("P-16 standard curve: the standard left out is said, with its rows; 14 re
   (await analysedLine("14 replicates at 7 levels")).startsWith("Analysed: standards: 14 replicates at 7 levels in the fit")
   && await notesRegion().getByText("The 7.81 pg/mL standard was left out of the fit: excluded by the user (row 8).")
     .waitFor({ timeout: 30000 }).then(() => true, () => false));
+// P-103 acceptance: the kit prescribes "Cubic spline (no CI)": unknowns are
+// read off the natural cubic spline through the level means on log10
+// concentration (engine/tests/reference/smoothing.py, kit_elisa: S1 47.60,
+// 95.20 pg/mL after 1:2, by a tridiagonal solve and bisection) and the
+// results say no model CI exists
+{
+  const kit = JSON.parse(readFileSync(new URL("../../engine/tests/reference/smoothing.json", import.meta.url), "utf8"))
+    .kit_elisa;
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  await page.getByLabel("Standard curve model").first().selectOption({ label: "Cubic spline (no CI)" });
+  const s1Want = `${sig4(kit.S1.spline[0])}`;
+  const s1Row = () => page.locator(".std-unknowns tr", { hasText: /^S1/ }).first().innerText()
+    .then((t) => t.replace(/\s+/g, " "), () => "");
+  const spl = await page.waitForFunction((w) => [...document.querySelectorAll(".std-unknowns tr")]
+    .some((tr) => /^S1/.test(tr.innerText) && tr.innerText.includes(w) && /no model CI/.test(tr.innerText)),
+  s1Want, { timeout: 60000 }).then(() => true, () => false);
+  const row = await s1Row();
+  expect(`P-103 acceptance: cubic spline (no CI): S1 ${s1Want} pg/mL, ${sig4(2 * kit.S1.spline[0])} after 1:2, "no model CI"`,
+    spl && row.includes(sig4(2 * kit.S1.spline[0])), row);
+  const plate = await textOf(".std-results");
+  expect("P-103 the spline curve has no parameters, R² or weighting, and no F test of parallelism",
+    plate.includes("an interpolating curve: no parameters, no R², no model CI")
+    && plate.includes("an interpolating curve has no parameters"), plate.slice(0, 300));
+  await page.getByLabel("Standard curve model").first().selectOption({ label: "Point to point (no CI)" });
+  const p2p = sig4(kit.S1.point_to_point[0]);
+  expect(`P-103 point to point (no CI): S1 ${p2p} pg/mL`, await page.waitForFunction((w) =>
+    [...document.querySelectorAll(".std-unknowns tr")].some((tr) => /^S1/.test(tr.innerText) && tr.innerText.includes(w)
+      && /no model CI/.test(tr.innerText)), p2p, { timeout: 60000 }).then(() => true, () => false), await s1Row());
+  const methods = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("P-103 the methods say interpolated concentrations have no model-based CI",
+    /no model-based confidence interval and none is reported/.test(methods), methods.slice(0, 200));
+  await page.getByLabel("Standard curve model").first().selectOption({ label: "Four-parameter logistic (4PL), X = log(concentration)" });
+  await page.waitForFunction(() => /95% CI|\d to \d/.test(document.querySelector(".std-unknowns")?.textContent ?? ""),
+    null, { timeout: 60000 }).catch(() => {});
+}
 
 // --- qPCR ---
 // The example's ACTB is 1.4 cycles higher in LPS + inhibitor (engine

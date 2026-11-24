@@ -1,0 +1,799 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Smoothing",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r002",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Cars",
+   "table": {
+    "type": "xy",
+    "x": [
+     "4",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18",
+     "19",
+     "20",
+     "22",
+     "23",
+     "24",
+     "25"
+    ],
+    "xTitle": "Speed",
+    "xFormat": "numbers",
+    "xUnit": "mph",
+    "yTitle": "Stopping distance (ft)",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Distance",
+      "subTitles": [
+       "",
+       "",
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "2",
+        "10",
+        "",
+        "",
+        ""
+       ],
+       [
+        "4",
+        "22",
+        "",
+        "",
+        ""
+       ],
+       [
+        "16",
+        "",
+        "",
+        "",
+        ""
+       ],
+       [
+        "10",
+        "",
+        "",
+        "",
+        ""
+       ],
+       [
+        "18",
+        "26",
+        "34",
+        "",
+        ""
+       ],
+       [
+        "17",
+        "28",
+        "",
+        "",
+        ""
+       ],
+       [
+        "14",
+        "20",
+        "24",
+        "28",
+        ""
+       ],
+       [
+        "26",
+        "34",
+        "34",
+        "46",
+        ""
+       ],
+       [
+        "26",
+        "36",
+        "60",
+        "80",
+        ""
+       ],
+       [
+        "20",
+        "26",
+        "54",
+        "",
+        ""
+       ],
+       [
+        "32",
+        "40",
+        "",
+        "",
+        ""
+       ],
+       [
+        "32",
+        "40",
+        "50",
+        "",
+        ""
+       ],
+       [
+        "42",
+        "56",
+        "76",
+        "84",
+        ""
+       ],
+       [
+        "36",
+        "46",
+        "68",
+        "",
+        ""
+       ],
+       [
+        "32",
+        "48",
+        "52",
+        "56",
+        "64"
+       ],
+       [
+        "66",
+        "",
+        "",
+        "",
+        ""
+       ],
+       [
+        "54",
+        "",
+        "",
+        "",
+        ""
+       ],
+       [
+        "70",
+        "92",
+        "93",
+        "120",
+        ""
+       ],
+       [
+        "85",
+        "",
+        "",
+        "",
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "smooth_xy",
+   "options": {
+    "method": "smoothing_spline",
+    "span": "",
+    "iterations": "",
+    "smoothing": "gcv",
+    "df": ""
+   },
+   "name": "Smoothing spline of Cars"
+  },
+  {
+   "id": "r003",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "smooth_xy",
+   "options": {
+    "method": "lowess",
+    "span": "",
+    "iterations": "",
+    "smoothing": "gcv",
+    "df": ""
+   },
+   "name": "LOWESS of Cars"
+  },
+  {
+   "id": "g004",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r002",
+   "graphType": "smooth_xy_graph",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Smoothing spline graph of Cars"
+  },
+  {
+   "id": "d005",
+   "kind": "data",
+   "name": "Trace",
+   "table": {
+    "type": "xy",
+    "x": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11"
+    ],
+    "xTitle": "Time",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Signal",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Signal",
+      "rows": [
+       [
+        "1"
+       ],
+       [
+        "2.2"
+       ],
+       [
+        "2.9"
+       ],
+       [
+        "4.1"
+       ],
+       [
+        "5.3"
+       ],
+       [
+        "5.9"
+       ],
+       [
+        "7.2"
+       ],
+       [
+        "8.1"
+       ],
+       [
+        "8.8"
+       ],
+       [
+        "10.4"
+       ],
+       [
+        "11"
+       ],
+       [
+        "11.9"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r006",
+   "kind": "results",
+   "parentId": "d005",
+   "analysis": "curve_ops",
+   "options": {
+    "op": "smooth",
+    "neighbours": "2",
+    "order": "2"
+   },
+   "name": "Smooth, differentiate or integrate of Trace"
+  },
+  {
+   "id": "d007",
+   "kind": "data",
+   "name": "Curve of Trace",
+   "table": {
+    "type": "xy",
+    "x": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11"
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Signal",
+      "rows": [
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "derived": {
+    "sourceId": "d005",
+    "resultsId": "r006"
+   }
+  },
+  {
+   "id": "d008",
+   "kind": "data",
+   "name": "ELISA kit",
+   "table": {
+    "type": "multivariable",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12"
+    ],
+    "datasets": [
+     {
+      "name": "Type",
+      "varType": "categorical",
+      "rows": [
+       [
+        "Standard"
+       ],
+       [
+        "Standard"
+       ],
+       [
+        "Standard"
+       ],
+       [
+        "Standard"
+       ],
+       [
+        "Standard"
+       ],
+       [
+        "Standard"
+       ],
+       [
+        "Standard"
+       ],
+       [
+        "Standard"
+       ],
+       [
+        "Blank"
+       ],
+       [
+        "Unknown"
+       ],
+       [
+        "Unknown"
+       ],
+       [
+        "Unknown"
+       ]
+      ]
+     },
+     {
+      "name": "Name",
+      "varType": "categorical",
+      "rows": [
+       [
+        "Std 1"
+       ],
+       [
+        "Std 2"
+       ],
+       [
+        "Std 3"
+       ],
+       [
+        "Std 4"
+       ],
+       [
+        "Std 5"
+       ],
+       [
+        "Std 6"
+       ],
+       [
+        "Std 7"
+       ],
+       [
+        "Std 8"
+       ],
+       [
+        "Blank"
+       ],
+       [
+        "S1"
+       ],
+       [
+        "S4"
+       ],
+       [
+        "S7"
+       ]
+      ]
+     },
+     {
+      "name": "Group",
+      "varType": "categorical",
+      "rows": [
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ]
+      ]
+     },
+     {
+      "name": "Concentration",
+      "varType": "continuous",
+      "rows": [
+       [
+        "1000"
+       ],
+       [
+        "500"
+       ],
+       [
+        "250"
+       ],
+       [
+        "125"
+       ],
+       [
+        "62.5"
+       ],
+       [
+        "31.25"
+       ],
+       [
+        "15.63"
+       ],
+       [
+        "7.81"
+       ],
+       [
+        "0"
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ]
+      ]
+     },
+     {
+      "name": "Dilution",
+      "varType": "continuous",
+      "rows": [
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        ""
+       ],
+       [
+        "2"
+       ],
+       [
+        "2"
+       ],
+       [
+        "2"
+       ]
+      ]
+     },
+     {
+      "name": "Signal 1",
+      "varType": "continuous",
+      "rows": [
+       [
+        "2.343"
+       ],
+       [
+        "2.074"
+       ],
+       [
+        "1.541"
+       ],
+       [
+        "1.142"
+       ],
+       [
+        "0.724"
+       ],
+       [
+        "0.451"
+       ],
+       [
+        "0.282"
+       ],
+       [
+        "0.236"
+       ],
+       [
+        "0.063"
+       ],
+       [
+        "0.603"
+       ],
+       [
+        "1.307"
+       ],
+       [
+        "2.532"
+       ]
+      ]
+     },
+     {
+      "name": "Signal 2",
+      "varType": "continuous",
+      "rows": [
+       [
+        "2.267"
+       ],
+       [
+        "2.083"
+       ],
+       [
+        "1.566"
+       ],
+       [
+        "1.13"
+       ],
+       [
+        "0.71"
+       ],
+       [
+        "0.451"
+       ],
+       [
+        "0.288"
+       ],
+       [
+        "0.202"
+       ],
+       [
+        "0.058"
+       ],
+       [
+        "0.581"
+       ],
+       [
+        "1.257"
+       ],
+       [
+        "2.527"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r009",
+   "kind": "results",
+   "parentId": "d008",
+   "analysis": "assay_stdcurve",
+   "options": {
+    "unit": "pg/mL",
+    "model": "spline",
+    "excludeLevels": [
+     7.81
+    ]
+   },
+   "name": "Standard curve of ELISA kit"
+  }
+ ]
+}

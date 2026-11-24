@@ -133,6 +133,10 @@ export interface CoxResult {
   schoenfeld: {
     time: number[]; transformed_time: number[]; stratum: string[];
     columns: string[]; residuals: number[][]; scaled: number[][];
+    /** LOWESS of each column on the transformed time, [column][row]
+     *  (engine smooth.lowess, R's lowess() defaults); null where the
+     *  residual is missing. Absent from results saved before P-103. */
+    smooth?: (number | null)[][]; smooth_scaled?: (number | null)[][];
   };
   residuals?: { martingale: number[]; deviance: number[] };
   warnings: string[];
@@ -506,43 +510,10 @@ export function phReading(r: CoxResult, alpha = 0.05): string {
     + "or report the hazard ratio as an average over follow-up.";
 }
 
-/** LOWESS smooth (Cleveland 1979; tricube weights, local linear, two
- *  robustness iterations), as R's lowess() with f = 2/3. */
-export function lowess(xs: number[], ys: number[], f = 2 / 3, iter = 2): number[] {
-  const n = xs.length;
-  if (n < 3) return [...ys];
-  const order = xs.map((_, i) => i).sort((a, b) => xs[a] - xs[b]);
-  const x = order.map((i) => xs[i]);
-  const y = order.map((i) => ys[i]);
-  const r = Math.max(2, Math.min(n, Math.ceil(f * n)));
-  const fit = new Array<number>(n).fill(0);
-  let robust = new Array<number>(n).fill(1);
-  for (let it = 0; it <= iter; it++) {
-    for (let i = 0; i < n; i++) {
-      const dist = x.map((v) => Math.abs(v - x[i]));
-      const h = [...dist].sort((a, b) => a - b)[r - 1] || 1e-12;
-      let sw = 0, swx = 0, swy = 0, swxx = 0, swxy = 0;
-      for (let j = 0; j < n; j++) {
-        const u = dist[j] / h;
-        if (u >= 1) continue;
-        const w = (1 - u ** 3) ** 3 * robust[j];
-        sw += w; swx += w * x[j]; swy += w * y[j];
-        swxx += w * x[j] * x[j]; swxy += w * x[j] * y[j];
-      }
-      if (sw <= 0) { fit[i] = y[i]; continue; }
-      const mx = swx / sw;
-      const my = swy / sw;
-      const vxx = swxx / sw - mx * mx;
-      const b = vxx > 1e-12 * (1 + mx * mx) ? (swxy / sw - mx * my) / vxx : 0;
-      fit[i] = my + b * (x[i] - mx);
-    }
-    if (it === iter) break;
-    const res = y.map((v, i) => Math.abs(v - fit[i]));
-    const m = [...res].sort((a, b) => a - b)[Math.floor(n / 2)] * 6;
-    if (!(m > 0)) break;
-    robust = res.map((e) => (e < m ? (1 - (e / m) ** 2) ** 2 : 0));
-  }
-  const out = new Array<number>(n);
-  order.forEach((i, k) => { out[i] = fit[k]; });
-  return out;
+/** The LOWESS smooth of residual column j (scaled or raw), one value per
+ *  residual row, as the engine computed it (engine/opendose/smooth.py:
+ *  R's lowess() with its defaults on the transformed time). */
+export function schoenfeldSmooth(sch: CoxResult["schoenfeld"], j: number, scaled: boolean): (number | null)[] {
+  const cols = scaled ? sch.smooth_scaled : sch.smooth;
+  return cols?.[j] ?? sch.time.map(() => null);
 }

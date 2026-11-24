@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { normalizeTable, toggleExcluded } from "../../../project/table.ts";
 import {
-  coxModel, coxPayload, curveProfiles, defaultCoxOptions, guessTimeEvent, lowess,
+  coxModel, coxPayload, curveProfiles, defaultCoxOptions, guessTimeEvent, schoenfeldSmooth,
   normalizeCoxOptions, survivalCoxData, survivalCovariateNames,
 } from "../cox.ts";
 import {
@@ -129,8 +129,15 @@ test("covariate columns are added, renamed and removed in every group", () => {
   assert.deepEqual(t.datasets[0].excluded, ["0:2"]);
 });
 
-test("lowess of a straight line is the line", () => {
-  const xs = [1, 2, 3, 4, 5, 6, 7, 8];
-  const ys = xs.map((x) => 2 * x + 1);
-  lowess(xs, ys).forEach((v, i) => assert.ok(Math.abs(v - ys[i]) < 1e-9));
+test("the Schoenfeld smooth is the engine's, per column and scale", () => {
+  const sch = {
+    time: [1, 2, 3], transformed_time: [0.1, 0.2, 0.3], stratum: ["", "", ""], columns: ["a", "b"],
+    residuals: [[1, 2], [3, 4], [5, 6]], scaled: [[1, 2], [3, 4], [5, 6]],
+    smooth: [[0.5, 0.6, 0.7], [1.5, 1.6, 1.7]], smooth_scaled: [[9, 8, null], [7, 6, 5]],
+  };
+  assert.deepEqual(schoenfeldSmooth(sch, 1, false), [1.5, 1.6, 1.7]);
+  assert.deepEqual(schoenfeldSmooth(sch, 0, true), [9, 8, null]);
+  // a result saved before the engine computed the smooth draws none
+  const { smooth: _a, smooth_scaled: _b, ...old } = sch;
+  assert.deepEqual(schoenfeldSmooth(old, 0, false), [null, null, null]);
 });

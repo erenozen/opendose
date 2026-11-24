@@ -1948,6 +1948,80 @@ const axeOn = (sel) => page.evaluate(async ([src, s]) => {
       && /^Response “30” 3 100 2\.869 0 /.test(nrows[4]), nrows.join(" | "));
 }
 
+// --- P-103: smoothing, splines and curve operations ---------------------
+{
+  // engine/tests/reference/smoothing.py: R's cars data. The smoothing
+  // spline by GCV with the exact penalty (R's smooth.spline prints df
+  // 2.635278, lambda 0.1112206, GCV 244.1044 with its 0.333 constant);
+  // LOWESS with R's defaults (statsmodels lowess, delta = 0.01 x range);
+  // Savitzky-Golay of a 12-point trace (numpy.polyfit of each window).
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/smoothing.json"), "utf8"));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "../e2e-fixtures/stage/smoothing.json"));
+  const openSheet = (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const rowOf = async (card, label) => (await card.locator("tr", { hasText: label }).first()
+    .innerText({ timeout: 180000 }).catch(() => "")).replace(/\s+/g, " ").trim();
+  // the row of the "Curve at each X" table whose X cell reads x
+  const curveRow = async (card, x) => (await card.locator(".smooth-values tbody tr").allInnerTexts())
+    .map((t) => t.replace(/\s+/g, " ").trim()).find((t) => t.startsWith(`${x} `)) ?? "";
+  await openSheet("Smoothing spline of Cars");
+  const ex = ref.bspline_exact.cars_gcv;
+  const card = page.locator(".smooth-card").first();
+  await card.waitFor({ timeout: 240000 }).catch(() => {});
+  const df = await rowOf(card, "Equivalent degrees of freedom");
+  const lam = await rowOf(card, "λ (X scaled to 0 to 1)");
+  const gcv = await rowOf(card, "GCV score");
+  expect(`P-103 smoothing spline of cars by GCV: df ${sig(ex.df)}, λ ${sig(ex.lambda)}, GCV ${sig(ex.gcv)}`,
+    df.endsWith(sig(ex.df)) && lam.endsWith(sig(ex.lambda)) && gcv.endsWith(sig(ex.gcv)), `${df} | ${lam} | ${gcv}`);
+  const x4 = await curveRow(card, 4);
+  expect(`P-103 the spline at speed 4: mean 6, curve ${sig(ex.fitted[0])}`, x4 === `4 6 ${sig(ex.fitted[0])}`, x4);
+  expect("P-103 the results say there is no model CI",
+    (await rowOf(card, "Confidence interval")) === "Confidence interval No model CI"
+    && /no model-based confidence interval/.test(await page.locator(".smooth-no-ci").first().innerText()));
+  await openSheet("LOWESS of Cars");
+  const lcard = page.locator(".smooth-card").first();
+  await page.waitForFunction(() => /Span f/.test(document.querySelector(".smooth-card")?.textContent ?? ""),
+    null, { timeout: 120000 }).catch(() => {});
+  const lw = ref.lowess.cars_f23;
+  const l4 = await curveRow(lcard, 4);
+  const l25 = await curveRow(lcard, 25);
+  expect(`P-103 LOWESS of cars (R's defaults): ${sig(lw[0])} at speed 4, ${sig(lw[lw.length - 1])} at 25`,
+    l4 === `4 6 ${sig(lw[0])}` && l25 === `25 85 ${sig(lw[lw.length - 1])}`, `${l4} | ${l25}`);
+  // span 0.2: the curve follows the points more closely
+  await page.locator(".pane-controls").getByLabel("Span f").fill("0.2");
+  const f02 = sig(ref.lowess.cars_f02[0]);
+  expect(`P-103 LOWESS with span 0.2: ${f02} at speed 4`, await page.waitForFunction((w) =>
+    [...document.querySelectorAll(".smooth-values tr")].some((tr) => tr.innerText.replace(/\s+/g, " ").trim()
+      === `4 6 ${w}`), f02, { timeout: 60000 }).then(() => true, () => false));
+  // the graph draws the points and the curve
+  await openSheet("Smoothing spline graph of Cars");
+  const drawn = await page.waitForFunction(() => {
+    const d = document.querySelector(".plot-card .plot")?.data ?? [];
+    return d.some((t) => t.mode === "lines" && t.x?.length > 19) && d.some((t) => t.mode === "markers");
+  }, null, { timeout: 120000 }).then(() => true, () => false);
+  expect("P-103 the smooth graph draws the points and the spline", drawn);
+  // Savitzky-Golay into the linked table
+  await openSheet("Smooth, differentiate or integrate of Trace");
+  await page.locator(".manip-open").first().click({ timeout: 120000 });
+  const want = ref.savgol.k2_o2;
+  const cellOk = await page.waitForFunction((w) => [0, 5, 11].every((i) => {
+    const el = document.querySelector(`.data-table input[aria-label='Signal, row ${i + 1}']`);
+    return el && Math.abs(Number(el.value) - w[i]) < 1e-9;
+  }), want, { timeout: 120000 }).then(() => true, () => false);
+  expect(`P-103 Savitzky-Golay (2 neighbours, order 2) in the linked table: ${sig(want[0])}, ${sig(want[5])}, `
+    + `${sig(want[11])}`, cellOk);
+  // the Analyze menu offers both on an XY table
+  await openSheet("Cars");
+  await page.getByRole("button", { name: "Analyze" }).first().click();
+  const items = await page.getByRole("menuitem").allInnerTexts();
+  expect("P-103 XY Analyze menu: Smooth / spline and Smooth, differentiate or integrate a curve",
+    items.some((t) => t.startsWith("Smooth / spline")) && items.some((t) => t.startsWith("Smooth, differentiate")),
+    items.filter((t) => t.startsWith("Smooth")).join(" | "));
+  await page.keyboard.press("Escape");
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

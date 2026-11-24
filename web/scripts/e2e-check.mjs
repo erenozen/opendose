@@ -2018,6 +2018,19 @@ await page.waitForTimeout(600);
 expect("Schoenfeld residuals: 165 events and a smooth",
   await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
     .map((t) => t.x?.length ?? 0).join(",")) === "165,165");
+{
+  // P-103: the smooth is the engine's LOWESS (R's lowess() defaults), the
+  // one the Smooth / spline analysis uses: statsmodels' lowess of the
+  // scaled residuals on the transformed time (engine/tests/reference/
+  // smoothing.py, cox_lung_smooth)
+  const ref = JSON.parse(readFileSync(new URL("../../engine/tests/reference/smoothing.json", import.meta.url),
+    "utf8")).cox_lung_smooth.scaled;
+  const ys = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .find((t) => t.name === "Smooth (LOWESS)")?.y ?? []);
+  const near = (col) => [0, 82, 164].every((i) => Math.abs(ys[i] - col[i]) <= 1e-6 * Math.max(1, Math.abs(col[i])));
+  expect("P-103 Schoenfeld smooth = the engine's LOWESS (statsmodels lowess with R's defaults)",
+    ys.length === 165 && ref.some(near), `${ys[0]}, ${ys[82]}, ${ys[164]}`);
+}
 await fromTemplate(/Cox regression from a variables/, "Lung variables");
 const coxMv = await cardRow("Cox proportional hazards", "Sex: Female vs Male");
 expect("Cox from a multiple-variables table (status 2 = died): HR 0.5986", coxMv.includes("0.5986"), coxMv);

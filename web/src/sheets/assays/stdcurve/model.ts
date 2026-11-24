@@ -42,7 +42,11 @@ export const STD_ROLES: RoleSpec<StdRole>[] = [
 
 const SIGNAL_RE = /^(signal|od|abs|absorbance|rep|replicate|read|rfu|rlu|lum|fluor|mfi|value|response)/i;
 
-export type StdModel = "4pl" | "5pl" | "linear" | "loglog" | "quadratic";
+export type StdModel = "4pl" | "5pl" | "linear" | "loglog" | "quadratic" | "spline" | "point_to_point";
+
+/** Curves through the standard means (P-103): no parameters, no model CI. */
+export const INTERPOLATING_MODELS: StdModel[] = ["spline", "point_to_point"];
+export const isInterpolating = (m: StdModel): boolean => INTERPOLATING_MODELS.includes(m);
 
 export const MODEL_LABELS: Record<StdModel, string> = {
   "4pl": "Four-parameter logistic (4PL), X = log(concentration)",
@@ -50,6 +54,8 @@ export const MODEL_LABELS: Record<StdModel, string> = {
   linear: "Straight line",
   loglog: "Log-log straight line (log signal vs log concentration)",
   quadratic: "Quadratic (second-order polynomial), e.g. BCA protein assays",
+  spline: "Cubic spline (no CI)",
+  point_to_point: "Point to point (no CI)",
 };
 
 export type Weighting = "none" | "1/Y" | "1/Y2";
@@ -61,7 +67,7 @@ export interface StdOptions {
   signals: string[];
   model: StdModel;
   weighting: Weighting;
-  /** Straight-line models: fit on log10 concentration. */
+  /** Straight-line and interpolating models: on log10 concentration. */
   logX: boolean;
   blank: "zero_standard" | "none" | "value";
   blankValue: string;
@@ -109,7 +115,7 @@ export function normalizeStdOptions(raw: unknown): StdOptions {
   return {
     columns: o.columns && typeof o.columns === "object" ? { ...(o.columns as ColumnChoice<StdRole>) } : {},
     signals: Array.isArray(o.signals) ? o.signals.filter((x): x is string => typeof x === "string") : [],
-    model: ["4pl", "5pl", "linear", "loglog", "quadratic"].includes(o.model as string) ? o.model as StdModel : d.model,
+    model: (Object.keys(MODEL_LABELS) as string[]).includes(o.model as string) ? o.model as StdModel : d.model,
     weighting: ["none", "1/Y", "1/Y2"].includes(o.weighting as string) ? o.weighting as Weighting : d.weighting,
     logX: o.logX !== false,
     blank: o.blank === "none" || o.blank === "value" ? o.blank : "zero_standard",
@@ -281,7 +287,8 @@ export function stdPayloads(rows: StdRow[], o: StdOptions): { plate: string; pay
       cv_basis: o.cvBasis, parallelism_cv_limit: o.parallelismCv,
     };
     if (lows.length) Object.assign(options, { lod_c_beta: o.lodCBeta, loq_cv_limit: o.loqCv });
-    if (o.model === "linear") options.log_x = o.logX;
+    if (o.model === "linear" || isInterpolating(o.model)) options.log_x = o.logX;
+    if (isInterpolating(o.model)) options.weighting = "none";
     if (bottom !== null && Number.isFinite(bottom) && (o.model === "4pl" || o.model === "5pl")) {
       options.constraints = { Bottom: bottom };
     }

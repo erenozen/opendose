@@ -40,6 +40,10 @@ import {
 } from "./deming";
 import { DemingControls, DemingMethods, DemingResults } from "./demingPanels";
 import { xySample } from "./sample";
+import {
+  ANALYSIS_SMOOTH, DEFAULT_SMOOTH, GRAPH_SMOOTH, normalizeSmooth, smoothPayload, smoothResult,
+  type SmoothOptions,
+} from "./smooth";
 import { XYGraphOptions } from "./fitGraphOptions";
 
 export const nonlinAnalysis = defineAnalysis<OptionsState, AnalysisResult>({
@@ -224,6 +228,41 @@ export const compareGraph = defineGraph<CompareOptions, AnalysisResult>({
   formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true },
 });
 
+// Smooth / spline panels load on first use (sheets/lazy.ts).
+const smoothModule = () => import("./smoothPanels");
+
+export const smoothAnalysis = defineAnalysis<SmoothOptions, Record<string, unknown>>({
+  id: ANALYSIS_SMOOTH,
+  label: "Smooth / spline (LOWESS, smoothing spline, curve through the points)",
+  short: "Smooth / spline",
+  description: "A curve through each data set without a model: LOWESS, a smoothing spline, or a "
+    + "cubic, monotone or point-to-point curve through the points. No confidence interval.",
+  sheetName: (t) => `Smooth of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_SMOOTH }),
+  normalizeOptions: (raw) => normalizeSmooth(raw),
+  run: (engine, table, options) => {
+    const p = smoothPayload(table, options);
+    if ("error" in p) return p;
+    return smoothResult(engine.analyze(p), table);
+  },
+  defaultGraph: GRAPH_SMOOTH,
+  ControlsPanel: lazyPart(smoothModule, "SmoothControls"),
+  ResultsPanel: lazyPart(smoothModule, "SmoothResults"),
+  MethodsPanel: lazyPart(smoothModule, "SmoothMethods"),
+});
+
+// The XY graph draws the smooth curve exactly as it draws a fitted one.
+export const smoothGraph = defineGraph<SmoothOptions, AnalysisResult>({
+  id: GRAPH_SMOOTH,
+  label: "XY: points and the smooth curve",
+  group: "smooth",
+  analysis: ANALYSIS_SMOOTH,
+  autoTitles: (table) => tableTitles(table),
+  exportName: "smooth-curve",
+  PlotPanel: XYPlot as never,
+  formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true },
+});
+
 // Quantal dose-response panels load on first use (sheets/lazy.ts).
 const quantalModule = () => import("./quantalPanels");
 
@@ -275,7 +314,8 @@ export const xyTable: TableTypeDef = {
   Editor: DataGrid,
   EditorAside: PlateAside,
   analyses: [nonlinAnalysis, linregAnalysis, compareAnalysis, demingAnalysis, methodRegressionAnalysis,
-    quantalAnalysis, columnAnalysis, rowMeansAnalysis, rocAnalysis, blandAltmanAnalysis],
+    quantalAnalysis, smoothAnalysis, columnAnalysis, rowMeansAnalysis, rocAnalysis, blandAltmanAnalysis],
   graphs: [xyGraph, schildGraph, fitRegionGraph, linregGraph, compareGraph, demingGraph, methodRegressionGraph, quantalGraph,
+    smoothGraph,
     ...xyGroupedGraphs, ...columnGraphs, rocGraph, blandAltmanGraph],
 };

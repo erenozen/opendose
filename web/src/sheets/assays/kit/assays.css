@@ -156,3 +156,6 @@
 .plate-qc-grid .assay-stat strong { font-size: var(--text-title); font-variant-numeric: tabular-nums; }
 .assay-preview { margin: 0; padding-left: 18px; }
 .assay-preview li { margin: 3px 0; }
+
+/* P-103: an unknown read off a spline has no model CI; say so on one line */
+.results-table td.std-no-ci { white-space: nowrap; color: var(--muted); }
