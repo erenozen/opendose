@@ -99,6 +99,7 @@ function LabKitDialog({ file, kit, onClose }: { file: string; kit: LabKit; onClo
               </span>
             </label>
           ))}
+          <p className="field-note" role="status">{chosen.size ? "" : "Tick at least one part to import."}</p>
         </fieldset>
       ) : (
         <p className="modal-text">This kit is empty: it was exported from a browser with nothing saved.</p>
