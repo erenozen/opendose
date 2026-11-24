@@ -94,6 +94,7 @@ export default function ShareHost() {
     const onReq = (e: Event) => {
       const req = (e as CustomEvent<ShareRequest>).detail;
       if (req.kind === "bundle") void runBundle();
+      else if (req.kind === "xlsx") void runBundle("xlsx");
       else if (req.kind === "pzfx") void savePzfx(req.dataId);
       else setDialog(req);
     };

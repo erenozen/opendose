@@ -6,6 +6,7 @@ import { zipSync, strToU8 } from "fflate";
 import { tableMatrix, toDelimited, DEFAULT_EXPORT } from "../project/exportTable.ts";
 import type { DataTableModel } from "../project/types.ts";
 import { longMatrix, tableToLong } from "./tidy.ts";
+import { projectWorkbook } from "../export/workbook.ts";
 
 export interface BundleInput {
   title: string;
@@ -15,8 +16,9 @@ export interface BundleInput {
   results: { name: string; analysis: string; data: string; matrix: string[][] }[];
   /** Each graph as SVG, PNG and (vector, fonts embedded) PDF. */
   graphs: { name: string; svg: string | null; png: Uint8Array | null; pdf?: Uint8Array | null }[];
-  /** Each page layout as a one-page PDF and an SVG (layout/pageExport.ts). */
-  layouts?: { name: string; svg: string | null; pdf: Uint8Array | null }[];
+  /** Each page layout as a one-page PDF and an SVG (layout/pageExport.ts),
+   *  with its source data workbook, a sheet per panel (P-65). */
+  layouts?: { name: string; svg: string | null; pdf: Uint8Array | null; sourceData?: Uint8Array | null }[];
   methods: { name: string; text: string }[];
   citation: { plain: string; bibtex: string };
   /** "OpenDose 0.2.0 (build abc123, 2026-10-04)" */
@@ -70,6 +72,8 @@ const TYPE_NAMES: Record<string, string> = {
 
 /** The bundle's files, in the order they are listed in the README. */
 export function bundleFiles(b: BundleInput): BundleFile[] {
+  /** Files that could not be written, with the reason (README). */
+  const unmade: string[] = [];
   const files: { name: string; text?: string; bytes?: Uint8Array; about: string }[] = [];
   files.push({ name: "project.json", text: b.projectJson,
     about: "The project file: open it in OpenDose with Open (any later version opens it)." });
@@ -94,6 +98,18 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
       about: `"${r.name}": ${r.analysis} of "${r.data}", as shown in the app.` });
   });
 
+  // the same tables and results as one Excel workbook (P-64)
+  try {
+    const wb = projectWorkbook({ title: b.title, app: b.app, date: b.date, tables: b.tables,
+      results: b.results, skipped: b.skipped });
+    files.push({ name: "workbook.xlsx", bytes: wb.bytes,
+      about: "Every data table and results sheet above as one Excel workbook, numbers stored as numbers"
+        + " (its README sheet says how values are written"
+        + (wb.renamed.length ? " and which sheet names were changed for Excel" : "") + ")." });
+  } catch (e) {
+    unmade.push(`workbook.xlsx: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`);
+  }
+
   const gStems = uniq(b.graphs.map((g) => stem(g.name, "graph")));
   b.graphs.forEach((g, i) => {
     if (g.svg) files.push({ name: `graphs/${gStems[i]}.svg`, text: g.svg, about: `"${g.name}" (vector).` });
@@ -115,6 +131,11 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
       files.push({ name: `layouts/${lStems[i]}.svg`, text: l.svg,
         about: `Page layout "${l.name}" as SVG.` });
     }
+    if (l.sourceData) {
+      files.push({ name: `layouts/${lStems[i]}-source-data.xlsx`, bytes: l.sourceData,
+        about: `Source data of page layout "${l.name}": a sheet per panel letter with the values each graph plots,`
+          + " its centre, error bars, n and test (Excel workbook)." });
+    }
   });
 
   const methods = b.methods.length
@@ -129,7 +150,7 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
   files.push({ name: "CITATION.txt", text: `${b.citation.plain}\n\nBibTeX:\n\n${b.citation.bibtex}\n`,
     about: "How to cite OpenDose (plain reference and BibTeX)." });
 
-  const readme = readmeText(b, files.map((f) => ({ name: f.name, about: f.about })));
+  const readme = readmeText(b, files.map((f) => ({ name: f.name, about: f.about })), unmade);
   const out: BundleFile[] = [{ name: "README.txt", data: strToU8(readme) }];
   for (const f of files) out.push({ name: f.name, data: f.bytes ?? strToU8(f.text ?? "") });
   return out;
@@ -155,7 +176,8 @@ export function legendsText(items: { name: string; kind: "graph" | "results"; te
   return out.length ? `${out.join("\n")}` : "No graph or results sheet produced a legend or results sentence.\n";
 }
 
-export function readmeText(b: BundleInput, list: { name: string; about: string }[]): string {
+export function readmeText(b: BundleInput, list: { name: string; about: string }[],
+  unmade: string[] = []): string {
   const lines = [
     `${b.title || "OpenDose project"}: export bundle`,
     "=".repeat(Math.min(72, (b.title || "OpenDose project").length + 15)),
@@ -164,8 +186,9 @@ export function readmeText(b: BundleInput, list: { name: string; about: string }
     `Numerical libraries: ${b.libraries}`,
     "",
     "Every file here is an open format: CSV (UTF-8, comma-separated, first row",
-    "holds the column titles), SVG, PNG, PDF, JSON and plain text. Nothing needs",
-    "OpenDose to be read; project.json reopens the whole project in it.",
+    "holds the column titles), SVG, PNG, PDF, JSON, plain text and an Excel",
+    "workbook (.xlsx, Office Open XML). Nothing needs OpenDose to be read;",
+    "project.json reopens the whole project in it.",
     "",
     "Contents",
     "--------",
@@ -173,9 +196,10 @@ export function readmeText(b: BundleInput, list: { name: string; about: string }
     "    This file.",
     ...list.flatMap((f) => [f.name, `    ${f.about}`]),
   ];
-  if (b.skipped.length) {
+  if (b.skipped.length || unmade.length) {
     lines.push("", "Not included", "------------",
-      ...b.skipped.map((s) => `${s} (it could not be drawn or computed in time; export it from the app)`));
+      ...b.skipped.map((s) => `${s} (it could not be drawn or computed in time; export it from the app)`),
+      ...unmade);
   }
   lines.push("", "Results tables are written as shown in the app, at its display",
     "precision; the project file and the data CSVs keep every stored digit.", "");
@@ -185,6 +209,6 @@ export function readmeText(b: BundleInput, list: { name: string; about: string }
 /** The bundle as a zip: text deflated, PNG stored. */
 export function zipBundle(files: BundleFile[]): Uint8Array {
   const entries: Record<string, [Uint8Array, { level: 0 | 6 }]> = {};
-  for (const f of files) entries[f.name] = [f.data, { level: /\.(png|pdf)$/.test(f.name) ? 0 : 6 }];
+  for (const f of files) entries[f.name] = [f.data, { level: /\.(png|pdf|xlsx)$/.test(f.name) ? 0 : 6 }];
   return zipSync(entries);
 }

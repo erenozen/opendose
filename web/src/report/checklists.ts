@@ -45,6 +45,9 @@ export interface GraphFacts {
   errorBars: ErrorBars | null;
   /** Individual values drawn (null: cannot tell). */
   pointsShown: boolean | null;
+  /** Page layouts that hold this graph: their Source data (.xlsx) writes
+   *  what it plots, one sheet per panel (P-65). */
+  layouts?: { sheetId: string; name: string }[];
 }
 
 export interface FamilyFacts {
@@ -80,7 +83,7 @@ export type Status = "met" | "unmet" | "na";
 export interface FixTarget {
   /** "design": the study design record (`sheetId` when one exists; else
    *  one is started on an info sheet linked to the table). */
-  kind: "details" | "results" | "graph" | "analyze" | "bundle" | "design";
+  kind: "details" | "results" | "graph" | "analyze" | "bundle" | "design" | "layout";
   sheetId?: string;
   label: string;
 }
@@ -269,12 +272,28 @@ export const RULES: Record<string, Rule> = {
     return { status: "na", reason: "No sex column in this table and no sex in the study design record." };
   },
   mean_sd_format: () => ({ status: "met", reason: "Sentences write mean (SD) / M and SD, never mean ± SEM." }),
-  // eLife asks for source data behind every graph. The bundle has each
-  // data table as CSV, not the values each figure panel plots (X-01), so
-  // this stays unmet until a per-figure source data export exists (P-65).
-  source_data: () => ({ status: "unmet",
-    reason: "The export bundle holds each data table as CSV with the results and provenance. Source data per figure (the values each graph plots, one file per panel) cannot be exported yet.",
-    fix: { kind: "bundle", label: "Download the export bundle" } }),
+  // eLife asks for the source data behind every figure panel. A graph on
+  // a page layout has it: the layout's Source data (.xlsx) writes what each
+  // panel plots, a sheet per panel letter (P-65), as does the export bundle.
+  // A graph on no layout is not a figure yet; the CSV tables alone are not
+  // the values a panel plots (X-01).
+  source_data: (f) => {
+    if (!f.graphs.length) {
+      return { status: "na", reason: "No graph of this table yet: no figure panel needs source data." };
+    }
+    const placed = f.graphs.filter((g) => g.layouts?.length);
+    if (!placed.length) {
+      return { status: "unmet",
+        reason: "Source data are exported per figure, a sheet per panel, from a page layout: none holds a graph of this table yet. The export bundle's CSVs hold the tables, not the values each panel plots.",
+        fix: { kind: "layout", label: "Make a page layout" } };
+    }
+    const where = [...new Map(placed.flatMap((g) => g.layouts!).map((l) => [l.sheetId, l])).values()];
+    const rest = f.graphs.length - placed.length;
+    return { status: "met",
+      reason: `${names(placed)} ${placed.length === 1 ? "is" : "are"} on ${names(where)}: Source data (.xlsx) on the layout writes what each panel plots, with its centre, error bars, n and test, a sheet per panel.`
+        + (rest ? ` ${rest} other graph${rest === 1 ? " is" : "s are"} on no layout.` : ""),
+      fix: { kind: "layout", sheetId: where[0].sheetId, label: "Open the layout" } };
+  },
 };
 
 /** An ARRIVE item read from the study design record. */

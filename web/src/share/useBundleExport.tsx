@@ -31,10 +31,16 @@ import { projectProvenance } from "../report/provenance";
 import { provenanceDeps, provenanceEnv } from "../report/provenanceDeps";
 import { softwareLabel } from "../report/useReport";
 import OffscreenResults from "./OffscreenResults";
+import { projectWorkbook, renamedPhrase } from "../export/workbook";
+import { sourceDataWorkbook } from "../export/sourceData";
+import { readSourceData } from "../layout/sourceData";
+import { XLSX_MIME } from "../export/xlsx";
 
 type Step = { kind: "results" | "graph" | "layout"; id: string };
 
 interface Job {
+  /** The whole bundle, or only the tables and results as a workbook. */
+  mode: "bundle" | "xlsx";
   steps: Step[];
   input: BundleInput;
   settings: ExportPrefs;
@@ -45,6 +51,7 @@ const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnima
 
 /** The bundle's progress toast, resolved in place (DECISIONS 6). */
 const BUNDLE_TOAST = "bundle-export";
+const XLSX_TOAST = "xlsx-export";
 
 /**
  * "Download export bundle": the project file, every data table as CSV
@@ -53,6 +60,9 @@ const BUNDLE_TOAST = "bundle-export";
  * README, in one zip. Results panels, graphs and layout pages are drawn
  * off screen one at a time (as "Export all graphs" does) and read back
  * exactly as the app shows and exports them.
+ *
+ * `run("xlsx")` draws only the results sheets and saves every data table
+ * and results sheet as one Excel workbook (export/workbook.ts, P-64).
  */
 
 export function useBundleExport() {
@@ -62,7 +72,7 @@ export function useBundleExport() {
   const [index, setIndex] = useState(0);
   const hostRef = useRef<HTMLDivElement>(null);
 
-  const run = useCallback(async () => {
+  const run = useCallback(async (mode: Job["mode"] = "bundle") => {
     if (job) return;
     if (!api.engineReady) {
       ui.notify("The analysis engine is still starting; try again in a moment.", { tone: "info" });
@@ -87,7 +97,7 @@ export function useBundleExport() {
       replayPlan: replayPlanOf(p),
     };
     // The tables as .pzfx too, for collaborators who use Prism.
-    try {
+    if (mode === "bundle") try {
       const sel = pzfxSelection(p);
       if (sel.tables.length) {
         const px = await runEngine((engine) => exportPzfx(engine, sel), { priority: "user" });
@@ -96,15 +106,18 @@ export function useBundleExport() {
     } catch { /* the bundle goes ahead without it */ }
     const steps: Step[] = [
       ...p.sheets.filter((s) => s.kind === "results").map((s) => ({ kind: "results" as const, id: s.id })),
-      ...p.sheets.filter((s) => s.kind === "graph").map((s) => ({ kind: "graph" as const, id: s.id })),
-      ...p.sheets.filter((s) => s.kind === "layout").map((s) => ({ kind: "layout" as const, id: s.id })),
+      ...(mode === "xlsx" ? [] : [
+        ...p.sheets.filter((s) => s.kind === "graph").map((s) => ({ kind: "graph" as const, id: s.id })),
+        ...p.sheets.filter((s) => s.kind === "layout").map((s) => ({ kind: "layout" as const, id: s.id })),
+      ]),
     ];
     const settings: ExportPrefs = {
       ...DEFAULT_EXPORT, ...(p.prefs.export ?? {}), transparent: false, scaleText: false,
     };
     setIndex(0);
-    setJob({ steps, input, settings });
-    ui.notify("Preparing the export bundle…", { tone: "progress", id: BUNDLE_TOAST });
+    setJob({ mode, steps, input, settings });
+    if (mode === "xlsx") ui.notify("Preparing the Excel workbook…", { tone: "progress", id: XLSX_TOAST });
+    else ui.notify("Preparing the export bundle…", { tone: "progress", id: BUNDLE_TOAST });
   }, [job, api, ui]);
 
   const step = job?.steps[index];
@@ -113,7 +126,28 @@ export function useBundleExport() {
   useEffect(() => {
     if (!job) return;
     let live = true;
+    const finishXlsx = () => {
+      const b = job.input;
+      const name = `${stem(b.title, "opendose-project")}.xlsx`;
+      try {
+        const wb = projectWorkbook({ title: b.title, app: b.app, date: b.date, tables: b.tables,
+          results: b.results, skipped: b.skipped });
+        saveBlob(new Blob([wb.bytes as Uint8Array<ArrayBuffer>], { type: XLSX_MIME }), name);
+        const renamed = renamedPhrase(wb.renamed);
+        ui.notify(`Saved “${name}”: ${b.tables.length} table${b.tables.length === 1 ? "" : "s"} and `
+          + `${b.results.length} results sheet${b.results.length === 1 ? "" : "s"}`
+          + (renamed ? `; ${renamed}` : "")
+          + (b.skipped.length ? `; not included: ${b.skipped.join(", ")}` : "") + ".",
+        { tone: "success", id: XLSX_TOAST });
+      } catch (e) {
+        const why = String(e instanceof Error ? e.message : e).replace(/\.$/, "");
+        ui.notify(`Could not make “${name}”: ${why}. Export that table as CSV instead.`,
+          { tone: "error", id: XLSX_TOAST });
+      }
+      setJob(null);
+    };
     const finish = () => {
+      if (job.mode === "xlsx") { finishXlsx(); return; }
       const files = bundleFiles(job.input);
       const zip = zipBundle(files);
       saveBlob(new Blob([zip as Uint8Array<ArrayBuffer>], { type: "application/zip" }),
@@ -159,8 +193,12 @@ export function useBundleExport() {
         const opts = { dpi: 150, paper: true };
         const svg = await (await exportPage(host, layout, api.project, legend, { ...opts, format: "svg" })).text();
         const pdf = await exportPage(host, layout, api.project, legend, { ...opts, format: "pdf" });
+        // what each panel plots, read from the same drawn graphs (P-65)
+        const src = await readSourceData(host, layout, api.project, api.results,
+          { name: sheet.name, app: job.input.app });
         if (!live) return;
-        job.input.layouts!.push({ name: sheet.name, svg, pdf: new Uint8Array(await pdf.arrayBuffer()) });
+        job.input.layouts!.push({ name: sheet.name, svg, pdf: new Uint8Array(await pdf.arrayBuffer()),
+          sourceData: src.panels.length ? sourceDataWorkbook(src).bytes : null });
       } else if (sheet?.kind === "results" && host) {
         // Wait for the result, then for the panel's code and paint.
         const t0 = Date.now();
@@ -193,8 +231,13 @@ export function useBundleExport() {
     };
     go().catch((e: unknown) => {
       const why = String(e instanceof Error ? e.message : e).replace(/\.$/, "");
-      ui.notify(`Could not make the export bundle: ${why}. Try again, or export the parts one by one.`,
-        { tone: "error", id: BUNDLE_TOAST });
+      if (job.mode === "xlsx") {
+        ui.notify(`Could not make the Excel workbook: ${why}. Try again, or export each table as CSV.`,
+          { tone: "error", id: XLSX_TOAST });
+      } else {
+        ui.notify(`Could not make the export bundle: ${why}. Try again, or export the parts one by one.`,
+          { tone: "error", id: BUNDLE_TOAST });
+      }
       setJob(null);
     });
     return () => { live = false; };

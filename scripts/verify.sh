@@ -30,6 +30,9 @@ echo "== lint"; npm run lint 2>&1 | grep -E "Found|error" | head -5
 echo "== unit"; npm run test:unit 2>&1 | grep -E "^ℹ (pass|fail)" | tee "$S/unit.txt"
 grep -q "^ℹ fail [1-9]" "$S/unit.txt" && fail=1
 echo "== e2e"
+# Second readers in the e2e suites (pypdf, openpyxl, python-calamine) run
+# with the project venv; without it those steps print "skip".
+export PYTHON="$ROOT/.venv/bin/python"
 node -e "import('vite').then(async v=>{const s=await v.createServer({server:{port:$PORT,strictPort:true},logLevel:'silent'});await s.listen();console.log('up');setTimeout(()=>{},1e9)})" >"$S/dev-$PORT.log" 2>&1 &
 DEVPID=$!
 for i in $(seq 1 60); do curl -s -o /dev/null "http://localhost:$PORT/" && break; sleep 1; done

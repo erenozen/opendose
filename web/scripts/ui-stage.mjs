@@ -667,6 +667,13 @@ const scenes = [
     await example(s);
     await into(s, ".pane-answer");
   } },
+  { name: "results-download-menu", setup: async (s) => {
+    // P-64: the strip's Download menu (CSV, TSV, Excel workbook)
+    await example(s);
+    await into(s, ".results-export-wrap");
+    await s.page.locator(".results-export").getByRole("button", { name: "Download" }).click();
+    await s.page.getByRole("menuitem", { name: /^Excel workbook/ }).waitFor();
+  } },
   { name: "results-failed-fit", setup: async (s) => {
     await fixture(s, "failures.json", { live: true });
     await s.page.locator(".pane-results").getByText(/Ambiguous|could not|not converge/i).first().waitFor({ timeout: 60000 });
@@ -1337,6 +1344,13 @@ const scenes = [
     await selectSheet(s, /^Figure 2: viability/);
     await s.page.locator(".js-plotly-plot").first().waitFor({ timeout: 60000 });
     await settle(s, 2000);
+  } },
+  { name: "graphs-layout-source", setup: async (s) => {
+    // P-65: the layout's export group with Source data (.xlsx)
+    await fixture(s, "source-data.json");
+    await s.page.waitForFunction(() => document.querySelectorAll(".layout-graph .plot.js-plotly-plot").length === 2,
+      null, { timeout: 120000 });
+    await settle(s, 1500);
   } },
 
   // ---- guided flows

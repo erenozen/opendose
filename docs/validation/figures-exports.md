@@ -365,3 +365,91 @@ graph with drop lines, their label and the legend drawn in the figure,
 on a plain and on a broken axis, as SVG and as PDF: the dashed strokes
 (stroke-dasharray in the SVG, the PDF's "d" dash operator: 2 lines, 3 on
 the broken axis), "IC50 = 1.040e-7 M" and the caption's text are in both.
+
+## Excel workbook of the tables and results (P-64, 2026-11-24)
+
+File, Export tables and results to Excel (.xlsx), writes one workbook: a
+README sheet, then one sheet per data table and one per results sheet.
+The writer is TypeScript with fflate (`export/xlsx.ts`, as
+`export/pptx.ts` writes PowerPoint): no engine call, no extra download,
+and a project's workbook is built in milliseconds, where openpyxl in the
+worker would first wait for the engine. Each sheet holds exactly the rows
+of that table's or results sheet's CSV export (`export/workbook.ts`): a
+field that reads as a plain decimal number is a number cell (Excel
+right-aligns and sums it), everything else is text (`<0.0001`, `1.2 to
+3.4`, `NaN`, `007`, an excluded value `12.5*`), blank is empty. Title
+rows and the row-title column stay text. Data tables keep every stored
+digit (the number is written as the shortest text that reads back as the
+same double); results are the digits shown, as their CSV is. Values Excel
+cannot hold (beyond 1.8e308, or nonzero below 2.2e-308) stay text, so no
+value changes on the way in. Sheet names are cut to 31 characters, `[ ]
+: * ? / \` become `_`, repeats get " (2)" and "History" is avoided; each
+change is listed on the README sheet with its reason, and the toast says
+how many names changed. A table over 1,048,576 rows or 16,384 columns is
+refused with the sheet and the limit named. The same workbook is
+`workbook.xlsx` in the export bundle, and the results strip's Download
+menu (CSV, TSV, Excel workbook) writes one results sheet.
+
+`xlsx.test.ts` pins the typing (1/3 as 0.3333333333333333 from
+"0.333333333333333314829616256247", 1e-300, -0, 1e21 written "1e+21",
+NaN and blanks), the name rules, the limits and the parts;
+`bundle.test.ts` the bundle's workbook. `scripts/xlsx-readback.py` reads a
+workbook with three independent readers and compares every cell with the
+CSV text: openpyxl 3.1.5, python-calamine 0.9.1 (installed into `.venv`
+for these tests) and LibreOffice 26.8 Calc over UNO (its CSV and ODS
+writers round to 15 digits, so a conversion cannot show what Calc read;
+`getDataArray` returns its doubles). All three read the edge cases above
+back exactly. `scripts/e2e-share.mjs` exports the example project, checks
+one sheet per table and results sheet and every cell against the
+bundle's CSVs (number cells where the CSV holds a number), the bundle's
+`workbook.xlsx`, and runs the three readers; `scripts/e2e-check.mjs`
+downloads the fit's results as .xlsx and finds LogIC50 a number equal to
+the CSV's.
+
+## Source data per figure (P-65, 2026-11-24)
+
+A page layout's "Source data (.xlsx)" (in its export group, next to
+Export page) writes one workbook: a README sheet, then one sheet per
+panel named by its panel letter in the layout's style ("a", "b"; plain,
+whether or not the page shows letters). Each sheet holds what the
+panel's graph plots, read from the traces it hands Plotly (`gd.data`):
+the legend (n and its unit, the test), the test as the results name it
+("Unpaired t test, two-sided") with its results sheet, what the centre and error bars are, then sections for the centre
+and error bars of each group with n, box statistics, every plotted value
+(data set, row, X or the category under it, Y, error bar lengths), the
+drawn curve and band. The X and Y columns carry the axis titles, so an
+XY fit says its X is log10 of the dose ("X: log[Conc.], M"), as drawn.
+A log2, ln or probability axis moves the drawn values into axis units;
+`graph/apply.ts` keeps the values before that in the trace's
+`meta.odRaw`, and the sheet writes those (data units). On a category axis the
+sheet names the category, not the sideways spread of the points. A panel
+drawn with WebGL (over 5,000 points) or a box that draws only its
+outliers says so: every value is still in the sheet. An unlinked picture
+or a graph that was not drawn is named on the README sheet and in the
+toast, never left out silently; traces of a kind the sheet does not list
+are named on the panel's sheet. The toast also says when the file is over
+Nature's 30 MB limit for source data. The export bundle adds the same
+workbook for every layout (`layouts/<name>-source-data.xlsx`).
+
+The eLife checklist item "Source data available" (P-09) is met once a
+graph of the table is on a page layout, naming the graphs and the layout,
+with "Open the layout"; with graphs on no layout it is not met and offers
+"Make a page layout"; with no graph it does not apply.
+
+`sourceData.test.ts` checks a column scatter (Control 1, 2, 3, 4: mean
+2.5, SD 1.2909944487358056 as numpy `std(ddof=1)`, n 4; Drug 2, 4, 6:
+mean 4, SD 2, n 3), plotting order and a hidden group through
+`applyFormat`, a log2 axis (8 and 0.5 written, not 3 and -1, error bars
+and curve too), boxes, the notes and the workbook's sheet names;
+`report.test.ts` the checklist rule. `scripts/e2e-export.mjs` opens
+`e2e-fixtures/stage/source-data.json` (panel a: that column scatter under
+an unpaired t test, scipy `ttest_ind` t = 1.2180, P = 0.2776; panel b:
+the example dose-response with its 4PL fit), downloads the workbook and
+checks sheets "a" and "b": the groups' mean, SD and n above, every point
+with its row and equal to the drawn trace, the test and the legend with
+n; on b all 200 points of the drawn curve equal to the plotted trace,
+the points at log10(dose) -9 and -8, and the
+means and SDs of the first three doses (numpy: 99.6, 97.567, 92.067; SD
+1.7059, 2.1079, 1.7388) within 1e-12; then the three readers of
+`scripts/xlsx-readback.py`, and the eLife item met. `scripts/e2e-share.mjs`
+finds the bundle's layout workbook with sheets A and B.

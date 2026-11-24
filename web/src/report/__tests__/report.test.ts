@@ -350,23 +350,32 @@ test("the five checklists, combined items and summary", () => {
       seed: "1", blinding: { allocation: "blinded", conduct: "blinded", outcome: "blinded", analysis: "aware" },
       exclusionCriteria: "", sex: "male", strain: "Wistar rats", age: "10 weeks" } },
   })));
-  // only the eLife source-data item stays unmet: no per-figure export yet (P-09)
+  // only the eLife source-data item stays unmet: the graph is on no layout (P-09)
   assert.equal(full.unmet, 1);
   for (const l of lists) for (const it of l.items) assert.ok(it.reason.length > 0 && it.source.length > 0);
 });
 
-test("eLife source data is not met from the CSV bundle alone, and links to the bundle", () => {
+test("eLife source data: met once a graph is on a page layout (its Source data workbook), else how to get there", () => {
+  // no graph: no figure panel needs source data
+  assert.equal(RULES.source_data(facts({ graphs: [] })).status, "na");
+  // graphs on no layout: the CSV tables are not the values a panel plots
   const out = RULES.source_data(facts({ meta: { unit: "mice", experiments: 3, exclusions: "none", sampleSize: "power" } }));
   assert.equal(out.status, "unmet");
-  assert.match(out.reason, /each data table as CSV/);
-  assert.match(out.reason, /Source data per figure .* cannot be exported yet/);
-  assert.deepEqual(out.fix, { kind: "bundle", label: "Download the export bundle" });
-  const elife = evaluateChecklists(facts()).find((l) => l.id === "elife")!;
-  const item = elife.items.find((i) => i.id === "source")!;
-  assert.equal(item.status, "unmet");
-  assert.equal(item.fix?.kind, "bundle");
+  assert.match(out.reason, /from a page layout: none holds a graph of this table yet/);
+  assert.deepEqual(out.fix, { kind: "layout", label: "Make a page layout" });
+  // on a layout: met, naming the graph and the layout, with a way there
+  const g = (id: string, layouts?: { sheetId: string; name: string }[]) =>
+    ({ sheetId: id, name: `Graph ${id}`, described: true, errorBars: "sd" as const, pointsShown: true, layouts });
+  const fig = { sheetId: "L1", name: "Figure 2" };
+  const met = RULES.source_data(facts({ graphs: [g("1", [fig]), g("2", [fig]), g("3", [])] }));
+  assert.equal(met.status, "met");
+  assert.match(met.reason, /^“Graph 1”, “Graph 2” are on “Figure 2”: Source data \(\.xlsx\) on the layout writes/);
+  assert.match(met.reason, /1 other graph is on no layout\.$/);
+  assert.deepEqual(met.fix, { kind: "layout", sheetId: "L1", label: "Open the layout" });
+  const elife = evaluateChecklists(facts({ graphs: [g("1", [fig])] })).find((l) => l.id === "elife")!;
+  assert.equal(elife.items.find((i) => i.id === "source")!.status, "met");
   // the rule is used by the eLife list only
-  const uses = evaluateChecklists(facts()).flatMap((l) => l.items.filter((i) => i.fix?.kind === "bundle").map((i) => `${l.id}.${i.id}`));
+  const uses = evaluateChecklists(facts()).flatMap((l) => l.items.filter((i) => i.fix?.kind === "layout").map((i) => `${l.id}.${i.id}`));
   assert.deepEqual(uses, ["elife.source"]);
 });
 

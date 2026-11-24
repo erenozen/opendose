@@ -21,7 +21,7 @@ import { openPowerTool } from "../power/events";
 import { openRatesTool } from "../rates/events";
 import { openFlowEvents } from "../sheets/assays/flow/eventsModel";
 import {
-  exportBundle, exportPzfxFile, openPptxExport, openReplay, openShareLink,
+  exportBundle, exportPzfxFile, exportWorkbook, openPptxExport, openReplay, openShareLink,
 } from "../share/events";
 import { PZFX_TYPES } from "../share/pzfx";
 
@@ -128,6 +128,8 @@ export function useCommandRegistry(): Command[] {
         keywords: "send colleague url", run: () => openShareLink() },
       { id: "bundle", label: "Download export bundle (.zip)", group: "share",
         keywords: "zip csv svg png methods archive", run: () => exportBundle() },
+      { id: "xlsx", label: "Export tables and results to Excel (.xlsx)", group: "share",
+        keywords: "excel xlsx workbook spreadsheet sheets csv numbers", run: () => exportWorkbook() },
       { id: "pzfx", label: "Export tables as .pzfx (opens in GraphPad Prism)", group: "share",
         keywords: "prism", run: () => exportPzfxFile() },
       { id: "pptx", label: "Export graphs to PowerPoint (.pptx)…", group: "share",
