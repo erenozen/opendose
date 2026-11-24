@@ -68,6 +68,9 @@ export interface PendingRun {
   /** performance.now() when it was requested. */
   startedAt: number;
   cancel: () => void;
+  /** A stepped computation's progress (bootstrap resamples), updated in
+   *  place; the busy line reads it on its own clock. */
+  progress?: { done: number; total: number };
 }
 
 /** Results keyed by results-sheet id. Not part of the project or its
@@ -169,7 +172,7 @@ export class ResultsCache {
     this.pend.get(id)?.ctl.abort();
     this.cancelled.delete(id);
     const ctl = new AbortController();
-    const run = {
+    const run: PendingRun & { ctl: AbortController } = {
       key, ctl, startedAt: performance.now(),
       cancel: () => {
         if (this.pend.get(id) !== run) return;
@@ -179,7 +182,8 @@ export class ResultsCache {
     };
     this.pend.set(id, run);
     this.notify(id);
-    runEngine(fn, { signal: ctl.signal, priority }).then(
+    const onProgress = (done: number, total: number) => { run.progress = { done, total }; };
+    runEngine(fn, { signal: ctl.signal, priority, onProgress }).then(
       (result): CacheEntry | null => ({ key, result, live: true }),
       // The engine did not load: not a result of this input. Whatever was
       // shown (saved or shipped results) stays, and the run is asked for

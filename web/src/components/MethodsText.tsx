@@ -90,8 +90,14 @@ export default function MethodsText({ result, options, xUnit }: Props) {
   if (options.routEnabled) {
     parts.push(`after ROUT outlier elimination (Q = ${options.routQ}%)`);
   }
-  parts.push(`with ${options.ciMethod === "profile"
-    ? "asymmetrical (profile likelihood)" : "asymptotic"} 95% confidence ` +
+  // bootstrap (P-101): said as computed, since a fit can refuse it
+  const boot = result.datasets.find((d) => d.fit?.ci_method === "bootstrap")?.fit?.bootstrap;
+  parts.push(boot
+    ? `with bootstrap percentile 95% confidence intervals (${(boot.resamples ?? 0).toLocaleString("en-US")} `
+      + `${boot.method === "residual" ? "residual" : "case"} resamples, random seed ${boot.seed}; `
+      + "Efron and Tibshirani, 1993)"
+    : `with ${options.ciMethod === "profile"
+      ? "asymmetrical (profile likelihood)" : "asymptotic"} 95% confidence ` +
     `intervals`);
 
   const ic50s = result.datasets

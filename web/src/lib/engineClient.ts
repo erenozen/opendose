@@ -17,6 +17,9 @@
 //   every restart, so the next cancel is instant; not for a job on a very
 //   large table (SPARE_MAX_PAYLOAD), where memory matters more than the
 //   wait.
+// - A job the worker runs in steps (a bootstrap) reports its progress
+//   (SubmitOptions.onProgress). Cancelled, it is asked to stop at its
+//   next step and drains that far: no spare is warmed for it.
 //
 // No React and no DOM here, apart from the Worker constructor, which is
 // injected so the queue logic can be unit-tested with a fake worker.
@@ -92,11 +95,16 @@ interface Job {
   startedAt: number | null;
   slot: Slot | null;
   detach: () => void;
+  onProgress?: (done: number, total: number) => void;
+  /** It has reported progress: the worker can stop it between steps. */
+  stepped?: boolean;
 }
 
 export interface SubmitOptions {
   priority?: Priority;
   signal?: AbortSignal;
+  /** Progress of a job the worker runs in steps (a bootstrap). */
+  onProgress?: (done: number, total: number) => void;
 }
 
 /** A job running longer than this makes a cancel plausible: warm a spare. */
@@ -162,6 +170,7 @@ export class EngineHost {
       const job: Job = {
         id: this.nextId++, request, priority: opts.priority ?? "visible", seq: this.seq++,
         resolve, reject, startedAt: null, slot: null, detach: () => {},
+        onProgress: opts.onProgress,
       };
       if (signal) {
         const onAbort = () => this.cancel(job);
@@ -214,6 +223,12 @@ export class EngineHost {
     if (this.running !== job) return;
     this.running = null;
     this.finish(job, null, new EngineCancelled());
+    if (job.stepped && job.slot) {
+      // it ends at its next step: drain it there, no spare needed
+      job.slot.worker.postMessage({ type: "stop", id: job.id });
+      this.orphan = job;
+      return;
+    }
     // Python cannot be interrupted: hand over to a warm spare at once, or
     // let this worker drain the job until a spare is up (see the header).
     if (this.spare?.isReady) {
@@ -290,6 +305,14 @@ export class EngineHost {
         case "result":
           this.onResult(slot, m);
           break;
+        case "jobProgress": {
+          const job = this.running;
+          if (job && job.id === m.id && job.slot === slot) {
+            job.stepped = true;
+            job.onProgress?.(m.done, m.total);
+          }
+          break;
+        }
       }
     };
     worker.onerror = (e) => {
@@ -382,7 +405,7 @@ export class EngineHost {
     if (this.spareTimer) clearTimeout(this.spareTimer);
     this.spareTimer = setTimeout(() => {
       this.spareTimer = null;
-      if (this.running === job && !tooLargeForSpare(job)) this.warmSpare();
+      if (this.running === job && !tooLargeForSpare(job) && !job.stepped) this.warmSpare();
     }, SPARE_AFTER_MS);
     this.changed();
   }

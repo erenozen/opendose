@@ -935,41 +935,18 @@ def _at_bound(value, lo, hi):
     return None
 
 
-def fit_model(x_values, y_values, model: str, *,
+def fit_setup(x_values, y_values, model: str, *,
               constraints: dict | None = None,
               weighting: str = "none",
               weight_source: str = "predicted",
-              ci_method: str = "asymptotic",
               sd=None, n=None, replicates: str = "account",
-              bounds: dict | None = None,
-              initial_values: dict | None = None) -> dict:
-    """Fit a registered model. Returns Prism-style results dict.
-
-    The result's "initial_values" {name: {"value", "source"}} gives the
-    start of every free parameter: "rule" (the model's initial-value
-    rules: the module docstring of equations.py and, for the four
-    logistic models here, _dr_initials) or "typed" (initial_values
-    {name: number}, the user's own start). With any typed start the fit
-    runs from that one start (no multistart); otherwise "starts" says
-    how many starts were tried and which parameter they seed, since the
-    best of them is reported (curve-fitting guide, "Initial values").
-
-    bounds {name: [lo, hi]} (either None): range constraints ("greater
-    than", "less than", "between") on top of the model's own; the fit
-    switches to the bounded trust-region solver. A parameter that ends
-    on its limit gets "at_bound" ("lower" | "upper") in its entry: its SE
-    and CI assume it could move both ways, so they are not reliable
-    (curve-fitting guide, "Constraining parameters"). The result's
-    "bounds" lists the ranges asked for.
-
-    Data entered as mean/SD/n: pass the row means as y_values with sd
-    (per-row SD; convert SEM or %CV first, see opendose.summary) and n.
-    replicates="account" (default, Prism's "fit all the data"): results
-    equal the raw-replicate fit; df = sum(n) - K. replicates="means_only":
-    one point per row; df = rows - K. Without n, only the means are fit
-    (the SD is used only by weighting="1/SD2"). The result then carries a
-    "replicates" entry describing what was fit.
-    """
+              bounds: dict | None = None) -> dict:
+    """The data and parameters of a fit, as fit_model sets them up: the
+    cleaned points (or rows of mean/SD/n, "summary"), the model spec with
+    the range constraints applied, the parameters held constant ("fixed",
+    the model's own names), the ranges, the free parameters and df.
+    Callers that refit the same model (fitboot, fitregion) use it so
+    their refits see exactly what fit_model fitted."""
     if model not in MODELS:
         raise ValueError(f"unknown model: {model}")
     if not valid_weighting(weighting):
@@ -1018,6 +995,52 @@ def fit_model(x_values, y_values, model: str, *,
     if df < 1:
         raise ValueError(
             f"not enough data points ({n_points}) to fit {len(free_names)} parameters")
+    return {"spec": spec, "x": x, "y": y, "summary": summary,
+            "n_points": n_points, "fixed": fixed, "ranges": ranges,
+            "free_names": free_names, "df": df}
+
+
+def fit_model(x_values, y_values, model: str, *,
+              constraints: dict | None = None,
+              weighting: str = "none",
+              weight_source: str = "predicted",
+              ci_method: str = "asymptotic",
+              sd=None, n=None, replicates: str = "account",
+              bounds: dict | None = None,
+              initial_values: dict | None = None) -> dict:
+    """Fit a registered model. Returns Prism-style results dict.
+
+    The result's "initial_values" {name: {"value", "source"}} gives the
+    start of every free parameter: "rule" (the model's initial-value
+    rules: the module docstring of equations.py and, for the four
+    logistic models here, _dr_initials) or "typed" (initial_values
+    {name: number}, the user's own start). With any typed start the fit
+    runs from that one start (no multistart); otherwise "starts" says
+    how many starts were tried and which parameter they seed, since the
+    best of them is reported (curve-fitting guide, "Initial values").
+
+    bounds {name: [lo, hi]} (either None): range constraints ("greater
+    than", "less than", "between") on top of the model's own; the fit
+    switches to the bounded trust-region solver. A parameter that ends
+    on its limit gets "at_bound" ("lower" | "upper") in its entry: its SE
+    and CI assume it could move both ways, so they are not reliable
+    (curve-fitting guide, "Constraining parameters"). The result's
+    "bounds" lists the ranges asked for.
+
+    Data entered as mean/SD/n: pass the row means as y_values with sd
+    (per-row SD; convert SEM or %CV first, see opendose.summary) and n.
+    replicates="account" (default, Prism's "fit all the data"): results
+    equal the raw-replicate fit; df = sum(n) - K. replicates="means_only":
+    one point per row; df = rows - K. Without n, only the means are fit
+    (the SD is used only by weighting="1/SD2"). The result then carries a
+    "replicates" entry describing what was fit.
+    """
+    st = fit_setup(x_values, y_values, model, constraints=constraints,
+                   weighting=weighting, weight_source=weight_source, sd=sd,
+                   n=n, replicates=replicates, bounds=bounds)
+    spec, x, y, summary = st["spec"], st["x"], st["y"], st["summary"]
+    n_points, fixed, ranges = st["n_points"], st["fixed"], st["ranges"]
+    free_names, df = st["free_names"], st["df"]
 
     init = (spec.initials(x, y, fixed) if spec.initials_fixed
             else spec.initials(x, y))

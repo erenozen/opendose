@@ -57,6 +57,11 @@ select option {
   display: flex; flex-direction: column; gap: var(--space-8);
   padding-block: var(--space-4) var(--space-8);
 }
+/* Bootstrap settings under the CI method (P-101) */
+.bootstrap-fields {
+  display: flex; flex-direction: column; gap: var(--space-8);
+  padding-block: var(--space-4) var(--space-8);
+}
 
 .check-row, .constraint-row {
   display: flex; align-items: center; gap: 8px; padding: 3px 0;

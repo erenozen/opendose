@@ -3,6 +3,8 @@ import type { AnalysisResult, DatasetResult, FitResult, OptionsState } from "../
 import { MODELS_META, formatSig, weightingLabel } from "../types";
 import { RangeNote, RangeValueCell } from "../sheets/xy/rangeFlags";
 import { FitStarts } from "../sheets/xy/FitStarts";
+import { BootstrapNote } from "../sheets/xy/BootstrapNote";
+import { ciMethodWords } from "../sheets/xy/bootstrap";
 import { AMBIGUOUS_NOTE, ciText, extrapolationNote, seText } from "../sheets/xy/fitCells";
 import { paramLabel } from "./answer/keyFacts";
 import { Button, NumText } from "./ui";
@@ -88,8 +90,7 @@ function FitCard({ ds, xUnit, options }: { ds: DatasetResult; xUnit: string; opt
   const fit = ds.fit!;
   const caveats = useCaveats(fit);
   const order = fit.param_order ?? Object.keys(fit.params);
-  const ciHeader = fit.ci_method === "profile"
-    ? "95% CI (profile likelihood)" : "95% CI (asymptotic)";
+  const ciHeader = `95% CI (${ciMethodWords(fit.ci_method)})`;
   return (
           <div className="result-card">
             <h3>
@@ -163,6 +164,7 @@ function FitCard({ ds, xUnit, options }: { ds: DatasetResult; xUnit: string; opt
               </tbody>
             </table>
             <RangeNote fit={fit} />
+            <BootstrapNote name={ds.name} fit={fit} />
             {fit.notes?.map((n) => (
               <p key={n} className="model-line fit-note"><NumText text={n} /></p>
             ))}

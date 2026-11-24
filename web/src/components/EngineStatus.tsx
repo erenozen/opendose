@@ -183,14 +183,27 @@ export function AnalysisBusy({ status, engine }: {
   if (!pending) return null;
   const elapsed = Math.max(0, (now - pending.startedAt) / 1000);
   if (elapsed < SHOW_AFTER_S) return null;
-  const long = elapsed >= LONG_JOB_S;
+  // A stepped job (bootstrap resamples) says how far it is, so a long run
+  // is expected, not "unusually long".
+  const progress = pending.progress;
+  const long = elapsed >= LONG_JOB_S && !progress;
   const waiting = engine.phase === "booting" || engine.phase === "restarting";
   const text = waiting ? "Waiting for the analysis engine…"
-    : long ? "This is taking unusually long." : "Computing…";
+    : progress ? "Resampling for the bootstrap CIs…"
+      : long ? "This is taking unusually long." : "Computing…";
   return (
     <div className={`analysis-busy${long ? " long" : ""}`} data-elapsed={elapsed.toFixed(1)}>
       <span className="spinner" aria-hidden="true" />
       <span role="status">{text}</span>
+      {progress && (
+        <>
+          <progress max={progress.total} value={progress.done} aria-label="Bootstrap progress" />
+          {/* the count is seen, not spoken: the status says the phase */}
+          <span className="analysis-busy-time" aria-hidden="true">
+            {progress.done.toLocaleString("en-US")} of {progress.total.toLocaleString("en-US")}
+          </span>
+        </>
+      )}
       <span className="analysis-busy-time" aria-hidden="true">{elapsed.toFixed(1)} s</span>
       <button type="button" onClick={pending.cancel}>Cancel</button>
     </div>

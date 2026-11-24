@@ -3,7 +3,9 @@
 // the page never touches Python directly. One job runs at a time per
 // worker: the page (engineClient.ts) keeps the queue, so cancelling a
 // queued job is just removing it, and cancelling a running job means
-// terminating the worker (Python cannot be interrupted mid-call).
+// terminating the worker (Python cannot be interrupted mid-call), except
+// for an analysis the worker runs in steps (a bootstrap): it reports its
+// progress after each step and stops at the next one when asked.
 //
 // Payloads and results travel as JSON text: the engine's own entry point
 // is string-in / string-out (opendose.api.analyze_json), and text is
@@ -33,7 +35,10 @@ export type WorkerRequest =
   | { type: "analyze"; id: number; payload: string }
   | { type: "readWorkbook"; id: number; bytes: Uint8Array; format: WorkbookFormat }
   /** Install what a later request will need (a workbook reader), when idle. */
-  | { type: "prepare"; id: number; what: WorkbookFormat };
+  | { type: "prepare"; id: number; what: WorkbookFormat }
+  /** Stop the running job `id` at its next step (stepped analyses only;
+   *  it then answers with ok: false). */
+  | { type: "stop"; id: number };
 
 /** The spreadsheet files the engine reads (engine/opendose/workbooks.py). */
 export type WorkbookFormat = "xlsx" | "xls" | "ods";
@@ -62,6 +67,8 @@ export type WorkerResponse =
     marks: Record<string, number>;
   }
   | { type: "bootError"; message: string }
+  /** A stepped analysis's progress: `done` of `total` units (resamples). */
+  | { type: "jobProgress"; id: number; done: number; total: number }
   /** ok: json is the result text; not ok: message is why the call threw. */
   | { type: "result"; id: number; ok: true; json: string; ms: number }
   | { type: "result"; id: number; ok: false; message: string; ms: number };
