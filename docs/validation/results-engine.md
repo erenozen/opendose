@@ -2366,3 +2366,46 @@ figure panels (A, B), the Excel sheet (P exact as numbers), the Word
 table on the clipboard and that the bundle's `statistics.csv` is the
 same table.
 
+### P-67 Script export (R and Python)
+
+`web/src/report/scripts.ts`: `analysis.py` and `analysis.R` in the
+export bundle read the bundle's long CSVs (`data/<table>.long.csv`,
+excluded values dropped by their `excluded` column) and re-run each
+results sheet with the closest standard call (SciPy, statsmodels; base R
+and CRAN packages named with `::`); "Caveat:" comments say where the call
+differs (Dunnett by quasi-Monte Carlo, the log-rank variance form,
+AnovaRM without Geisser-Greenhouse, Wald CIs, mixedlm without containment
+df, ROUT and weighting not reproduced). Sheets with no standard call get a
+comment saying so, and no code. The report card's "Copy whole script"
+copies one sheet's script with its data in it; the snippets cover
+regression, logistic, Poisson, negative binomial, binomial, Cox, ROC,
+Bland-Altman and mixed models through the same code.
+
+Reference: `web/src/report/__tests__/script-fixtures.py` (tables and
+native engine results of 35 cases); `scripts.test.ts` writes the bundle's
+CSVs and `analysis.py`, runs it with Python (SciPy 1.18, statsmodels
+0.15) and compares every number:
+
+| Analysis | Compared | Tolerance (relative) |
+|---|---|---|
+| unpaired, Welch, paired t tests | t, df, P, difference, CI | 1e-9 |
+| Mann-Whitney, Wilcoxon, KS | U, P (exact), Hodges-Lehmann, D | 1e-9 (KS P 1e-6) |
+| one-way ANOVA, Kruskal-Wallis, Welch, Brown-Forsythe, RM ANOVA, Friedman | F, H, W, P | 1e-9 (RM P 1e-6) |
+| Tukey (SciPy tukey_hsd) | adjusted P | 1e-3 |
+| Dunnett (SciPy dunnett, quasi-Monte Carlo) | adjusted P | 2e-5 absolute; the engine's 6.0594e-5 equals a quadrature of the bivariate t to 1e-13, SciPy gives 5.0e-5 to 5.5e-5 by seed |
+| two-way ANOVA (statsmodels OLS, type III) | F of rows, columns, interaction | 1e-9 |
+| contingency, McNemar, kappa | chi-square, Fisher P, exact P, kappa | 1e-9 to 1e-12 |
+| log-rank (SciPy logrank) | chi-square and P (variance form, the engine's chi2_variance) | 1e-9 |
+| 4PL (curve_fit) | LogIC50, Top 1e-4; IC50, HillSlope 1e-3; Bottom 1e-2; LogIC50 CI 1e-3 | as listed |
+| linear, multiple regression | slope, coefficients, P | 1e-9 to 1e-12 |
+| logistic, Poisson, quasi-Poisson, negative binomial, binomial (statsmodels) | coefficients; Poisson P | 1e-7 to 1e-4 |
+| Cox (statsmodels PHReg, Efron) | hazard ratios, P | 1e-5, 1e-4 |
+| nested t, grouping-column and RM mixed models (mixedlm, REML) | fixed effects, unit variance | 1e-5, 1e-4 |
+| Bland-Altman, ROC | bias, AUC | 1e-12 |
+
+`analysis.R` is checked as text only (its calls, quotes and brackets
+balance): R is not installed in the test environment, so it was not run.
+e2e-share runs the exported bundle's `analysis.py` on the acceptance
+project: the t test (t and P to the table's four digits) and the 4PL
+(LogIC50 within 1e-3, IC50 within 0.5%) are reproduced.
+

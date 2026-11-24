@@ -6,6 +6,7 @@
 import { numericData } from "../project/table.ts";
 import type { DataTableModel } from "../project/types.ts";
 import { subjectLabels } from "../sheets/column/rmCorr.ts";
+import { longValues, sheetScript, scriptRuns, type ScriptEntry } from "./scripts.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -406,9 +407,28 @@ export function snippetsFor(result: unknown, options: unknown, table: DataTableM
         };
       }
       default:
-        return none();
+        return VIA_SCRIPT.has(String(r.analysis)) ? scriptSnippet(r, o, table) : none();
     }
   } catch {
     return none();
   }
+}
+
+/** Models whose code is the export bundle's script section with the
+ *  table's values in it (report/scripts.ts, P-67). */
+const VIA_SCRIPT = new Set(["multiple_regression", "logistic_regression", "poisson_regression",
+  "negative_binomial_regression", "binomial_regression", "cox", "roc", "bland_altman",
+  "mixed_grouping", "mixed_rm_one_way"]);
+
+function scriptSnippet(r: R, o: R, table: DataTableModel): Snippet {
+  const e: ScriptEntry = { sheet: "Results", analysisId: String(r.analysis), result: r, options: o, table,
+    dataName: "data", csv: "data/data.long.csv" };
+  if (!scriptRuns(e)) return none();
+  const long = longValues(table);
+  const meta = { title: "", app: "OpenDose", date: "" };
+  const strip = (code: string) => code.split("\n").filter((l) => !/^# (“|Made with|\(a correction|Run:|$)/.test(l)
+    && !l.startsWith("# Caveat:")).join("\n").replace(/^#\n/, "");
+  const py = sheetScript(e, "py", long, meta);
+  return { r: strip(sheetScript(e, "r", long, meta)), python: strip(py),
+    caveats: py.split("\n").filter((l) => l.startsWith("# Caveat: ")).map((l) => l.slice(10)) };
 }

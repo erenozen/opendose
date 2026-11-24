@@ -9,6 +9,7 @@ import { longMatrix, tableToLong } from "./tidy.ts";
 import { projectWorkbook } from "../export/workbook.ts";
 import { statsCsv, statsWord, statsWorkbook } from "../export/statsExport.ts";
 import type { StatsRow } from "../report/statsTable.ts";
+import { analysisPy, analysisR, scriptCoverage, type ScriptEntry } from "../report/scripts.ts";
 
 export interface BundleInput {
   title: string;
@@ -44,6 +45,10 @@ export interface BundleInput {
   pzfx?: string;
   /** One statistics table of every analysis (report/statsTable.ts, P-66). */
   stats?: StatsRow[];
+  /** Every results sheet with its table, result and options, for
+   *  analysis.py and analysis.R (report/scripts.ts, P-67); `csv` is filled
+   *  in here with the name of its table's long CSV. */
+  scripts?: Omit<ScriptEntry, "csv">[];
 }
 
 export interface BundleFile { name: string; data: Uint8Array }
@@ -95,6 +100,21 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
       about: `"${t.name}" in long (tidy) form: one observation per row with its keys; `
         + "excluded values are kept, marked in the excluded column, with exclusion_reason." });
   });
+
+  // analysis.py and analysis.R: each results sheet re-run from these CSVs (P-67)
+  if (b.scripts?.length) {
+    const csvOf = new Map(b.tables.map((t, i) => [t.name, `data/${tStems[i]}.long.csv`]));
+    const entries = b.scripts.filter((e) => csvOf.has(e.dataName))
+      .map((e) => ({ ...e, csv: csvOf.get(e.dataName)! }));
+    const meta = { title: b.title, app: b.app, date: b.date };
+    const cov = scriptCoverage(entries);
+    const said = cov.commented.length ? `; ${cov.commented.length} other sheet${cov.commented.length === 1 ? "" : "s"} get a comment saying why not` : "";
+    files.push({ name: "analysis.py", text: analysisPy(entries, meta),
+      about: `Python (SciPy, statsmodels) re-running ${cov.run.length} results sheet${cov.run.length === 1 ? "" : "s"} from the long CSVs`
+        + ` with the closest standard call${said}; "Caveat:" comments say where it differs from OpenDose.` });
+    files.push({ name: "analysis.R", text: analysisR(entries, meta),
+      about: "The same in R (base R and CRAN packages named with ::), reading the same CSV files." });
+  }
 
   const rStems = uniq(b.results.map((r) => stem(r.name, "results")));
   b.results.forEach((r, i) => {

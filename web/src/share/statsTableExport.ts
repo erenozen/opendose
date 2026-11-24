@@ -3,7 +3,7 @@
 // holds (computed in the background for every results sheet), so the
 // Word copy runs inside the click that asked for it. A sheet still
 // computing gets a row saying so (report/statsTable.ts), never nothing.
-import type { ResultsCache } from "../app/analysis";
+import { resolveOptions, type ResultsCache } from "../app/analysis";
 import { copyHtml } from "../export/clipboard";
 import { saveBlob } from "../export/download";
 import { statsCsv, statsWord, statsWorkbook, panelsByResults } from "../export/statsExport";
@@ -13,6 +13,7 @@ import type { DataSheet, Project } from "../project/types";
 import { resultOf } from "../report/facts";
 import { currentReportPrefs } from "../report/pformat";
 import { statsTable, type StatsEntry, type StatsTable } from "../report/statsTable";
+import type { ScriptEntry } from "../report/scripts";
 import { analysisDef } from "../sheets/registry";
 import { stem } from "./bundle";
 import type { StatsFormat } from "./events";
@@ -31,6 +32,22 @@ export function projectStatsEntries(p: Project, cache: ResultsCache): StatsEntry
       analysisLabel: (type && analysisDef(type, s.analysis)?.label) || s.analysis,
       panels: panels.get(s.id) ?? [], result: resultOf(s, cache),
     });
+  }
+  return out;
+}
+
+/** Every results sheet with its table, resolved options and result, for
+ *  the bundle's analysis.py and analysis.R (report/scripts.ts, P-67). */
+export function projectScriptEntries(p: Project, cache: ResultsCache): Omit<ScriptEntry, "csv">[] {
+  const byId = new Map(p.sheets.map((s) => [s.id, s]));
+  const out: Omit<ScriptEntry, "csv">[] = [];
+  for (const s of p.sheets) {
+    if (s.kind !== "results") continue;
+    const data = byId.get(s.parentId) as DataSheet | undefined;
+    if (data?.kind !== "data") continue;
+    const def = analysisDef(data.table.type, s.analysis);
+    out.push({ sheet: s.name, analysisId: s.analysis, result: resultOf(s, cache), table: data.table,
+      options: resolveOptions(def, s.options, data.table, p.prefs), dataName: data.name });
   }
   return out;
 }

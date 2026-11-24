@@ -14,12 +14,13 @@
 // and results to Excel writes one sheet per table and results sheet equal
 // to the CSV export, read back by openpyxl, python-calamine and LibreOffice
 // (P-64); File › Export statistics table (.csv, .xlsx) and Copy statistics
-// table for Word equal the results sheets (P-66).
+// table for Word equal the results sheets, and the bundle's analysis.py
+// reproduces the t test and the 4PL (P-66, P-67).
 // Run with the dev server up: node scripts/e2e-share.mjs http://localhost:5193/
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
@@ -727,9 +728,11 @@ await priv.getByRole("button", { name: "Close" }).last().click();
     await val("C2, row 2") === "6" && await val("X, row 2") === "2", await val("C2, row 2"));
 }
 
-// --- P-66 one statistics table: a t test, a one-way ANOVA with Tukey and a
-// 4PL fit (e2e-fixtures/stage/stats-table.json); every row of the table
-// equals what its results sheet shows
+// --- P-66 one statistics table, P-67 analysis.py and analysis.R: a t test,
+// a one-way ANOVA with Tukey and a 4PL fit (e2e-fixtures/stage/stats-table.json);
+// every row of the table equals what its results sheet shows; the bundle's
+// analysis.py, run with Python (PYTHON: SciPy and statsmodels), reproduces the
+// t test and the 4PL estimates
 {
   await ctx1.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
@@ -814,7 +817,7 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   expect("Copy statistics table for Word: an HTML table with the t test row",
     /<table[^>]*>/.test(clip) && clip.includes("<th") && clip.includes(`t = ${shownT[1]} (${shownT[2]})`), clip.slice(0, 200));
 
-  // the bundle: statistics.csv equal to the File menu's
+  // the bundle: statistics.csv equal to the File menu's, analysis.py and analysis.R
   await fileMenu.click();
   const [bd] = await Promise.all([
     page.waitForEvent("download", { timeout: 180000 }),
@@ -822,11 +825,43 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   ]);
   const zip = unzipSync(new Uint8Array(readFileSync(await bd.path())));
   const inBundle = strFromU8(zip["statistics.csv"] ?? new Uint8Array());
-  expect("bundle: statistics.csv, .xlsx and .html",
-    ["statistics.csv", "statistics.xlsx", "statistics.html"].every((n) => !!zip[n]),
+  expect("bundle: statistics.csv, .xlsx and .html, analysis.py and analysis.R",
+    ["statistics.csv", "statistics.xlsx", "statistics.html", "analysis.py", "analysis.R"].every((n) => !!zip[n]),
     Object.keys(zip).join(", "));
   expect("bundle: statistics.csv holds the same rows as File › Export statistics table",
     JSON.stringify(parseCsv(inBundle)) === JSON.stringify(rows));
+  const readme = strFromU8(zip["README.txt"]);
+  expect("bundle README lists analysis.py with what it re-runs", /analysis\.py\n {4}Python \(SciPy, statsmodels\) re-running 3 results sheets/.test(readme),
+    readme.split("\n").filter((l) => /analysis|statistics/.test(l)).join(" | "));
+  const py = strFromU8(zip["analysis.py"]);
+  expect("analysis.py reads the bundle's long CSVs", py.includes('d = load("weights.long.csv")')
+    && py.includes('d = load("dose-response.long.csv")'));
+  const dir = mkdtempSync(join(tmpdir(), "opendose-bundle-py-"));
+  for (const [n, data] of Object.entries(zip)) {
+    if (n.endsWith("/")) continue;
+    const out = join(dir, n);
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, data);
+  }
+  const python = process.env.PYTHON ?? "python3";
+  const run = spawnSync(python, [join(dir, "analysis.py"), "--json"], { encoding: "utf8", timeout: 120000 });
+  if (run.status !== 0 && /No module named/.test(run.stderr)) {
+    console.log(`skip analysis.py: ${python} lacks a module (${run.stderr.trim().split("\n").pop()}); set PYTHON`);
+  } else {
+    const res = JSON.parse(run.stdout || "{}");
+    const t = res["t test of Weights"] ?? {};
+    const exactP = Number(tt[0]["P (exact)"]);
+    // the t test to the table's own precision (4 significant digits), the 4PL
+    // LogIC50 to 1e-3 and the IC50 to 0.5% (curve_fit vs the engine's fit)
+    expect("analysis.py reproduces the t test: t and P to the table's 4 significant digits",
+      Math.abs(Number(t.t).toPrecision(4) - Number(tt[0]["Statistic value"])) < 1e-9
+      && Math.abs(t.p - exactP) <= 5e-4 * exactP, JSON.stringify({ t, row: tt[0] }));
+    const f = res["Nonlin fit of Dose response | Drug A"] ?? {};
+    expect("analysis.py reproduces the 4PL: LogIC50 within 1e-3, IC50 within 0.5%",
+      Math.abs(f.LogIC50 - Number(lg["Estimate value"])) < 1e-3
+      && Math.abs(f.IC50 - Number(ic["Estimate value"])) <= 5e-3 * Number(ic["Estimate value"]),
+      JSON.stringify({ f, ic: ic["Estimate value"], lg: lg["Estimate value"] }));
+  }
 }
 
 await page.screenshot({ path: join(tmp, "share.png") });
