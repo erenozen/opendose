@@ -581,6 +581,34 @@ await page.keyboard.press("Escape");
     traces.length === 2 && traces.every((t) => t.mode === "lines+markers" && t.err && t.n === 6), JSON.stringify(traces));
   expect("group differences at each time: family header adjusted for 6 comparisons (Šídák)",
     (await textOf(".pane-results")).includes("P values adjusted for 6 comparisons (Šídák)"));
+  // P-105: stars at each time point on the group-means graph, from the
+  // model's own comparisons: each equals the Summary of that time's row in
+  // the results (the engine's adjusted P in the project's style)
+  {
+    await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+    await page.getByRole("dialog", { name: "Graph settings" })
+      .getByRole("button", { name: "Pairwise comparisons…" }).click();
+    const cd = page.locator("dialog.fmt-dialog");
+    await cd.getByLabel("Show stars at each time point").check();
+    await cd.getByRole("button", { name: "Apply and close" }).click();
+    await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .filter((a) => a.name === "time-star").length === 6, null, { timeout: 30000 }).catch(() => {});
+    const got = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .filter((a) => a.name === "time-star").map((a) => [String(a.x), a.text]));
+    const want = await page.evaluate(() => {
+      const t = [...document.querySelectorAll(".pane-results table.results-table")]
+        .find((x) => ["Summary", "P (adjusted)"].every((name) =>
+          [...x.querySelectorAll("thead th")].some((h) => h.textContent.trim() === name)));
+      return t ? [...t.tBodies[0].rows].map((r) => [r.cells[0].textContent.trim(),
+        r.cells[r.cells.length - 1].textContent.trim()]) : [];
+    });
+    expect("P-105 time course: a star at each of the 6 times, each the Summary of the model's adjusted P",
+      got.length === 6 && JSON.stringify(got) === JSON.stringify(want), `${JSON.stringify(got)} / ${JSON.stringify(want)}`);
+    const legend = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "") ?? "";
+    expect("P-105 time course: the legend points to the model's Group × Time test and states the star scale",
+      legend.includes("They are not a test of the curves: the mixed model's Group × Time test asks whether the "
+        + "curves differ in shape") && /\* P ≤ 0\.05/.test(legend), legend);
+  }
   // AUC per mouse from the same table, then the summary over 60-120 min
   await page.getByRole("button", { name: "Add: Area under each subject's curve" }).click();
   expect("AUC per mouse: 12 mice compared by the unpaired t test, t(10) = -15.6",

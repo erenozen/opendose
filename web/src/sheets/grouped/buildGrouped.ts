@@ -376,8 +376,18 @@ function buildLines(inp: BuildInput): Built {
     }, li, "points") as Plotly.Data);
   });
   const grand = grandShapes(inp);
+  // Rows on X (time points): each comparison within a row sits at that
+  // row's X, for stars at each time point (P-105). Brackets between two
+  // lines at one X are never drawn (they would have no width).
+  const slotOf = new Map(xOrder.map((xi, slot) => [xi, slot]));
+  const place: Placement | null = byRows ? {
+    byRows: true,
+    cell: (r, d) => (get(r, d) && slotOf.has(r) ? { x: slotOf.get(r)!, xref: "x" } : null),
+    cluster: () => null,
+    half: 0.2,
+  } : null;
   return {
-    place: null,
+    place,
     traces,
     layout: {
       ...baseLayout(chrome),

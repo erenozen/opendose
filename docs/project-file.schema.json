@@ -1888,6 +1888,11 @@
             "tall"
           ]
         },
+        "placement": {
+          "type": "string",
+          "const": "time",
+          "description": "\"time\": a star label above each time point of a lines or time-course graph (P-105, timeStars.ts); absent = brackets between groups."
+        },
         "hideNs": {
           "type": "boolean",
           "description": "Leave out pairs that are not significant (\"ns\"); absent = the project's \"hide ns\" (Preferences → Reporting)."

@@ -205,6 +205,9 @@ export interface ComparisonsFormat {
   /** Only draw pairs with P below this (null/absent = all, ns included). */
   threshold?: number | null;
   style?: "bracket" | "line" | "tall";
+  /** "time": a star label above each time point of a lines or time-course
+   *  graph (P-105, timeStars.ts); absent = brackets between groups. */
+  placement?: "time";
   /** Leave out pairs that are not significant ("ns"); absent = the
    *  project's "hide ns" (Preferences → Reporting). */
   hideNs?: boolean;
@@ -411,6 +414,7 @@ export function normalizeFormat(raw: unknown): GraphFormat {
     prefix: oneOf(c.prefix, ["P = ", "p = ", ""] as const),
     threshold: c.threshold === null ? null : num(c.threshold, 0, 1),
     style: oneOf(c.style, ["bracket", "line", "tall"] as const),
+    placement: oneOf(c.placement, ["time"] as const),
     hideNs: bool(c.hideNs),
     lineWidth: num(c.lineWidth, 0.25, 8),
     color: color(c.color),

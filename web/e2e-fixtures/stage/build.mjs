@@ -25,6 +25,8 @@
 //   fit-split-axis.json  IC50 drop lines on a Y axis with a break (P-23)
 //   zero-break.json    two curves with vehicle wells drawn left of an X axis
 //                      break, each Top held at its own wells (P-104)
+//   time-stars.json    tumour volume by day, Sidak stars at each day on its
+//                      lines graph (P-105)
 //   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
 //                      outlier, its legend sentence drawn in the figure
 //   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
@@ -1023,3 +1025,21 @@ const longData = (name, names, rows, categorical) => data(name, {
   const r2 = results(t2, "nonlin", fit, "Nonlin fit of Vehicle wells, not held");
   write("zero-break.json", project("Zero dose left of a break", [t, r, g, t2, r2], { selected: g.id }));
 }
+
+// time-stars.json (P-105; engine/tests/reference/time_stars.py): tumour
+// volume by day under the two-way ANOVA with Sidak comparisons within each
+// day, its lines graph with a star at each day
+{
+  n = 0;
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/time_stars.json"), "utf8"));
+  const t = data("Tumour volume", table("grouped", { rowTitles: ref.days, yTitle: "Volume (mm³)", datasets: [
+    { name: "Vehicle", rows: ref.vehicle.map((r) => r.map(String)) },
+    { name: "Drug", rows: ref.drug.map((r) => r.map(String)) }] }));
+  const r = results(t, "grouped_two_way", { rowFactor: "Day", colFactor: "Treatment", comparisons: "sidak",
+    direction: "columns_within_rows" }, "Two-way ANOVA of Tumour volume");
+  const g = graph(t, r, "grouped_lines", "Growth curves");
+  g.settings.grouped = { caption: "below" };
+  g.settings.format = { comparisons: { show: true, placement: "time" } };
+  write("time-stars.json", project("Stars at each time point", [t, r, g], { selected: g.id }));
+}
+

@@ -16,6 +16,7 @@ import {
   type TcAucOptions, type TcMixedOptions, type TcWindowOptions,
 } from "./model";
 import { timecourseSample } from "./sample";
+import { tcComparisons } from "./timeStars";
 
 const panels = () => import("./panels");
 const TcControls = lazyPart(panels, "TcControls");
@@ -152,6 +153,8 @@ const meansGraph = defineGraph<TcMixedOptions, R>({
   OptionsPanel: TcMeansOptions,
   formatFeatures: { points: true, lines: true, errorBars: true },
   formatDatasets: (t: DataTableModel, _g: GraphSheet, o: TcMixedOptions | null) => groupsOf(t, o),
+  // the groups compared at each time point, as stars (P-105)
+  comparisons: (result) => tcComparisons(result),
   sheetName: (t) => `Time course of ${t}`,
 });
 

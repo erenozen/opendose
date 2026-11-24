@@ -1738,6 +1738,24 @@ const scenes = [
       .waitFor({ timeout: 120000 });
     await into(s, ".pane-results .zero-dose", "center");
   } },
+  // a star at each day from the two-way ANOVA's Sidak comparisons (P-105)
+  { name: "graphs-time-stars", setup: async (s) => {
+    await fixture(s, "time-stars.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .filter((a) => a.name === "time-star").length === 4, null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-comparisons-time", setup: async (s) => {
+    await fixture(s, "time-stars.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: /^Settings/ }));
+    await click(s, dialog(s, "Graph settings").getByRole("button", { name: "Pairwise comparisons…" }));
+    await s.page.locator("dialog.fmt-dialog").getByRole("checkbox", { name: "Show stars at each time point" })
+      .waitFor();
+    await settle(s, 500);
+  } },
   { name: "graphs-fit-drop-lines", setup: async (s) => {
     await fixture(s, "fit-graph.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

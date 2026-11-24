@@ -485,3 +485,25 @@ exports the graph as SVG and lays it out in the page: the 0 M tick and
 both vehicle points left of the two marks, the −9 tick and the twelve
 dose points right of them; in the PDF the 0 M tick label is drawn left
 of the −9 label.
+
+## Stars at each time point (P-105, 2026-11-24)
+
+On the grouped lines graph (rows on X) and the time-course model's graph
+of group means, Pairwise comparisons offers "Show stars at each time
+point": the comparisons the analysis made within each time point (two-way
+ANOVA within rows, multiple t tests, the model's groups at each time) are
+drawn as one label above the highest mark of that time, in the graph's P
+style (asterisks, exact P or mixed; threshold, hide ns and unticked times
+as for brackets). With more than two groups every pair must share one
+control (each star in the colour of the group compared); otherwise the
+dialog says why no star can be drawn. The legend states what the stars
+compare, from which analysis, that exact P values are in the results,
+that they are not a test of the curves and which test is, then the star
+scale. Graphs without the setting are unchanged (brackets between two
+lines at one X are never drawn).
+
+`src/graph/__tests__/timeStars.test.ts`; `scripts/e2e-figures.mjs`
+(tumour volume, Sidak within each day: ns, *, ***, **** at the four days,
+`engine/tests/reference/time_stars.py`); `scripts/e2e-assays.mjs` (the
+time-course example: each star equals the results' Summary of its time).
+

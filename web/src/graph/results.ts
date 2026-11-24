@@ -19,6 +19,13 @@ export interface ComparisonSet {
   /** false: the compared groups are not the graph's data sets (the rows
    *  of a contingency table), so no compact letters are offered. */
   letters?: boolean;
+  /** The graph puts time points on X (a lines graph of a grouped table,
+   *  the time-course model's means): the comparisons can be drawn as
+   *  stars at each time point (P-105). */
+  timePoints?: boolean;
+  /** What compares the curves themselves, for the legend of stars at each
+   *  time point ("the two-way ANOVA's interaction ..."). */
+  curveTest?: string;
 }
 
 const METHOD_LABELS: Record<string, string> = {

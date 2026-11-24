@@ -28,6 +28,8 @@ import { estimationMargins, marginsLegend, type EquivalenceLink } from "./estima
 import { GRAPH_ESTIMATION } from "./estimation/run.ts";
 import { FOREST_DEFAULTS, forestPlotted, type ForestSettings } from "./metaAnalysis/forest.ts";
 import { GRAPH_FOREST } from "./metaAnalysis/run.ts";
+import { perTimeClause } from "../graph/timeStars.ts";
+import { tcComparisons } from "../sheets/assays/timecourse/timeStars.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -106,7 +108,11 @@ function ownPlotted(g: GraphSheet, result: unknown, options: unknown): string | 
   }
   if (g.graphType === G_TC_MEANS) {
     const s = (g.settings.timecourse ?? {}) as any;
-    return timecoursePlotted(ci, s.subjects === true, s.ci === "band" || s.ci === "none" ? s.ci : "bars");
+    const plotted = timecoursePlotted(ci, s.subjects === true, s.ci === "band" || s.ci === "none" ? s.ci : "bars");
+    // stars at each time point (P-105): what they compare, and what tests the curves
+    const c = readFormat(g.settings).comparisons;
+    const stars = c?.show && c.placement === "time" ? perTimeClause(tcComparisons(result)) : "";
+    return stars ? `${plotted} ${stars}.` : plotted;
   }
   return SUBJECT_DOTS_PLOTTED;
 }

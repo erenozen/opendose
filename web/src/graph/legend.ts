@@ -29,6 +29,8 @@ import { resolveSummary } from "../sheets/column/rankSummary.ts";
 import type { WhiskerRule } from "./boxStats.ts";
 import { bandwidthText, groupDensity, type NoDensity } from "./kde.ts";
 import { graphHideNs, graphPStyle, starScale, type PStyle } from "./significance.ts";
+import { perTimeClause } from "./timeStars.ts";
+import { timePointComparisons } from "../sheets/grouped/comparisons.ts";
 
 /** Centre and error of the summary marks. */
 export type LegendSummary = ColumnSummary | "mean_range" | "mean" | "as_entered";
@@ -59,6 +61,9 @@ export interface LegendSpec {
   hideNs?: boolean;
   /** Groups whose geometric summary is not drawn (a value of 0 or less). */
   refused?: string[];
+  /** Stars at each time point (P-105): what they compare, from which
+   *  analysis, and what tests the curves (graph/timeStars.ts). */
+  perTime?: string;
 }
 
 const PHRASE: Record<LegendSummary, string> = {
@@ -165,6 +170,7 @@ export function composeLegend(spec: LegendSpec): string {
     parts.push(spec.display === "superplot" && spec.superplot?.values
       ? `${n} (${spec.superplot.values} values in all)` : n);
   }
+  if (spec.perTime) parts.push(spec.perTime);
   if (spec.stars) parts.push(starScale(spec.stars, spec.hideNs ?? false));
   return parts.join(". ") + ".";
 }
@@ -312,7 +318,12 @@ function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: D
     ? enteredSummary(table.subcolumnFormat) : GROUPED_SUMMARY[s.error];
   const points = table.subcolumnFormat === "replicates"
     && (kind === G_SCATTER || (s.points && kind !== G_STACKED && kind !== G_LINES));
-  return { display, summary, points, groups, stars, whiskers: s.whiskers };
+  // stars at each time point on a lines graph (P-105)
+  const c = readFormat(graph.settings).comparisons;
+  const perTime = kind === G_LINES && c?.show && c.placement === "time"
+    && (s.clusterBy ?? "rows") === "rows" ? perTimeClause(timePointComparisons(result, table)) : "";
+  return { display, summary, points, groups, stars, whiskers: s.whiskers,
+    ...(perTime ? { perTime } : {}) };
 }
 
 /**

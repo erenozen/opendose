@@ -5585,6 +5585,37 @@ break), then the hold, reading Top = 100.7 and = 86.2 and LogIC50
 -6.554 and -5.575 against the reference. e2e-export: the SVG export
 draws the 0 M tick and both vehicle points left of the two break marks
 and the twelve dose points right of them; the PDF keeps the tick order.
+
+### P-105 Significance stars per time point on lines and time-course graphs
+
+No new computation: the stars draw the P values of the analysis the user
+chose (two-way ANOVA within rows, multiple t tests, the time-course
+model's groups at each time). `engine/tests/test_time_stars.py` pins
+those P values for the tumour-growth table of the e2e step against
+`engine/tests/reference/time_stars.py` (statsmodels OLS with
+C(day) * C(group), the full model's pooled residual, a t test at each day,
+Sidak over the 4 comparisons; GraphPad Statistics Guide, "How Prism
+computes multiple comparisons after two-way ANOVA").
+
+| Day | Reference P (unadjusted) | Reference P (Sidak, 4) | Engine | Star (GraphPad) |
+|---|---|---|---|---|
+| Day 0 | 0.92944 | 0.99998 | equal (rel 1e-8) | ns |
+| Day 7 | 0.0047556 | 0.018887 | equal | * |
+| Day 14 | 0.00024422 | 0.00097654 | equal | *** |
+| Day 21 | 2.1433e-21 | 8.5733e-21 | below 1e-12 (the engine's 1 - (1 - p)^4 rounds to 0) | **** |
+
+MS residual (200.8625) and its 32 df agree to 1e-10. Web:
+`src/graph/__tests__/timeStars.test.ts` (which comparisons can be read
+as one star per group at a time point: two groups, or every pair against
+one control; Tukey's all pairs are refused with the reason; P style,
+threshold, hide ns and unticked days; stacking per group; the
+time-course model's families and their X; the legend clause; applyFormat
+places each star above the highest mark of its day). e2e-figures: the
+acceptance test (each day's star equals the Sidak P of that day, ns, *,
+***, ****; above every mark; the legend states the scale, where exact P
+are, and that the curves are tested by the two-way ANOVA's interaction).
+e2e-assays: on the GTT time-course example the six stars equal the
+Summary column of the model's comparisons at each time.
 """
 
 

@@ -141,6 +141,18 @@ each axis stacks its own brackets, and a pair across two axes is not
 drawn. `groupHalf` (default 0.45) is how far either side of a group the
 data a bracket must clear reaches (half a bar on grouped graphs).
 
+Another placement (P-105):
+
+- `comparisons.placement: "time"` (`timeStars.ts`): on a graph with time
+  points on X (the grouped lines graph with rows on X, the time-course
+  model's means) each comparison's `family` is a time point and the
+  label goes above the highest mark there (`name: "time-star"`), one per
+  group compared with the shared reference, in that group's colour. The
+  `ComparisonSet` says `timePoints: true` and gives `curveTest`, what
+  compares the curves, which the dialog and the legend name.
+  `timeReference` refuses sets with several pairs per time point and no
+  common group (Tukey's all pairs).
+
 Colours are replaced in per-point colour arrays too (grouped bars).
 
 ## Coordinates

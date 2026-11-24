@@ -21,6 +21,7 @@ import {
   compactLetters, formatPStyle, graphHideNs, graphPStyle, isNs, lettersInputKey, pairKey,
   stackBrackets, starsFor, type Comparison,
 } from "./significance.ts";
+import { stackTimeStars, timeStars } from "./timeStars.ts";
 import { applyClassic } from "./theme.ts";
 import { maxOf } from "../lib/extent.ts";
 
@@ -299,7 +300,9 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
     const half = ctx.groupHalf ?? 0.45;
     const top = (lo: number, hi: number, xref = "x") =>
       topBetween(measured, lo - half, hi + half, yr, maps.y, xref);
-    if (format.comparisons?.show) {
+    if (format.comparisons?.show && format.comparisons.placement === "time") {
+      drawTimeStars(layout, traces, format, ctx, groupX, top, span, ordered, chrome);
+    } else if (format.comparisons?.show) {
       drawBrackets(layout, format, ctx.comparisons, groupX, top, span, chrome);
     }
     if (format.letters?.show) {
@@ -983,6 +986,36 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
       yanchor: "bottom", yshift: pLabels.has(b.key) ? 2 : -1, showarrow: false,
       text: b.label, name: "bracket-label",
       font: { size: c.textSize ?? (pLabels.has(b.key) ? 11 : 14), color } });
+  }
+}
+
+/** Stars at each time point (P-105, timeStars.ts): one label per group
+ *  compared with the reference, stacked above the highest mark at that
+ *  time, in that group's colour when there are more than two groups. */
+function drawTimeStars(layout: Layout, traces: Trace[], format: GraphFormat, ctx: FormatContext,
+  groupX: (name: string, family?: string) => GroupPos,
+  top: (lo: number, hi: number, xref?: string) => number, span: number, ordered: number[],
+  chrome: Chrome) {
+  const c = format.comparisons!;
+  const style = graphPStyle(format);
+  const stars = timeStars(ctx.comparisons ?? [], c, style, graphHideNs(c));
+  const order = ordered.map((i) => ctx.datasets[i]);
+  const colorOf = (name: string | null): string | null => {
+    if (name === null) return null;
+    const i = ctx.datasets.indexOf(name);
+    const t = traces.find((u) => traceTag(u)?.ds === i && traceTag(u)?.role === "points");
+    const col = t?.marker?.color ?? t?.line?.color;
+    return typeof col === "string" ? col : null;
+  };
+  const step = span * 0.065;
+  for (const s of stackTimeStars(stars, order)) {
+    const cmp = (ctx.comparisons ?? []).find((x) => pairKey(x) === s.key)!;
+    const p = toPos(groupX(cmp.a, cmp.family)) ?? toPos(groupX(cmp.b, cmp.family));
+    if (!p) continue;
+    const y = top(p.x, p.x, p.xref) + span * 0.04 + s.level * step;
+    layout.annotations.push({ xref: p.xref, yref: "y", x: p.x, y, yanchor: "bottom",
+      showarrow: false, text: s.text, name: "time-star",
+      font: { size: c.textSize ?? (s.isP ? 11 : 14), color: c.color ?? colorOf(s.group) ?? chrome.ink } });
   }
 }
 

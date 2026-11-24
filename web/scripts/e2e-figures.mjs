@@ -1013,6 +1013,73 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     await fitLegendText());
 }
 
+// --- P-105: stars at each time point on a lines graph. A tumour-growth
+// grouped table (days as rows, Vehicle and Drug, 5 mice each) under the
+// two-way ANOVA with Sidak comparisons within each row. Reference:
+// engine/tests/reference/time_stars.py (statsmodels OLS with the
+// interaction, Sidak over 4): adjusted P 0.99998, 0.018887, 0.00097654,
+// 8.6e-21, so ns, *, ***, **** in the GraphPad style.
+{
+  const REF_TS = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference",
+    "time_stars.json"), "utf8"));
+  const days = REF_TS.days;
+  const TS = join(tmp, "time-stars.json");
+  writeFileSync(TS, JSON.stringify({
+    version: 2, title: "Tumour growth",
+    prefs: { defaultTableType: "grouped", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "td", kind: "data", name: "Tumour volume", table: {
+        type: "grouped", x: days.map(() => ""), xTitle: "", xFormat: "numbers", xUnit: "", yTitle: "Volume (mm³)",
+        rowTitles: days, subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+        datasets: [{ name: "Vehicle", rows: REF_TS.vehicle.map((r) => r.map(String)) },
+          { name: "Drug", rows: REF_TS.drug.map((r) => r.map(String)) }] } },
+      { id: "tr", kind: "results", parentId: "td", name: "Two-way ANOVA of Tumour volume",
+        analysis: "grouped_two_way", options: { rowFactor: "Day", colFactor: "Treatment",
+          comparisons: "sidak", direction: "columns_within_rows" } },
+      { id: "tg", kind: "graph", parentId: "td", resultsId: "tr", graphType: "grouped_lines",
+        name: "Growth curves", settings: { titles: { x: "", y: "" }, scheme: "default",
+          grouped: { caption: "below" } } },
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', TS);
+  await page.getByRole("treeitem", { name: "Growth curves", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "points").length === 2, null, { timeout: 120000 }).catch(() => {});
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const cd = page.locator("dialog.fmt-dialog");
+  expect("P-105 the dialog lists the Sidak comparison at each day",
+    await cd.getByText("Day 14: Vehicle vs. Drug").count() === 1, await cd.innerText().catch(() => ""));
+  expect("P-105 the dialog says a star is not a test of the curves and names the curve-level test",
+    (await cd.innerText()).includes("It is not a test of the curves: the two-way ANOVA's interaction tests "
+      + "whether the curves differ in shape"), await cd.innerText());
+  await cd.getByLabel("Show stars at each time point").check();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.name === "time-star").length === 4, null, { timeout: 30000 }).catch(() => {});
+  const ts = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const pts = (gd?.data ?? []).filter((t) => t.meta?.odTag?.role === "points");
+    return { stars: (gd?.layout?.annotations ?? []).filter((a) => a.name === "time-star")
+      .map((a) => ({ x: a.x, y: a.y, text: a.text })),
+    tops: pts.length ? pts[0].x.map((_, i) => Math.max(...pts.map((t) => t.y[i] + (t.error_y?.array?.[i] ?? 0))))
+      : [] };
+  });
+  const want = REF_TS.comparisons.map((c) => c.stars);
+  expect(`P-105 acceptance: each day's star matches the adjusted P of its Sidak comparison (${want.join(", ")})`,
+    ts.stars.length === 4 && ts.stars.every((s, i) => s.x === i && s.text === want[i]), JSON.stringify(ts.stars));
+  expect("P-105 each star sits above the highest mark (mean + error bar) of its day",
+    ts.stars.length === 4 && ts.stars.every((s, i) => s.y > ts.tops[i]), JSON.stringify(ts));
+  const leg = await page.locator(".plot-card .figure-legend-text").innerText().catch(() => "");
+  expect("P-105 the legend gives the star scale, where exact P are, and points to the curve-level test",
+    leg.includes("Stars above each time point compare the two groups at that time")
+      && leg.includes("exact P values are in the results")
+      && leg.includes("They are not a test of the curves: the two-way ANOVA's interaction tests whether the "
+        + "curves differ in shape") && leg.includes("* P ≤ 0.05"), leg);
+  await shot("time-stars");
+}
+
 // --- geometric mean ×/÷ geometric SD on a log axis, and the Checks note
 // for bars on a log axis or an axis cut above zero (P-25). Reference:
 // src/sheets/column/__tests__/reference/geo_summary.py (numpy, scipy
