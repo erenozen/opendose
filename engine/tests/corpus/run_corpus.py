@@ -5825,7 +5825,7 @@ e2e (`e2e-share.mjs`), every shown value equal to the certified value at
 SmLs01 (F 21, R² 0.4827586207, residual SD 0.1); Lew (mean -177.435, SD
 277.332168, n 200).
 
-## Feature validation: import provenance and many files (2026-11-24)
+## Feature validation: import provenance, many files, blinding (2026-11-24)
 
 ### P-76 Import provenance and replayed imports
 
@@ -5864,6 +5864,23 @@ again by a one-file Apply to new data, changes no number. Unit tests
 (`share/__tests__/batch.test.ts`): an IC50 the results withhold
 (not reached in the range tested, an ambiguous fit, a failed analysis)
 is an empty cell with its reason, never the raw fitted value.
+
+### P-124 Blind a table
+
+No new computation: blinding renames the groups. Reference
+(`engine/tests/reference/blind_anova.py`): scipy `f_oneway` on the four
+groups of `web/e2e-fixtures/blind-4groups.json`, F 7.809, P 0.00121 on
+3 and 20 df. `engine/tests/test_blind_reference.py`: the engine's
+one-way ANOVA equals it (relative 1e-9), and its ANOVA table and Tukey
+adjusted P values are identical with the real names and with the codes
+A to D. e2e (`e2e-import.mjs`): the P shown before blinding equals
+scipy's at the shown precision and is unchanged while blind; after one
+value is excluded blind and the table unblinded, the P is the one
+computed blind and the methods say the value was excluded blind. Unit
+tests (`project/__tests__/blinding.test.ts`): no group name in the
+project file, a share link, the replay plan, provenance.json or the
+.pzfx selection while blind; blind then unblind gives every value back
+unchanged.
 """
 
 

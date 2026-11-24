@@ -15,6 +15,7 @@ import "./integrity.css";
 import { changedLines, headline, openedHow, type ReproductionReport } from "../project/reproduce";
 import { whyLines } from "../share/engineChanges";
 import ImportHistory from "./ImportHistory";
+import { codesText } from "../project/blinding";
 
 const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
 
@@ -59,6 +60,40 @@ function Step({ s }: { s: ProvenanceStep }) {
     <div className="history-step">
       <h3>Graph: {s.sheet}</h3>
       <p className="hs-meta">{String(s.label)} · draws {String(s.draws)}{s.formatted ? " · formatted" : ""}{s.frozen ? " · frozen" : ""}</p>
+    </div>
+  );
+}
+
+/** Blinding of the table (P-124): now, and each stretch ended by
+ *  unblinding with the values excluded in it. */
+function BlindingHistory({ sheet }: { sheet: DataSheet }) {
+  const when = (iso: string) => new Date(iso).toLocaleString();
+  return (
+    <div className="history-step history-blinding">
+      <h3>Blinding</h3>
+      {sheet.blindLog?.map((x, i) => (
+        <div key={i}>
+          <p className="hs-line">
+            Blinded {when(x.blindedAt)} (groups coded {codesText(x.codes)}), unblinded {when(x.unblindedAt)}:
+            {" "}{x.exclusions.length ? `${x.exclusions.length} value${x.exclusions.length === 1 ? "" : "s"} excluded while blind.`
+              : "no value excluded while blind."}
+          </p>
+          {x.exclusions.length > 0 && (
+            <ul className="hs-list" aria-label="Excluded while blind">
+              {x.exclusions.map((e, j) => (
+                <li key={j}>{e.dataset}, row {e.row + 1}{e.sub ? `, value ${e.sub + 1}` : ""}: {e.value}
+                  {e.reason ? ` (${e.reason})` : " (no reason recorded)"}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+      {sheet.blinding && (
+        <p className="hs-line">
+          Blinded {when(sheet.blinding.at)}: the groups are coded {codesText(sheet.blinding.codes)}. The key
+          is kept outside the project (in the browser that blinded it, and its key file); unblinding needs it.
+        </p>
+      )}
     </div>
   );
 }
@@ -151,6 +186,7 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
             )}
           </div>
           {dataSheet?.imported && <ImportHistory rec={dataSheet.imported} table={dataSheet.table} />}
+          {dataSheet && (dataSheet.blinding || dataSheet.blindLog?.length) ? <BlindingHistory sheet={dataSheet} /> : null}
           {fam.steps.map((s) => <Step key={s.sheet_id} s={s} />)}
         </>
       )}

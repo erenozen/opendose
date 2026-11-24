@@ -150,6 +150,17 @@
         "imported": {
           "$ref": "#/definitions/ImportRecord",
           "description": "Where the values came from: the file (name, SHA-256), the recipe or import settings, and the values as imported, so hand edits since can be counted (project/importRecord.ts, P-76). Absent in files saved before it existed, and on tables typed or pasted in."
+        },
+        "blinding": {
+          "$ref": "#/definitions/BlindingRecord",
+          "description": "The group names are shown as codes until unblinded with the key, which is kept outside the project (project/blinding.ts, P-124). Absent when the table is not blinded."
+        },
+        "blindLog": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BlindSession"
+          },
+          "description": "Earlier blinded stretches, with the values excluded while blind (reported in the methods). Absent in files saved before it existed."
         }
       },
       "required": [
@@ -768,6 +779,128 @@
       ],
       "additionalProperties": false,
       "description": "An import before the current one, with the cells edited by hand between it and the next (null: too large a table to count)."
+    },
+    "BlindingRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Random; the key carries the same id."
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO date-time of blinding."
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The codes, in data set order when blinded."
+        },
+        "excludedAtStart": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Exclusions when blinding started: \"code|row:sub\", \"X|row\"."
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sheetId": {
+                "type": "string"
+              },
+              "path": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "code": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "sheetId",
+              "path",
+              "code"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Option values of the family's analyses and graphs coded at blinding."
+        },
+        "importHeld": {
+          "type": "boolean",
+          "description": "The table's import record is held with the key."
+        }
+      },
+      "required": [
+        "id",
+        "at",
+        "codes",
+        "excludedAtStart",
+        "paths"
+      ],
+      "additionalProperties": false
+    },
+    "BlindSession": {
+      "type": "object",
+      "properties": {
+        "blindedAt": {
+          "type": "string"
+        },
+        "unblindedAt": {
+          "type": "string"
+        },
+        "codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dataset": {
+                "type": "string"
+              },
+              "row": {
+                "type": "number"
+              },
+              "sub": {
+                "type": "number"
+              },
+              "value": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "dataset",
+              "row",
+              "sub",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Values excluded while blind (named after unblinding)."
+        }
+      },
+      "required": [
+        "blindedAt",
+        "unblindedAt",
+        "codes",
+        "exclusions"
+      ],
+      "additionalProperties": false,
+      "description": "One blinded stretch, ended by unblinding."
     },
     "InfoSheet": {
       "type": "object",

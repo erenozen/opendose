@@ -1,0 +1,165 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Blinding study",
+ "prefs": {
+  "defaultTableType": "column",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "sheets": [
+  {
+   "id": "d1",
+   "kind": "data",
+   "name": "Body weight",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Body weight (g)",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "21.4"
+       ],
+       [
+        "23.9"
+       ],
+       [
+        "22.7"
+       ],
+       [
+        "25.1"
+       ],
+       [
+        "20.8"
+       ],
+       [
+        "24.2"
+       ]
+      ]
+     },
+     {
+      "name": "Low dose",
+      "rows": [
+       [
+        "23.8"
+       ],
+       [
+        "26.1"
+       ],
+       [
+        "22.9"
+       ],
+       [
+        "25.7"
+       ],
+       [
+        "24.4"
+       ],
+       [
+        "27"
+       ]
+      ]
+     },
+     {
+      "name": "High dose",
+      "rows": [
+       [
+        "26.3"
+       ],
+       [
+        "24.8"
+       ],
+       [
+        "28.9"
+       ],
+       [
+        "27.4"
+       ],
+       [
+        "25.6"
+       ],
+       [
+        "29.1"
+       ]
+      ]
+     },
+     {
+      "name": "Positive control",
+      "rows": [
+       [
+        "22"
+       ],
+       [
+        "25.3"
+       ],
+       [
+        "23.1"
+       ],
+       [
+        "21.9"
+       ],
+       [
+        "24.6"
+       ],
+       [
+        "23.5"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r1",
+   "kind": "results",
+   "parentId": "d1",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "comparisons": "tukey"
+   },
+   "name": "One-way ANOVA of Body weight"
+  },
+  {
+   "id": "g1",
+   "kind": "graph",
+   "parentId": "d1",
+   "resultsId": "r1",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": "Body weight (g)"
+    },
+    "scheme": "default"
+   },
+   "name": "Vehicle and doses"
+  }
+ ],
+ "selected": "d1"
+}

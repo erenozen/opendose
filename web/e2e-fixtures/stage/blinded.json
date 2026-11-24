@@ -1,0 +1,315 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Blinding study",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "d001",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Body weight",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Body weight (g)",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "A",
+      "rows": [
+       [
+        "21.4"
+       ],
+       [
+        "23.9"
+       ],
+       [
+        "22.7"
+       ],
+       [
+        "25.1"
+       ],
+       [
+        "20.8"
+       ],
+       [
+        "24.2"
+       ]
+      ]
+     },
+     {
+      "name": "B",
+      "rows": [
+       [
+        "23.8"
+       ],
+       [
+        "26.1"
+       ],
+       [
+        "22.9"
+       ],
+       [
+        "25.7"
+       ],
+       [
+        "24.4"
+       ],
+       [
+        "27"
+       ]
+      ]
+     },
+     {
+      "name": "C",
+      "rows": [
+       [
+        "26.3"
+       ],
+       [
+        "24.8"
+       ],
+       [
+        "28.9"
+       ],
+       [
+        "27.4"
+       ],
+       [
+        "25.6"
+       ],
+       [
+        "29.1"
+       ]
+      ]
+     },
+     {
+      "name": "D",
+      "rows": [
+       [
+        "22"
+       ],
+       [
+        "25.3"
+       ],
+       [
+        "23.1"
+       ],
+       [
+        "21.9"
+       ],
+       [
+        "24.6"
+       ],
+       [
+        "23.5"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "blinding": {
+    "id": "blind-stage",
+    "at": "2026-11-24T09:00:00.000Z",
+    "codes": [
+     "A",
+     "B",
+     "C",
+     "D"
+    ],
+    "excludedAtStart": [],
+    "paths": []
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "comparisons": "tukey"
+   },
+   "name": "One-way ANOVA of Body weight"
+  },
+  {
+   "id": "g003",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r002",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": "Body weight (g)"
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Body weight"
+  },
+  {
+   "id": "d004",
+   "kind": "data",
+   "name": "Food intake",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Food intake (g/day)",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "4.28"
+       ],
+       [
+        "4.78"
+       ],
+       [
+        "4.54"
+       ],
+       [
+        "5.02"
+       ],
+       [
+        "4.16"
+       ],
+       [
+        "4.84"
+       ]
+      ]
+     },
+     {
+      "name": "Low dose",
+      "rows": [
+       [
+        "4.76"
+       ],
+       [
+        "5.22"
+       ],
+       [
+        "4.58"
+       ],
+       [
+        "5.14"
+       ],
+       [
+        "4.88"
+       ],
+       [
+        "5.40"
+       ]
+      ],
+      "excluded": [
+       "2:0"
+      ],
+      "exclusionReasons": {
+       "2:0": "pipetting error"
+      }
+     },
+     {
+      "name": "High dose",
+      "rows": [
+       [
+        "5.26"
+       ],
+       [
+        "4.96"
+       ],
+       [
+        "5.78"
+       ],
+       [
+        "5.48"
+       ],
+       [
+        "5.12"
+       ],
+       [
+        "5.82"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "blindLog": [
+    {
+     "blindedAt": "2026-11-20T09:00:00.000Z",
+     "unblindedAt": "2026-11-23T16:30:00.000Z",
+     "codes": [
+      "A",
+      "B",
+      "C"
+     ],
+     "exclusions": [
+      {
+       "dataset": "Low dose",
+       "row": 2,
+       "sub": 0,
+       "value": "4.58",
+       "reason": "pipetting error"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "r005",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "comparisons": "tukey"
+   },
+   "name": "One-way ANOVA of Food intake"
+  }
+ ]
+}

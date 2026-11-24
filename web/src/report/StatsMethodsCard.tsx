@@ -7,6 +7,7 @@ import { exclusionSentence } from "../project/exclusions";
 import { leftOutClause, sheetTable } from "../project/leftOut";
 import { currentChoice } from "../guide/choice";
 import { designMethodsSentence, designSheetFor } from "../project/studyDesign";
+import { blindingMethodsSentence } from "../project/blinding";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { powerJustification } from "./facts";
 import { usePlanSentence } from "../components/usePlanSentence";
@@ -32,7 +33,8 @@ export default function StatsMethodsCard({ sheet, result }: { sheet: ResultsShee
     { powerJustification: powerJustification(project, results),
       exclusions, plan,
       design: designSheet ? designMethodsSentence(designSheet.design) : null,
-      chosen: currentChoice(sheet) });
+      chosen: currentChoice(sheet),
+      blinding: blindingMethodsSentence(data) || null });
   if (!text) return null;
   return (
     <div className="result-card methods-text stats-methods">

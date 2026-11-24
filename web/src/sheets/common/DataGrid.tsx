@@ -41,6 +41,7 @@ import { newlyExcluded, reasonAt } from "../../project/exclusions";
 import PasteReportStrip from "./PasteReportStrip";
 import FormulaColumnDialog from "./FormulaColumnDialog";
 import ExcludeByIdDialog from "./ExcludeByIdDialog";
+import { BlindBanner, BlindDialog, UnblindDialog } from "./BlindTable";
 import GridFindBar, { GridReplaceRow } from "./GridFindBar";
 import { onGridFind, onGridReplace } from "../../app/gridFind";
 import { takeReport } from "../../app/tableFile";
@@ -89,7 +90,7 @@ type Dialog =
   | { kind: "export" } | { kind: "sort" } | { kind: "series" } | { kind: "format" }
   | { kind: "convert" } | { kind: "reshape" } | { kind: "convertType" }
   | { kind: "formula"; dataset: number; isNew: boolean }
-  | { kind: "excludeIds" };
+  | { kind: "excludeIds" } | { kind: "blind" } | { kind: "unblind" };
 
 /** Set (or, with formula null, remove) a column's formula; a calculated
  *  column's values are filled by app/useCalculatedSync. */
@@ -838,6 +839,12 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
                 ? "A wide table (groups as columns) from this long table"
                 : "A long table (one observation per row) from this one",
               onSelect: () => setDialog({ kind: "reshape" }) },
+              "sep",
+              sheet.blinding
+                ? { label: "Unblind…", description: "Put the group names back, with the key",
+                  onSelect: () => setDialog({ kind: "unblind" }) }
+                : { label: "Blind this table…", description: "Show the group names as codes until unblinded with the key",
+                  onSelect: () => setDialog({ kind: "blind" }) },
             ]} />
           </>
         )}
@@ -857,6 +864,7 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
             onClose={closeFind} />
         </GridFindBar>
       )}
+      <BlindBanner sheet={sheet} onUnblind={readOnly ? undefined : () => setDialog({ kind: "unblind" })} />
       {reasonAsk?.sheetId === sheet.id && !readOnly && (
         <ExclusionReasonPrompt key={reasonAsk.refs.map((x) => JSON.stringify(x)).join()} table={t}
           refs={reasonAsk.refs} onSave={(fn) => onChange(fn)} onClose={closeReason} />
@@ -1047,6 +1055,8 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
             if (report) setPasteInfo({ id: sheet.id, verb: "Imported", report });
           }} />
       )}
+      {dialog?.kind === "blind" && <BlindDialog sheet={sheet} onClose={() => setDialog(null)} />}
+      {dialog?.kind === "unblind" && <UnblindDialog sheet={sheet} onClose={() => setDialog(null)} />}
       {dialog?.kind === "export" && (
         <ExportDialog table={t} name={sheet.name} onClose={() => setDialog(null)} />
       )}

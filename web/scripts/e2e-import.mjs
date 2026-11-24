@@ -723,6 +723,109 @@ const sendInto = async (source, table) => {
     JSON.stringify(again));
 }
 
+// --- P-124 blind a table. The plan's acceptance test: blind a 4-group
+// table; names show as A to D on grid, graph and results; exclude one
+// value; unblind: names return and the methods say the exclusion was
+// made blind. Identity: the one-way ANOVA's P is the same before and
+// while blind, and after unblinding (with the exclusion), and equals
+// scipy's f_oneway (engine/tests/reference/blind_anova.py).
+{
+  const NAMES = ["Vehicle", "Low dose", "High dose", "Positive control"];
+  const aref = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference", "blind_anova.json"), "utf8"));
+  await page.setInputFiles(OPEN_INPUT, join(FIX, "blind-4groups.json"));
+  await page.getByRole("treeitem", { name: "Body weight", exact: true }).first().waitFor({ timeout: 30000 });
+  await page.getByRole("treeitem", { name: "Body weight", exact: true }).first().locator(":scope > .nav-row").click();
+  const live = () => page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 120000 });
+  const anovaP = async () => {
+    await live();
+    const rows = await page.locator(".pane-results .results-table tr").evaluateAll((trs) =>
+      trs.map((tr) => [...tr.querySelectorAll("th, td")].map((c) => c.textContent.replace(/\s+/g, " ").trim())));
+    // the number, without its significance stars ("0.00121 **")
+    return ((rows.find((r) => /^P value$/.test(r[0] ?? "")) ?? [])[1] ?? "").replace(/\s*(\*+|ns)$/, "");
+  };
+  // the results tables (a sheet name in the pane may still name a group: the dialog listed it)
+  const resultsText = async () => (await page.locator(".pane-results .results-table").allInnerTexts()).join(" ").replace(/\s+/g, " ");
+  const graphText = async () => (await page.locator(".plot-card svg text").allTextContents()).join(" | ");
+  const cellLabels = () => page.locator(".data-table td input").evaluateAll((els) =>
+    [...new Set(els.map((e) => (e.getAttribute("aria-label") ?? "").replace(/, row \d+$/, "")))]);
+  const pBefore = await anovaP();
+  const dec = (pBefore.split(".")[1] ?? "").length;
+  expect("P-124: the ANOVA's P before blinding equals scipy's f_oneway at the shown precision",
+    pBefore !== "" && Math.abs(Number(pBefore) - aref.P) <= 0.5 * 10 ** -dec, `${pBefore} vs ${aref.P}`);
+  const more = () => page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }).click();
+  await more();
+  await page.getByRole("menuitem", { name: "Blind this table…" }).click();
+  const bd = page.getByRole("dialog", { name: "Blind “Body weight”" });
+  await bd.waitFor({ timeout: 10000 });
+  expect("P-124: the blinding dialog lists the sheet whose name still names a group",
+    (await bd.innerText()).includes("the name of the sheet “Vehicle and doses”"), await bd.innerText());
+  expect("P-124: the dialog says where the key is kept", (await bd.innerText()).includes("kept in this browser and never in the project file"));
+  await bd.getByLabel("Save the key as a file too").uncheck();
+  await bd.getByRole("button", { name: "Blind the table" }).click();
+  await bd.waitFor({ state: "detached", timeout: 10000 });
+  const banner = page.locator(".blind-banner");
+  expect("P-124: a banner says the group names are blinded",
+    await appears(banner) && (await banner.innerText()).includes("Group names are blinded")
+    && (await banner.innerText()).includes("A to D"));
+  expect("P-124: the grid shows A to D", JSON.stringify(await cellLabels()) === JSON.stringify(["A", "B", "C", "D"]),
+    JSON.stringify(await cellLabels()));
+  await page.waitForFunction(() => ![...document.querySelectorAll(".pane-results .results-table")].some((t) => /Vehicle|Low dose/.test(t.textContent))
+    && !!document.querySelector('.pane-results[data-live="true"]'), null, { timeout: 120000 });
+  const pBlind = await anovaP();
+  const rBlind = await resultsText();
+  expect("P-124: the results name A to D and no group; the P is unchanged by blinding",
+    pBlind === pBefore && /\bA vs\.? B\b/.test(rBlind) && !NAMES.some((n) => rBlind.includes(n)), `${pBlind} / ${rBlind.slice(0, 200)}`);
+  await page.waitForFunction(() => [...document.querySelectorAll(".plot-card svg text")].some((t) => t.textContent === "A"),
+    null, { timeout: 30000 }).catch(() => {});
+  const gBlind = await graphText();
+  expect("P-124: the graph labels the groups A to D and names none",
+    ["A", "B", "C", "D"].every((c) => gBlind.split(" | ").includes(c)) && !NAMES.some((n) => gBlind.includes(n)), gBlind);
+  expect("P-124: undo cannot bring the names back (history cleared)",
+    await page.locator("header").getByRole("button", { name: "Undo", exact: true }).isDisabled());
+  // exclude one value of B while blind, with a reason
+  const cellB3 = page.locator('.data-table input[aria-label="B, row 3"]');
+  await cellB3.click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  await prompt.waitFor({ timeout: 10000 });
+  await prompt.getByLabel("Other reason for excluding").fill("pipetting error");
+  await prompt.getByRole("button", { name: "Save reason" }).click();
+  await page.waitForFunction((before) => {
+    const rows = [...document.querySelectorAll(".pane-results .results-table tr")];
+    const r = rows.find((tr) => tr.querySelector("th, td")?.textContent?.trim() === "P value");
+    return !!document.querySelector('.pane-results[data-live="true"]') && r && !r.textContent.includes(before);
+  }, pBlind, { timeout: 120000 }).catch(() => {});
+  const pExcluded = await anovaP();
+  expect("P-124: the exclusion while blind changes the P", pExcluded !== "" && pExcluded !== pBlind, pExcluded);
+  await more();
+  await page.getByRole("menuitem", { name: "Unblind…" }).click();
+  const ud = page.getByRole("dialog", { name: "Unblind “Body weight”" });
+  await ud.waitFor({ timeout: 10000 });
+  expect("P-124: the key is found in this browser", (await ud.innerText()).includes("The key is kept in this browser."));
+  await ud.getByRole("button", { name: "Unblind", exact: true }).click();
+  await ud.waitFor({ state: "detached", timeout: 10000 });
+  expect("P-124: unblinding puts the names back", JSON.stringify(await cellLabels()) === JSON.stringify(NAMES),
+    JSON.stringify(await cellLabels()));
+  expect("P-124: the banner is gone", await page.locator(".blind-banner:not([data-closing])").count() === 0
+    || !(await banner.isVisible()));
+  await page.waitForFunction(() => [...document.querySelectorAll(".pane-results .results-table")].some((t) => /Vehicle/.test(t.textContent))
+    && !!document.querySelector('.pane-results[data-live="true"]'), null, { timeout: 120000 });
+  const pAfter = await anovaP();
+  expect("P-124: after unblinding the P is the one computed blind", pAfter === pExcluded, `${pAfter} vs ${pExcluded}`);
+  const methods = (await page.locator(".stats-methods p").innerText()).replace(/\s+/g, " ");
+  const today = new Date().toISOString().slice(0, 10);
+  expect("P-124: the methods say the exclusion was made blind",
+    methods.includes(`The analysis was blinded to group from ${today} to ${today} (groups coded A to D); the value excluded in that time was excluded blind to group.`),
+    methods);
+  await page.locator(".pane-results").getByRole("button", { name: "History", exact: true }).click();
+  const hist = page.getByRole("dialog", { name: "History" });
+  await hist.waitFor({ timeout: 15000 });
+  const blindStep = (await hist.locator(".history-blinding").innerText()).replace(/\s+/g, " ");
+  expect("P-124: History logs the blinding and the value excluded blind, by its group's name",
+    blindStep.includes("1 value excluded while blind") && blindStep.includes("Low dose, row 3: 22.9 (pipetting error)"), blindStep);
+  await hist.getByRole("button", { name: "Close" }).click();
+}
+
 // --- a file Open cannot read: the error names what it opens
 {
   await dropFiles([join(FIX, "encodings", "make_fixtures.py")]);

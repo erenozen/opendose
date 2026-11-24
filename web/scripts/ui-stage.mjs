@@ -1312,6 +1312,33 @@ const scenes = [
     await d.getByRole("button", { name: "Run on 5 files" }).click();
     await d.getByText("4 families made from 5 files; 1 not run.").waitFor({ timeout: 240000 });
   } },
+  // P-124: a blinded table (banner, codes on the grid, graph and
+  // results), the dialogs that blind and unblind it, and the methods
+  // of a table unblinded after a value was excluded blind
+  { name: "grid-blinded", setup: async (s) => {
+    await fixture(s, "blinded.json", { live: true });
+    await s.page.locator(".blind-banner").waitFor();
+  } },
+  { name: "grid-blind-dialog", setup: async (s) => {
+    await fixture(s, join(FIXTURES, "blind-4groups.json"));
+    await selectSheet(s, "Body weight");
+    await click(s, s.page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }));
+    await s.page.getByRole("menuitem", { name: "Blind this table…" }).click();
+    await dialog(s, "Blind “Body weight”").waitFor();
+  } },
+  { name: "grid-unblind-dialog", setup: async (s) => {
+    await fixture(s, "blinded.json");
+    await click(s, s.page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }));
+    await s.page.getByRole("menuitem", { name: "Unblind…" }).click();
+    await dialog(s, "Unblind “Body weight”").waitFor();
+  } },
+  { name: "results-methods-blind", setup: async (s) => {
+    await fixture(s, "blinded.json");
+    await selectSheet(s, "One-way ANOVA of Food intake");
+    await waitLive(s);
+    await s.page.locator(".stats-methods p").filter({ hasText: "excluded blind" }).waitFor({ timeout: 60000 });
+    await into(s, ".stats-methods", "center");
+  } },
   // P-68: leave a value out of one analysis (the dialog, filled in), and
   // the Exclusions block of the sensitivity results with them put back
   { name: "results-leave-out-dialog", setup: async (s) => {

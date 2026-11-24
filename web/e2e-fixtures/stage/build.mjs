@@ -60,6 +60,8 @@
 //                      a 4PL fit, letters a and b: its source data (P-65)
 //   import-history.json a plate imported through a recipe, replaced by next
 //                      week's file, one cell edited by hand (P-76)
+//   blinded.json       a four-group table blinded as A to D, and a table
+//                      unblinded after a value was excluded blind (P-124)
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -1047,4 +1049,27 @@ const longData = (name, names, rows, categorical) => data(name, {
   } });
   const r = results(d, "column", {}, "Column stats of Plate week 2");
   write("import-history.json", project("Plates", [d, r], { selected: r.id }));
+}
+
+// blinded.json (P-124): a four-group table blinded (groups coded A to D;
+// its key is not in this browser) under a one-way ANOVA with its graph,
+// and a second table unblinded after a value was excluded blind (the
+// methods paragraph and History say so)
+{
+  n = 0;
+  const vals = [[21.4, 23.9, 22.7, 25.1, 20.8, 24.2], [23.8, 26.1, 22.9, 25.7, 24.4, 27.0],
+    [26.3, 24.8, 28.9, 27.4, 25.6, 29.1], [22.0, 25.3, 23.1, 21.9, 24.6, 23.5]];
+  const blind = data("Body weight", table("column", { yTitle: "Body weight (g)",
+    datasets: ["A", "B", "C", "D"].map((c, k) => col(c, vals[k])) }), { blinding: {
+    id: "blind-stage", at: "2026-11-24T09:00:00.000Z", codes: ["A", "B", "C", "D"], excludedAtStart: [], paths: [] } });
+  const br = results(blind, "column", { analysis: "anova", comparisons: "tukey" }, "One-way ANOVA of Body weight");
+  const bg = graph(blind, br, "scatter", "Graph of Body weight", { x: "", y: "Body weight (g)" });
+  const after = data("Food intake", table("column", { yTitle: "Food intake (g/day)",
+    datasets: ["Vehicle", "Low dose", "High dose"].map((g, k) => col(g, vals[k].map((v) => (v / 5).toFixed(2)))) }));
+  after.table.datasets[1].excluded = ["2:0"];
+  after.table.datasets[1].exclusionReasons = { "2:0": "pipetting error" };
+  after.blindLog = [{ blindedAt: "2026-11-20T09:00:00.000Z", unblindedAt: "2026-11-23T16:30:00.000Z",
+    codes: ["A", "B", "C"], exclusions: [{ dataset: "Low dose", row: 2, sub: 0, value: "4.58", reason: "pipetting error" }] }];
+  const ar = results(after, "column", { analysis: "anova", comparisons: "tukey" }, "One-way ANOVA of Food intake");
+  write("blinded.json", project("Blinding study", [blind, br, bg, after, ar], { selected: blind.id }));
 }
