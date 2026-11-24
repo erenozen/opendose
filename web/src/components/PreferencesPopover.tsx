@@ -10,7 +10,8 @@ import {
   P_FLOOR_LABELS, P_STYLE_LABELS, SMD_LABELS, VARIANCE_LABELS, reportPrefsOf,
   type PFloor, type PStyle, type ReportPrefs, type SmdPref, type VariancePref,
 } from "../report/prefs";
-import { Button, Popover } from "./ui";
+import { Button, FileButton, Popover, SwapLabel, notify, useLabelSwap } from "./ui";
+import { downloadKit, openLabKitImport } from "../app/labKit";
 import StorageNote from "./StorageNote";
 import GroupColorPins from "./GroupColorPins";
 
@@ -88,6 +89,17 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
     location.replace(location.pathname);
   };
   const set = <K extends keyof Prefs>(k: K, v: Prefs[K]) => setPrefs({ ...prefs, [k]: v });
+  // Lab kit (P-75): this browser's set-up as one file, and back.
+  const kitSaved = useLabelSwap();
+  const exportKit = async () => {
+    try {
+      await downloadKit();
+      kitSaved.flash("Lab kit downloaded");
+    } catch (e) {
+      notify(`Could not export the lab kit: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`,
+        { tone: "error" });
+    }
+  };
   // Reporting (src/report): P-value style, "ns", default effect sizes.
   const report = reportPrefsOf(prefs);
   const setReport = (patch: Partial<ReportPrefs>) => set("report", { ...report, ...patch });
@@ -193,6 +205,20 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
               ))}
             </select>
           </label>
+          <h3 className="prefs-subtitle">Lab kit</h3>
+          <p className="prefs-note prefs-kit-note">
+            Your templates, import recipes, plate layouts, equations, preferences and image
+            export settings in one file, to set up another computer or a new lab member.
+          </p>
+          <div className="prefs-kit-actions">
+            <Button size="sm" onClick={() => { void exportKit(); }}>
+              <SwapLabel swapped={kitSaved.swapped} done="Downloaded">Export lab kit</SwapLabel>
+            </Button>
+            <FileButton size="sm" accept=".json,application/json" inputLabel="Import a lab kit file"
+              onFile={(f) => { onOpenChange(false); openLabKitImport(f); }}>
+              Import lab kit…
+            </FileButton>
+          </div>
           <h3 className="prefs-subtitle">Privacy on this computer</h3>
           <label className="field field-check">
             <input type="checkbox" checked={autosaveOn}

@@ -20,6 +20,8 @@ import type { Sheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 import { openPowerTool } from "../power/events";
 import { addProjectFiles } from "./addProject";
+import { downloadKit, openLabKitImport } from "./labKit";
+import { notify } from "../components/ui/Toast.store";
 import { openRatesTool } from "../rates/events";
 import { openFlowEvents } from "../sheets/assays/flow/eventsModel";
 import {
@@ -46,6 +48,18 @@ export function onShellRequest(fn: (kind: ShellRequest) => void): () => void {
   const h = (e: Event) => fn((e as CustomEvent<ShellRequest>).detail);
   window.addEventListener(SHELL_EVENT, h);
   return () => window.removeEventListener(SHELL_EVENT, h);
+}
+
+/** Choose a lab kit file, then the import dialog asks what to import. */
+function pickKit(): void {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json,application/json";
+  input.addEventListener("change", () => {
+    const f = input.files?.[0];
+    if (f) openLabKitImport(f);
+  }, { once: true });
+  input.click();
 }
 
 // ------------------------------------------------------------ shortcuts
@@ -167,6 +181,16 @@ export function useCommandRegistry(): Command[] {
       // ---- tools
       { id: "replay", label: "Apply to new data…", group: "tools",
         keywords: "replay rerun recipe", disabled: readOnly, run: () => openReplay() },
+      { id: "kit-export", label: "Export lab kit", group: "tools",
+        keywords: "lab kit templates recipes plate layouts equations preferences settings new member computer backup",
+        run: () => {
+          void downloadKit().then(() => notify("Downloaded the lab kit of this browser.", { tone: "success" }),
+            (e) => notify(`Could not export the lab kit: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`,
+              { tone: "error" }));
+        } },
+      { id: "kit-import", label: "Import lab kit…", group: "tools",
+        keywords: "lab kit templates recipes plate layouts equations preferences settings new member computer restore",
+        run: () => pickKit() },
       { id: "prism-csv", label: "Convert Prism files to CSV…", group: "tools",
         keywords: "pzfx batch", run: () => requestShell("prism-csv") },
       { id: "power", label: "Power and sample size…", group: "tools",

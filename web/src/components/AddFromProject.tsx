@@ -6,6 +6,8 @@
 // and the user adds or cancels.
 import { useEffect, useRef, useState } from "react";
 import { onAddProjectFiles } from "../app/addProject";
+import { openLabKitImport } from "../app/labKit";
+import { isLabKitText } from "../project/labKit";
 import { useProject } from "../app/context";
 import { isExampleProject } from "../guide/firstRun";
 import { newId } from "../project/ids";
@@ -48,6 +50,7 @@ export default function AddFromProjectHost() {
     let incoming: Project;
     try {
       const text = await file.text();
+      if (isLabKitText(text)) { openLabKitImport(file); return; }
       incoming = parseProjectFile(text, { prefs: store.project.prefs, ids: newId });
     } catch (e) {
       notify(`Could not add “${file.name}”: ${reason(e)}.`, {

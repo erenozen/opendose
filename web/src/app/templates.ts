@@ -60,6 +60,19 @@ async function persist(saved: SheetTemplate[]): Promise<boolean> {
   return ok;
 }
 
+/** The templates saved in this browser, once loaded (the lab kit, P-75). */
+export async function loadSavedTemplates(): Promise<SheetTemplate[]> {
+  await load();
+  return state.saved;
+}
+
+/** Add templates after the ones saved here (a lab kit's, in its order);
+ *  false when the browser would not store them. */
+export async function addTemplates(list: SheetTemplate[]): Promise<boolean> {
+  await load();
+  return persist([...state.saved, ...list.map(stripBuiltin)]);
+}
+
 /** Save (or replace, by id) a template in this browser. */
 export async function saveTemplate(t: SheetTemplate): Promise<boolean> {
   await load();

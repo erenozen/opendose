@@ -1,0 +1,3 @@
+/* The lab kit (components/LabKit.tsx, P-75): the import dialog's sections,
+   each a check row with its note under the name. */
+.lab-kit-sections .field-note { display: block; }

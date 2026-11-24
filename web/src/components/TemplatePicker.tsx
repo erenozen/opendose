@@ -4,6 +4,8 @@ import {
   templateShape, useSavedTemplates,
 } from "../app/templates";
 import { newId } from "../project/ids";
+import { openLabKitImport } from "../app/labKit";
+import { isLabKitText } from "../project/labKit";
 import { Button, FileButton, Field, Input, notify } from "./ui";
 import { TABLE_TOKEN, type SheetTemplate } from "../project/templates";
 import type { ProjectPrefs } from "../project/types";
@@ -59,6 +61,12 @@ export default function TemplatePicker({ prefs, defaultName, onChange }: {
   };
 
   const onImport = async (f: File) => {
+    // A lab kit holds templates (and more): its own dialog imports it (P-75).
+    if (isLabKitText(await f.text().catch(() => ""))) {
+      openLabKitImport(f);
+      setImportMsg(null);
+      return;
+    }
     try {
       const t = await importTemplateFile(f, newId, prefs.scheme);
       setChosenId(t.id);

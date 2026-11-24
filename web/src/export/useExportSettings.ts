@@ -5,12 +5,25 @@ import { DEFAULT_EXPORT, sanitizeExport } from "./settings";
 
 const KEY = "opendose-export";
 
-function browserDefault(): ExportPrefs | null {
+/** This browser's image export settings (the starting point of projects
+ *  that have never exported), or null. */
+export function browserExportDefault(): ExportPrefs | null {
   try {
     const raw = globalThis.localStorage?.getItem(KEY);
     return raw ? sanitizeExport(JSON.parse(raw)) : null;
   } catch {
     return null;
+  }
+}
+
+/** Set this browser's image export settings (a lab kit, P-75); false
+ *  when storage refuses. */
+export function setBrowserExportDefault(e: ExportPrefs): boolean {
+  try {
+    globalThis.localStorage?.setItem(KEY, JSON.stringify(sanitizeExport(e)));
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -22,7 +35,7 @@ function browserDefault(): ExportPrefs | null {
  */
 export function useExportSettings(): [ExportPrefs, (next: ExportPrefs) => void] {
   const { project, store } = useProject();
-  const current = project.prefs.export ?? browserDefault() ?? DEFAULT_EXPORT;
+  const current = project.prefs.export ?? browserExportDefault() ?? DEFAULT_EXPORT;
   const set = useCallback((next: ExportPrefs) => {
     const clean = sanitizeExport(next);
     store.patchAll((p) => (JSON.stringify(p.prefs.export) === JSON.stringify(clean)

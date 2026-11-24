@@ -190,6 +190,8 @@ header {
 .prefs-title { margin: 0; font-size: var(--text-body); font-weight: var(--weight-semibold); color: var(--ink); }
 .prefs-note { margin: calc(-1 * var(--space-4)) 0 0; font-size: var(--text-caption); color: var(--muted); }
 .prefs-forget { align-self: flex-start; }
+/* Preferences › Lab kit (P-75) */
+.prefs-kit-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
 .prefs-confirm {
   display: flex; flex-direction: column; gap: var(--space-8); padding: var(--space-8) var(--space-12);
   border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--page);

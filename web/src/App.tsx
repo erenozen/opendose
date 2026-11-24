@@ -28,6 +28,7 @@ import Navigator from "./components/Navigator";
 import SessionBanners from "./components/SessionBanners";
 import VersionsHost from "./components/ProjectVersions";
 import AddFromProjectHost from "./components/AddFromProject";
+import LabKitHost from "./components/LabKit";
 import { addProjectFiles, projectsInDrop } from "./app/addProject";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet, makeProject } from "./project/ops";
@@ -243,6 +244,7 @@ function Shell() {
       )}
       <VersionsHost autosave={autosave} />
       <AddFromProjectHost />
+      <LabKitHost />
       <SimulateHost />
       <TableFileImport />
       <PowerHost />

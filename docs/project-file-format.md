@@ -65,6 +65,25 @@ a build that does not know the key opens the link with everything shown.
 Links without the key decode exactly as before; project files and the
 autosave never carry it.
 
+## Lab kit files
+
+A lab kit (`*.odkit.json`, Preferences › Lab kit) is not a project: it
+holds what a browser has set up, for another computer or a new lab
+member. Its top level is `opendose_lab_kit` (the kit format version, now
+1), `exportedAt`, `software`, and the sections `templates` (as in a
+template file), `recipes` (as in a project's `recipes`), `plateLayouts`
+(`name`, `format` 96 or 384, `wells`, `description`), `equations` (the
+equation editor's "My equations"), `preferences` and `exportSettings`
+(the image export settings). Version rule: adding a section or an
+optional field keeps the version, since a reader ignores sections it does
+not know and treats a missing one as empty; a change an older reader would
+misread raises the version, and the reader gains a step that turns the
+previous version into the new one, so every older kit still imports. A
+kit of a newer version than the reader is refused with a message to
+update, never half read (`web/src/project/labKit.ts`). Importing adds to
+what the browser holds: an identical entry is not doubled, and one whose
+name is taken comes in as "name (2)".
+
 ## How the schema is made and checked
 
 The schema is generated from the TypeScript model
