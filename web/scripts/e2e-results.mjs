@@ -1371,6 +1371,125 @@ const analyzeWith = async (re) => {
     await page.locator(".pane-results .compare-headline.potency-unsupported").count() === 1);
 }
 
+// --- P-90: competing risks: cumulative incidence and Gray's test ----------
+{
+  // engine/tests/reference/competing_risks.py: tidycmprsk's trial data
+  // (Drug A / Drug B, months; codes 1 = death from cancer, 2 = other
+  // death). Published cmprsk::cuminc output (tidycmprsk reference page):
+  // Gray's test 1.99 (p 0.16) and 0.089 (p 0.77); at month 20 Drug A
+  // 0.173 (0.106 to 0.255), Drug B 0.255 (0.175 to 0.343) for cancer.
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/competing_risks.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  const pub = REF.trial.published;
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "survival-models.json"));
+  const gray = page.getByRole("group", { name: "Gray's test per kind of event" });
+  await appears(gray, 180000);
+  // the acceptance test: code 1 named "Tumour" from the results sheet
+  const name1 = page.getByRole("textbox", { name: "Name of event code 1" });
+  await name1.fill("Tumour");
+  await name1.press("Enter");
+  await liveResults(/Tumour/);
+  const rows = async (loc) => (await loc.locator("tbody tr").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim());
+  const g = await rows(gray);
+  const [c1, , p1] = g[0]?.split(" ").slice(-3) ?? [];
+  const [c2, , p2] = g[1]?.split(" ").slice(-3) ?? [];
+  expect(`P-90 acceptance: Gray's P for each kind of event, as cmprsk publishes (1.99, p 0.16; 0.089, p 0.77)`,
+    g[0]?.startsWith("Tumour ") && g[1]?.startsWith("Other death ")
+      && Number(c1).toFixed(2) === "1.99" && Number(p1).toFixed(2) === String(pub.gray["1"].p)
+      && Number(c2).toFixed(3) === String(pub.gray["2"].stat) && Number(p2).toFixed(2) === String(pub.gray["2"].p),
+    g.join(" | "));
+  const at = await rows(page.getByRole("group", { name: "Cumulative incidence at month 20" }));
+  const cif = REF.trial.cif;
+  const want = [["Drug A", "Tumour", cif["Drug A"]["1"][3]], ["Drug B", "Tumour", cif["Drug B"]["1"][3]],
+    ["Drug A", "Other death", cif["Drug A"]["2"][3]], ["Drug B", "Other death", cif["Drug B"]["2"][3]]];
+  expect("P-90 cumulative incidence at month 20 (Aalen-Johansen, the reference's product-integral)",
+    want.every(([gr, kind, v], i) => at[i]?.startsWith(`${gr} ${kind} ${sig4(v)} `)), at.join(" | "));
+  const ciA = at[0]?.match(/ (\S+) to (\S+) (\S+)$/);
+  expect("P-90 Drug A's CI and SE at month 20 round to cmprsk's published 0.106 to 0.255, SE 0.039",
+    !!ciA && Number(ciA[1]).toFixed(3) === "0.106" && Number(ciA[2]).toFixed(3) === "0.255"
+      && Number(ciA[3]).toFixed(3) === "0.039", at[0]);
+  expect("P-90 the methods say 1 − Kaplan-Meier was not used",
+    /1 − Kaplan-Meier was not used/.test(await page.locator(".methods-text").first().innerText().catch(() => "")));
+  // the graph: one kind of event at a time, named in the Y title
+  await page.getByRole("treeitem", { name: "Cumulative incidence of Trial by drug", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const plot = page.locator(".plot-card .js-plotly-plot").first();
+  await appears(plot, 120000);
+  const yTitle = () => page.locator(".plot-card .ytitle").first().textContent().catch(() => "");
+  await page.waitForFunction(() => /Tumour/.test(document.querySelector(".plot-card .ytitle")?.textContent ?? ""),
+    null, { timeout: 30000 }).catch(() => {});
+  // each group's curve at month 20, as drawn (percent)
+  const at20 = () => plot.evaluate((el) => (el.data ?? []).filter((t) => t.meta?.odTag?.role === "line")
+    .map((t) => { let y = null; t.x.forEach((x, i) => { if (x <= 20) y = t.y[i]; }); return y; }));
+  const ys = await at20();
+  const near = (got, code) => got.length === 2 && ["Drug A", "Drug B"]
+    .every((gr, i) => Math.abs(got[i] - 100 * REF.trial.cif[gr][code][3]) < 1e-9);
+  expect("P-90 acceptance: a cumulative incidence graph of Tumour, Y title naming it",
+    (await yTitle()) === "Cumulative incidence of Tumour (%)" && near(ys, "1"), `${await yTitle()} ${ys}`);
+  await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("dialog", { name: "Graph settings" }).getByLabel("Kind of event").selectOption({ label: "Other death" });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => /Other death/.test(document.querySelector(".plot-card .ytitle")?.textContent ?? ""),
+    null, { timeout: 30000 }).catch(() => {});
+  const ys2 = await at20();
+  expect("P-90 the graph switches to the other kind of event (a graph per cause)",
+    (await yTitle()) === "Cumulative incidence of Other death (%)" && near(ys2, "2"), `${await yTitle()} ${ys2}`);
+}
+
+// --- P-91: parametric survival models (AFT) --------------------------------
+{
+  // engine/tests/reference/parametric_survival.py: R's ovarian data by
+  // treatment (rx 1, rx 2), Weibull AFT: rx coefficient 0.5593 (SE
+  // 0.5292), scale 0.8857, medians 665.1 and 1163 days (independent MLE,
+  // lifelines 0.30.3); exponential medians = log 2 x total time / events
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/parametric_survival.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  // the fixture of the P-90 step is open: the ovarian table is in it
+  await page.getByRole("treeitem", { name: "Parametric survival of Ovarian by treatment", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const coefs = page.getByRole("group", { name: "Coefficients", exact: true });
+  await appears(coefs, 180000);
+  const rows = async (loc) => (await loc.locator("tbody tr").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim());
+  const w = REF.ovarian.weibull;
+  const c = await rows(coefs);
+  const scale = await rows(page.getByRole("group", { name: "Scale", exact: true }));
+  const pcts = await rows(page.getByRole("group", { name: "Percentile survival times" }));
+  const med = (g) => pcts.find((r) => r.startsWith(`${g} Median (50%) `)) ?? "";
+  expect(`P-91 acceptance: Weibull AFT on ovarian by treatment: coefficient ${sig4(w.coef[1])} (SE ${sig4(w.se[1])}), `
+    + `scale ${sig4(w.scale)}, medians ${sig4(w.percentiles["rx 1"]["0.5"].time)} and ${sig4(w.percentiles["rx 2"]["0.5"].time)}`,
+  c[1]?.startsWith(`Group: rx 2 ${sig4(w.coef[1])} ${sig4(w.se[1])} `)
+      && scale[0]?.startsWith(`Scale σ ${sig4(w.scale)} `)
+      && med("rx 1").startsWith(`rx 1 Median (50%) ${sig4(w.percentiles["rx 1"]["0.5"].time)} `)
+      && med("rx 2").startsWith(`rx 2 Median (50%) ${sig4(w.percentiles["rx 2"]["0.5"].time)} `),
+  `${c[1]} | ${scale[0]} | ${med("rx 1")} | ${med("rx 2")}`);
+  const ciTxt = (ci) => `${sig4(ci[0])} to ${sig4(ci[1])}`;
+  expect("P-91 the median's delta-method CI (rx 1)",
+    med("rx 1").includes(ciTxt(w.percentiles["rx 1"]["0.5"].ci)), med("rx 1"));
+  expect("P-91 the time ratio is the headline, with its CI",
+    await answerText(new RegExp(`Time ratio \\(Weibull AFT\\)\\s*${sig4(w.time_ratio).replace(".", "\\.")}`)));
+  // rx 2's 75% time (2150 days) is past its last follow-up (1227): flagged
+  const p75 = pcts.find((r) => r.startsWith("rx 2 75% ")) ?? "";
+  expect("P-91 extrapolation beyond follow-up is flagged next to the number",
+    p75.startsWith(`rx 2 75% Extrapolated ${sig4(w.percentiles["rx 2"]["0.75"].time)} `), p75);
+  const block = page.locator('section[aria-label="Percentile survival times"]');
+  await block.getByRole("button", { name: "Extrapolated" }).first().click();
+  expect("P-91 the Extrapolated badge opens its explanation",
+    // the first badge is rx 1's 75% time (1229 days; rx 1 was followed to 1106)
+    new RegExp(`rx 1, 75%: ${sig4(w.percentiles["rx 1"]["0.75"].time)} is later than the last follow-up \\(1106\\)`)
+      .test(await block.innerText()));
+  // the exponential model: its medians are the closed form
+  await page.getByRole("group", { name: "Model" }).getByLabel("Distribution").selectOption("exponential");
+  await liveResults(/Exponential accelerated failure time model/);
+  const cf = REF.ovarian.exponential_closed_form.median;
+  const pe = await rows(page.getByRole("group", { name: "Percentile survival times" }));
+  expect(`P-91 exponential medians = log 2 x total time / events (${sig4(cf["rx 1"])}, ${sig4(cf["rx 2"])})`,
+    pe.some((r) => r.startsWith(`rx 1 Median (50%) ${sig4(cf["rx 1"])} `))
+      // rx 2's exponential median (1229 days) is one day past its last follow-up (1227)
+      && pe.some((r) => r.startsWith(`rx 2 Median (50%) Extrapolated ${sig4(cf["rx 2"])} `)), pe.join(" | "));
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

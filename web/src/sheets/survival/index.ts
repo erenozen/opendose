@@ -7,9 +7,18 @@ import {
   coxModel, curveProfiles, defaultCoxOptions, normalizeCoxOptions, runCox,
   type CoxOptions, type CoxResult,
 } from "./cox";
-import { SurvivalControls, SurvivalGraph, SurvivalOptions, SurvivalResultsPanel } from "./panels";
+import {
+  CompetingControls, ParametricControls, SurvivalControls, SurvivalGraph, SurvivalOptions, SurvivalResultsPanel,
+} from "./panels";
 import { DEFAULT_SURVIVAL_OPTIONS, normalizeSurvivalOptions, runSurvival } from "./extras";
 import { SurvivalMethods } from "./extrasPanels";
+import {
+  DEFAULT_PARAMETRIC_OPTIONS, normalizeParametricOptions, runParametric, type ParametricOptions,
+} from "./parametric";
+import {
+  COMPETING_AUTO_Y, DEFAULT_COMPETING_OPTIONS, normalizeCompetingOptions, runCompeting,
+  type CompetingOptions,
+} from "./competing";
 
 // Cox regression panels load on first use (sheets/lazy.ts).
 const coxModule = () => import("./coxPanels");
@@ -21,6 +30,16 @@ const CoxCurvesOptions = lazyPart(coxModule, "CoxCurvesOptions");
 const CoxForestPlot = lazyPart(coxModule, "CoxForestPlot");
 const CoxSchoenfeldPlot = lazyPart(coxModule, "CoxSchoenfeldPlot");
 const CoxSchoenfeldOptions = lazyPart(coxModule, "CoxSchoenfeldOptions");
+// Competing risks (P-90) panels load on first use too.
+const competingModule = () => import("./competingPanels");
+const CompetingResults = lazyPart(competingModule, "CompetingResults");
+const CompetingMethods = lazyPart(competingModule, "CompetingMethods");
+const CompetingGraph = lazyPart(competingModule, "CompetingGraph");
+const CompetingGraphOptions = lazyPart(competingModule, "CompetingGraphOptions");
+// Parametric survival (P-91) panels too.
+const parametricModule = () => import("./parametricPanels");
+const ParametricResults = lazyPart(parametricModule, "ParametricResults");
+const ParametricMethods = lazyPart(parametricModule, "ParametricMethods");
 // Entry from counts / dates, the per-group reading and the covariates.
 const SurvivalAside = lazyPart(() => import("./SurvivalAside"), "default");
 
@@ -117,6 +136,57 @@ const survivalCox = coxDefinitions(ANALYSIS_COX, "cox", "Cox proportional hazard
 export const coxAnalysis = survivalCox.analysis;
 export const coxGraphs = survivalCox.graphs;
 
+// P-91: ids are stored in project files: never rename them.
+export const ANALYSIS_PARAMETRIC = "parametric_survival";
+
+export const parametricAnalysis = defineAnalysis<ParametricOptions, Record<string, unknown>>({
+  id: ANALYSIS_PARAMETRIC,
+  label: "Parametric survival model (Weibull, log-normal, exponential)",
+  short: "Parametric survival",
+  description: "An accelerated failure time model: time ratios between groups and median and "
+    + "percentile survival times with confidence intervals, flagged where they extrapolate.",
+  sheetName: (t) => `Parametric survival of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_PARAMETRIC_OPTIONS }),
+  normalizeOptions: (raw) => normalizeParametricOptions(raw),
+  run: (engine, table, options) => runParametric(engine, table, options),
+  defaultGraph: null,
+  ControlsPanel: ParametricControls,
+  ResultsPanel: ParametricResults,
+  MethodsPanel: ParametricMethods,
+});
+
+// P-90: ids are stored in project files: never rename them.
+export const ANALYSIS_COMPETING = "competing_risks";
+export const GRAPH_COMPETING = "competing_cif";
+
+export const competingAnalysis = defineAnalysis<CompetingOptions, Record<string, unknown>>({
+  id: ANALYSIS_COMPETING,
+  label: "Competing risks (cumulative incidence, Gray's test)",
+  short: "Competing risks",
+  description: "With several kinds of event (event codes 1, 2, …), the cumulative incidence of "
+    + "each kind and Gray's test between groups, instead of 1 − Kaplan-Meier.",
+  sheetName: (t) => `Competing risks of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_COMPETING_OPTIONS }),
+  normalizeOptions: (raw) => normalizeCompetingOptions(raw),
+  run: (engine, table, options) => runCompeting(engine, table, options),
+  defaultGraph: GRAPH_COMPETING,
+  ControlsPanel: CompetingControls,
+  ResultsPanel: CompetingResults,
+  MethodsPanel: CompetingMethods,
+});
+
+export const competingGraph = defineGraph({
+  id: GRAPH_COMPETING,
+  label: "Cumulative incidence curves",
+  group: "competing",
+  analysis: ANALYSIS_COMPETING,
+  autoTitles: () => ({ x: "Time", y: COMPETING_AUTO_Y }),
+  exportName: "cumulative-incidence",
+  PlotPanel: CompetingGraph,
+  OptionsPanel: CompetingGraphOptions,
+  formatFeatures: { lines: true, color: true, survival: true },
+});
+
 function survivalSample() {
   return normalizeTable({
     type: "survival",
@@ -149,6 +219,6 @@ export const survivalTable: TableTypeDef = {
   sampleName: "Survival example",
   Editor: DataGrid,
   EditorAside: SurvivalAside,
-  analyses: [survivalAnalysis, coxAnalysis],
-  graphs: [survivalGraph, ...coxGraphs],
+  analyses: [survivalAnalysis, coxAnalysis, parametricAnalysis, competingAnalysis],
+  graphs: [survivalGraph, ...coxGraphs, competingGraph],
 };

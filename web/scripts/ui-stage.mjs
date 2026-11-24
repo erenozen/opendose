@@ -1203,6 +1203,50 @@ const scenes = [
     await into(s, ".pane-results .mv-results", "start");
     await settle(s, 800);
   } },
+  // P-90: competing risks: Gray's test as the answer, the names of the
+  // kinds of event and the Gray's test table
+  { name: "results-competing", setup: async (s) => {
+    await fixture(s, "survival-models.json", { live: true });
+    await selectSheet(s, "Competing risks of Trial by drug");
+    const block = s.page.locator('section[aria-label="Gray\'s test"]').first();
+    await block.waitFor({ timeout: 240000 });
+    await into(s, ".pane-answer", "start");
+    await settle(s, 800);
+  } },
+  { name: "results-competing-at-time", setup: async (s) => {
+    await fixture(s, "survival-models.json", { live: true });
+    await selectSheet(s, "Competing risks of Trial by drug");
+    const block = s.page.locator('section[aria-label="Cumulative incidence at a chosen time"]').first();
+    await block.waitFor({ timeout: 240000 });
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-90: the cumulative incidence graph of one kind of event, CI band
+  { name: "graphs-competing", setup: async (s) => {
+    await fixture(s, "survival-models.json", { live: true });
+    await selectSheet(s, "Cumulative incidence of Trial by drug");
+    await s.page.locator(".plot-card .js-plotly-plot").first().waitFor({ timeout: 240000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  // P-91: a Weibull AFT model: the time ratio as the answer, then the
+  // percentile times with an Extrapolated badge open
+  { name: "results-parametric", setup: async (s) => {
+    await fixture(s, "survival-models.json", { live: true });
+    await selectSheet(s, "Parametric survival of Ovarian by treatment");
+    await s.page.locator('section[aria-label="Time ratios"]').first().waitFor({ timeout: 240000 });
+    await into(s, ".pane-answer", "start");
+    await settle(s, 800);
+  } },
+  { name: "results-parametric-percentiles", setup: async (s) => {
+    await fixture(s, "survival-models.json", { live: true });
+    await selectSheet(s, "Parametric survival of Ovarian by treatment");
+    const block = s.page.locator('section[aria-label="Percentile survival times"]').first();
+    await block.waitFor({ timeout: 240000 });
+    await click(s, block.getByRole("button", { name: "Extrapolated" }).first());
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   // P-89: the separation refusal offers Firth's correction
   { name: "results-firth-offer", setup: async (s) => {
     await fixture(s, "glm-models.json", { live: true });

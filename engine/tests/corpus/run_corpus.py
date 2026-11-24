@@ -4981,6 +4981,110 @@ q = 8.288185, P 8.778765e-5 from scipy.stats.studentized_range; an own
 Poisson IRLS with log(area) offset gives the rate ratio 2.5 (Wald 1.983
 to 3.153; the engine reports the profile interval 1.99 to 3.166); an own
 probit maximum-likelihood fit on log10 dose gives ED50 4.28195.
+
+## Feature validation: competing risks and parametric survival (2026-11-24)
+
+### P-90 Competing risks: cumulative incidence and Gray's test
+
+`competing_risks.competing_risks` (API handler `competing_risks`; the
+survival table's "Competing risks" analysis, event codes 0 = censored,
+1, 2, ... one per kind of event): the Aalen-Johansen cumulative
+incidence F_k(t) = sum S(t_j-) d_kj / n_j (Aalen & Johansen 1978;
+Kalbfleisch & Prentice 2002, section 8.2), the delta-method variance of
+Gray's cmprsk `cinc` with the tied-events correction, log(-log) CIs
+(Choudhury 2002, Stat Med 21:1129, as tidycmprsk prints), values at a
+chosen time as cmprsk's `timepoints`, and Gray's K-sample test (Gray
+1988, Ann Stat 16:1141; rho = 0, the covariance of cmprsk's `crstm`).
+1 - Kaplan-Meier is never shown as an incidence; the Kaplan-Meier
+analysis now leaves rows with codes other than 0 / 1 out with a warning
+that names Competing risks (before, a code 2 made it loop for ever).
+
+Reference: `engine/tests/reference/competing_risks.py` (R is not
+installed: an independent Aalen-Johansen product-integral of the
+multi-state transition matrices; published cmprsk output on
+tidycmprsk's `trial` data, tidycmprsk reference page for `cuminc()`;
+published survfit output on survival::mgus2, Therneau's "Multi-state
+models and competing risks" vignette). `engine/tests/test_competing_risks.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| trial by trt, 200 patients (acceptance: codes 1 death from cancer, 2 other death) | Gray's test 1.99, df 1, p 0.16 (cancer); 0.089, p 0.77 (other); engine 1.98847, 0.08857 (published cmprsk) | printed precision |
+| same, months 5, 10, 15, 20 | every estimate, SE and 95% CI cmprsk prints (Drug A cancer at 20: 0.173, SE 0.039, 0.106 to 0.255; Drug B 0.255, 0.043, 0.175 to 0.343) | 3 decimals as published |
+| same, pooled | estimates and SEs of `cuminc(... ~ 1, trial)` (published); the product-integral's estimates | 3 decimals; 1e-12 |
+| mgus2 by sex, PCM and death | restricted mean time in each state to 240 months (years): PCM F 1.323284, M 1.064693; death F 8.823108, M 10.260294; event-free F 9.853608, M 8.675012 (published survfit) | 5e-7 |
+| same, months 60, 120, 240 | the product-integral's cumulative incidences | 1e-12 |
+
+Also tested: F_1 + F_2 + S = 1 at every time; Gray's statistic does not
+change with the order of the groups (2 and 3 groups); times x 1e-12,
+1/7, 1e12 keep every estimate, SE and statistic; identical groups give
+a zero score and P = 1; tied events of both kinds at one time; one kind
+of event only says the incidence equals 1 - Kaplan-Meier; a kind with
+no events in any group gives no test and says why; negative times,
+non-whole codes, missing cells and empty groups are left out with the
+row and the reason; all censored and no data are refused with a
+sentence; groups of 1 and 2 subjects. e2e (`e2e-results.mjs`): the trial
+table with code 1 named "Tumour" from the results sheet, Gray's P per
+kind (rounding to cmprsk's 1.99, 0.16, 0.089, 0.77), the incidences at
+month 20, the cumulative incidence graph of Tumour and then of Other
+death (each curve at month 20 equal to the engine's value).
+
+### P-91 Parametric survival models
+
+`parametric_survival.parametric_survival` (API handler
+`parametric_survival`; the survival table's "Parametric survival model"
+analysis): accelerated failure time models log T = x'b + s W with W
+extreme value (Weibull; exponential with s = 1) or normal (log-normal),
+maximum likelihood by Newton-Raphson on the analytic observed
+information (Kalbfleisch & Prentice 2002, ch. 2-3; Collett 2015, ch. 6),
+survreg's parameterisation and log-likelihood (the density of T);
+time ratios exp(b) with Wald CIs; percentile times exp(x'b + s w_p) with
+delta-method CIs on the log scale; a percentile later than the group's
+last follow-up flagged as extrapolated next to the number; the
+likelihood-ratio test against no group effect and the AIC of all three
+distributions.
+
+Reference: `engine/tests/reference/parametric_survival.py` (R is not
+installed: an independent censored MLE written from scipy.stats
+densities and maximised with scipy.optimize, finite-difference Hessian
+and gradient; lifelines 0.30.3 WeibullAFTFitter / LogNormalAFTFitter,
+installed for the script only; the exponential's closed form; published
+survreg output on survival::lung, Therneau's "The survival package"
+vignette section 4.1). `engine/tests/test_parametric_survival.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| ovarian by rx, Weibull (acceptance) | rx coefficient 0.55927 (SE 0.52922), intercept 6.82451, scale 0.88566, loglik -97.36415, medians 665.08 and 1163.49 days, time ratio 1.7494 (0.6200 to 4.9358) (independent MLE; lifelines to 2e-5) | 1e-6 (SEs and CIs 1e-4) |
+| ovarian by rx, log-normal | coefficient 0.78644, scale 1.17362, loglik -96.04082 (independent MLE; lifelines) | 1e-6 |
+| ovarian by rx, exponential | coefficients log(T_1/d_1) = 6.86768 and 0.61253, SEs sqrt(1/d), medians log 2 T/d = 665.92 and 1228.67 (closed form) | 1e-10 |
+| lung, Weibull ~ age + sex + ph.karno, n = 227 | 5.326344, -0.008910282, 0.3701786, 0.009263843, scale 0.7551354, loglik -1138.7, intercept only -1147.5 (published survreg; survreg's convergence leaves its print within 4e-5 of the maximum, where the engine's gradient is 7e-10) | 1e-4 relative; loglik to 0.1 |
+
+Also tested: times x 1e-12, 1/30.4375, 1e12 shift only the intercept
+(by log of the factor) and scale every percentile; swapping the groups
+inverts the time ratio; S(t_p) = 1 - p for the Weibull; a group without
+events, every subject censored, a time of 0, all events at one time
+(Weibull and log-normal; the exponential fits), one subject, codes
+other than 0 / 1, unknown distributions and percentiles outside (0, 1)
+give a sentence, not a NaN. e2e (`e2e-results.mjs`): the ovarian table's
+Weibull coefficient, scale, medians and the median's CI; the time ratio
+as the headline; rx 2's 75% time (2150 days, after its last follow-up
+at 1227) flagged Extrapolated with its explanation; the exponential's
+medians equal to the closed form.
+
+Independent check values (for the lead): P-90, the trial table in
+`web/e2e-fixtures/stage/survival-models.json` ("Competing risks of
+Trial by drug"): Gray's chi-square 1.988 (P 0.1585) for code 1 and
+0.08857 (P 0.766) for code 2; Drug A's cumulative incidence of code 1
+at month 20 0.1735 (0.1059 to 0.255, SE 0.03851). P-91, "Parametric
+survival of Ovarian by treatment": Weibull rx 2 coefficient 0.5593 (SE
+0.5292), scale 0.8857, medians 665.1 and 1163 days, time ratio 1.749
+(0.62 to 4.936).
+
+Independent check (2026-11-24, by the lead): a plain Aalen-Johansen sum
+(F += S(t-) d_k/n, S *= 1 - d/n) on tidycmprsk's trial data gives Drug A
+cancer-death incidence 0.173469 at month 20, the engine's 0.1735; the
+exponential AFT medians from the closed form ln 2 x (total time /
+events) on ovarian are 665.92 and 1228.67 days for rx 1 and 2, the
+values the engine's exponential fit is pinned to.
 """
 
 

@@ -1,7 +1,8 @@
 // Above a survival table: "Survival data from…" (counts per day or
 // dates, entryDialog.tsx), the time unit, one line per group saying how
 // its rows are read ("Control: 8 events, 2 censored") with warning chips
-// (no events, event codes other than 0/1, incomplete rows), a "Read as"
+// (no events, event codes other than 0/1, incomplete rows; codes 2, 3, …
+// counted as other kinds of event for competing risks), a "Read as"
 // list of every row on request, and the covariate columns for Cox
 // regression (CovariateAside).
 import { lazy, Suspense, useMemo, useState } from "react";
@@ -49,7 +50,10 @@ export default function SurvivalAside(props: AsideProps) {
           {used.map((g) => (
             <span key={g.name} role="listitem" className="surv-aside-row">
               <span className="surv-group-line">
-                {g.name}: {g.events} event{g.events === 1 ? "" : "s"}, {g.censored} censored
+                {g.name}: {g.events} event{g.events === 1 ? "" : "s"}{g.competing.length > 0 ? " (code 1)" : ""}, {g.censored} censored
+                {g.competing.length > 0 && `, ${g.competing.length} of another kind (code${
+                  new Set(g.competing.map((c) => c.code)).size === 1 ? "" : "s"} ${
+                  [...new Set(g.competing.map((c) => c.code))].sort((a, b) => a - b).join(", ")})`}
               </span>
               {g.events === 0 && g.censored > 0 && (
                 <span className="surv-chip-warn">
@@ -77,7 +81,14 @@ export default function SurvivalAside(props: AsideProps) {
       {used.some((g) => g.events === 0 && g.censored > 0) && (
         <p className="hint-block">With no events the curve stays at 100%: no median, and the log-rank test has little to compare.</p>
       )}
-      {used.some((g) => g.otherCodes.length > 0) && <p className="hint-block">Event codes must be 1 (event) or 0 (censored); these rows are left out of the analysis.</p>}
+      {used.some((g) => g.otherCodes.length > 0) && <p className="hint-block">Event codes must be 0 (censored), 1 (event) or 2, 3, … for other kinds of event; these rows are left out of the analysis.</p>}
+      {used.some((g) => g.competing.length > 0) && (
+        <p className="hint-block">
+          Codes 2, 3, … are other kinds of event that end follow-up (competing risks). Kaplan-Meier
+          and Cox leave these rows out; Competing risks (cumulative incidence) uses them, because
+          1 − Kaplan-Meier overstates the chance of an event when another event can come first.
+        </p>
+      )}
       {used.some((g) => g.incomplete > 0) && <p className="hint-block">Each subject needs a time and an event code.</p>}
       {showRows && used.length > 0 && (
         <div className="surv-readas" role="region" tabIndex={0} aria-label="Read as: every row">

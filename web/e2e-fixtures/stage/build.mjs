@@ -49,6 +49,10 @@
 //   glm-models.json    ANCOVA (P-82), binomial and negative binomial
 //                      regression (P-86), a separated logistic regression
 //                      and its Firth fit (P-89)
+//   survival-models.json competing risks on tidycmprsk's trial data with
+//                      named kinds of event and the cumulative incidence
+//                      graph (P-90); a Weibull AFT model of R's ovarian
+//                      data by treatment (P-91)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 //   source-data.json   a layout of a column scatter (mean ± SD, t test) and
@@ -775,6 +779,36 @@ const longData = (name, names, rows, categorical) => data(name, {
   const rf = results(dose, "mv_logistic", { ...logit, firth: true }, "Firth logistic regression of Dose study");
   write("glm-models.json", project("Count and covariate models",
     [trial, ra, dishes, rb, ames, rn, dose, rl, rf], { selected: ra.id }));
+}
+
+// survival-models.json (wave 2 survival): tidycmprsk's trial data (200
+// patients, Drug A / Drug B, months; event codes 1 = death from cancer,
+// 2 = death from other causes, 0 = censored) under competing risks with
+// the kinds of event named and their cumulative incidence at month 20
+// (P-90; engine/tests/reference/competing_risks.py, published cmprsk
+// output), and its cumulative incidence graph
+{
+  n = 0;
+  const csv = readFileSync(join(here, "../../../engine/tests/fixtures/tidycmprsk_trial.csv"), "utf8")
+    .trim().split("\n").slice(1).map((l) => l.split(","));
+  const code = { censor: "0", "death from cancer": "1", "death other causes": "2" };
+  const trial = data("Trial by drug", { ...table("survival", { xUnit: "months", datasets:
+    ["Drug A", "Drug B"].map((g) => ({ name: g, subTitles: ["Time", "Event"],
+      rows: csv.filter((r) => r[0] === g).map((r) => [r[1], code[r[3]]]) })) }), x: [], rowTitles: [] });
+  const cr = results(trial, "competing_risks", { causeLabels: { 1: "Death from cancer", 2: "Other death" },
+    atTime: 20 }, "Competing risks of Trial by drug");
+  const cg = graph(trial, cr, "competing_cif", "Cumulative incidence of Trial by drug", { x: "Months", y: "" });
+  cg.settings.competing = { cause: 1, ci: "band", scale: "percent", censorMarks: true };
+  // P-91: survival::ovarian (engine/tests/reference/parametric_survival.py)
+  const ov = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/parametric_survival.json"),
+    "utf8")).ovarian_data;
+  const ovarian = data("Ovarian by treatment", { ...table("survival", { xUnit: "days", datasets:
+    [1, 2].map((rx) => ({ name: `rx ${rx}`, subTitles: ["Time", "Event"],
+      rows: ov.futime.map((t, i) => [t, ov.fustat[i], ov.rx[i]]).filter((r) => r[2] === rx)
+        .map((r) => [String(r[0]), String(r[1])]) })) }), x: [], rowTitles: [] });
+  const pr = results(ovarian, "parametric_survival", { dist: "weibull", percentiles: [0.25, 0.5, 0.75] },
+    "Parametric survival of Ovarian by treatment");
+  write("survival-models.json", project("Survival models", [trial, cr, cg, ovarian, pr], { selected: cr.id }));
 }
 
 // source-data.json: the P-65 acceptance page: panel a, a column scatter

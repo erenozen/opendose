@@ -300,6 +300,79 @@ function glmFacts(r: R): KeyFacts {
   return items.length ? { kind: "figures", items } : null;
 }
 
+/** Competing risks (P-90): with two or more groups, Gray's P per kind of
+ *  event with each group's cumulative incidence at the reported time;
+ *  with one group, the cumulative incidence of each kind at that time. */
+function competingFacts(r: R): KeyFacts {
+  const causes = (r.causes ?? []) as R[];
+  if (!causes.length) return null;
+  const labels = (r.cause_labels ?? {}) as Record<string, string>;
+  const label = (code: number) => labels[String(code)]?.trim() || `Cause ${code}`;
+  const pct = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const t = typeof r.at_time_used === "number" ? r.at_time_used : null;
+  const when = typeof r.at_time_label === "string" ? r.at_time_label : `time ${formatSig(t)}`;
+  const at = (g: R) => g.at_times?.[0] as R | undefined;
+  const atFacts = (c: R) => (t === null ? [] : (c.groups as R[])
+    .filter((g) => typeof at(g)?.cif === "number")
+    .map((g) => `${g.name} ${formatSig(at(g)!.cif)} at ${when}`));
+  if ((r.group_names ?? []).length >= 2) {
+    return { kind: "figures", items: causes.map((c): KeyItem => {
+      const g = c.gray as R | null;
+      const title = `Gray's test: ${label(c.code)}`;
+      if (!g || typeof g.p !== "number") return { title, error: String(c.note ?? "Not computed") };
+      return { title, figure: { name: "P value", value: tableP(g.p),
+        facts: [`χ²(${g.df}) = ${formatSig(g.chi2)}`, ...atFacts(c)] } };
+    }) };
+  }
+  if (t === null) return null;
+  const items = causes.map((c): KeyItem | null => {
+    const a = at(c.groups[0]);
+    if (!a || typeof a.cif !== "number") return null;
+    return { title: label(c.code), figure: {
+      name: `Cumulative incidence at ${when}`, value: formatSig(a.cif),
+      ci: typeof a.lower === "number" && typeof a.upper === "number"
+        ? `${pct} CI ${formatSig(a.lower)} to ${formatSig(a.upper)}` : undefined,
+      facts: [`${c.groups[0].events} events, n = ${c.groups[0].n}`],
+    } };
+  }).filter((x): x is KeyItem => x !== null);
+  return items.length ? { kind: "figures", items } : null;
+}
+
+/** Parametric survival (P-91): each group's time ratio against the
+ *  reference with its CI and P; with one group, the model's median. A
+ *  median past the last follow-up is said to be extrapolated. */
+function parametricFacts(r: R): KeyFacts {
+  const dist = ({ weibull: "Weibull", exponential: "Exponential", lognormal: "Log-normal" } as
+    Record<string, string>)[r.dist] ?? String(r.dist);
+  const pct = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const ciOf = (c: unknown) => (Array.isArray(c) && typeof c[0] === "number" && typeof c[1] === "number"
+    ? `${pct} CI ${formatSig(c[0])} to ${formatSig(c[1])}` : undefined);
+  const median = (g: R) => (g.percentiles as R[] | undefined)?.find((p) => p.p === 0.5);
+  const medianFact = (g: R) => {
+    const m = median(g);
+    return m && typeof m.time === "number"
+      ? `${g.name} median ${formatSig(m.time)}${m.beyond_follow_up ? " (extrapolated)" : ""}` : null;
+  };
+  const ratios = (r.time_ratios ?? []) as R[];
+  if (ratios.length) {
+    return { kind: "figures", items: ratios.map((t): KeyItem => ({
+      title: `${t.group} vs. ${t.reference}`,
+      figure: { name: `Time ratio (${dist} AFT)`, value: formatSig(t.value), ci: ciOf(t.ci),
+        facts: [pLabel(t.p), ...((r.groups ?? []) as R[])
+          .filter((g) => g.name === t.group || g.name === t.reference)
+          .map(medianFact).filter((x): x is string => !!x)] },
+    })) };
+  }
+  const g = (r.groups ?? [])[0] as R | undefined;
+  const m = g && median(g);
+  if (!g || !m || typeof m.time !== "number") return null;
+  return { kind: "figures", items: [{ title: String(g.name), figure: {
+    name: `Median survival (${dist} model)`, value: formatSig(m.time), ci: ciOf(m.ci),
+    facts: [`${g.events} events, n = ${g.n}`],
+    note: m.beyond_follow_up ? "extrapolated beyond the last follow-up" : undefined,
+  } }] };
+}
+
 /** The headline facts of a result, or null for "show the table first". */
 export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFacts {
   if (!result || typeof result !== "object") return null;
@@ -309,6 +382,8 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (r.analysis === "method_regression") return methodRegFacts(r);
   if (r.analysis === "icc") return iccFacts(r);
   if (r.analysis === "ancova") return ancovaFacts(r);
+  if (r.analysis === "competing_risks") return competingFacts(r);
+  if (r.analysis === "parametric_survival") return parametricFacts(r);
   if (r.analysis === "binomial_regression" || r.analysis === "negative_binomial_regression"
     || (r.analysis === "logistic_regression" && r.method === "firth")) return glmFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
