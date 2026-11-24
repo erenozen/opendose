@@ -7,6 +7,13 @@ import {
 } from "./panels";
 import { NestedOptions, NestedPlot } from "./plot";
 import {
+  NestedPrecisionControls, NestedPrecisionMethods, NestedPrecisionResults,
+} from "./precisionPanels";
+import {
+  ANALYSIS_NESTED_PRECISION, DEFAULT_NESTED_PRECISION, normalizeNestedPrecision, runNestedPrecision,
+  type NestedPrecisionOptions,
+} from "./precision";
+import {
   ANALYSIS_NESTED_ANOVA, ANALYSIS_NESTED_T, DEFAULT_NESTED_ANOVA, DEFAULT_NESTED_T, GRAPH_NESTED, type NestedAnovaOptions, nestedAutoTitles, nestedComparisons, type NestedTOptions, normalizeNestedAnova, normalizeNestedT, runNestedAnova, runNestedT,
 } from "./run";
 
@@ -40,6 +47,23 @@ export const nestedTAnalysis = defineAnalysis<NestedTOptions, Record<string, unk
   ControlsPanel: NestedTControls,
   ResultsPanel: NestedResults,
   MethodsPanel: NestedMethods,
+});
+
+// P-94: assay precision (repeatability, between-run, between-day, total CV)
+export const nestedPrecisionAnalysis = defineAnalysis<NestedPrecisionOptions, Record<string, unknown>>({
+  id: ANALYSIS_NESTED_PRECISION,
+  label: "Precision study (repeatability, between-run and total CV)",
+  short: "Precision",
+  description: "Columns are days, subcolumns runs, replicates down the rows: variance components "
+    + "with CVs and CIs (CLSI EP05-A3), the repeatability coefficient and recovery.",
+  sheetName: (t) => `Precision of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_NESTED_PRECISION }),
+  normalizeOptions: (raw) => normalizeNestedPrecision(raw),
+  run: runNestedPrecision,
+  defaultGraph: GRAPH_NESTED,
+  ControlsPanel: NestedPrecisionControls,
+  ResultsPanel: NestedPrecisionResults,
+  MethodsPanel: NestedPrecisionMethods,
 });
 
 export const nestedGraph = defineGraph({
@@ -93,6 +117,6 @@ export const nestedTable: TableTypeDef = {
   entryHint: "Each column is a treatment group; each subcolumn one subgroup "
     + "within it (an animal, a dish); enter that subgroup's replicate "
     + "measurements down the rows.",
-  analyses: [nestedAnovaAnalysis, nestedTAnalysis],
+  analyses: [nestedAnovaAnalysis, nestedTAnalysis, nestedPrecisionAnalysis],
   graphs: [nestedGraph],
 };

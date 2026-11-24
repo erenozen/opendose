@@ -15,6 +15,7 @@ import {
 } from "./options";
 import { groupedPayload, hasMissingRM } from "./stats";
 import DdfSelect from "../common/DdfSelect";
+import { CustomContrastsControl } from "../common/CustomContrasts";
 import "./grouped.css";
 
 const dsName = (t: DataTableModel, i: number) =>
@@ -153,9 +154,20 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
             </select>
           </Row>
         )}
+        {o.design === "none" && !summary && (
+          <CustomContrastsControl what="cell" value={o.customContrasts ?? []}
+            names={cellNames(table)} onChange={(v) => set({ customContrasts: v })} />
+        )}
       </section>
     </div>
   );
+}
+
+/** The cells of a grouped table, row by row: "Row / Data set". */
+function cellNames(table: DataTableModel): string[] {
+  const rows = table.rowTitles.map((t, i) => t.trim() || `Row ${i + 1}`);
+  const cols = table.datasets.map((d, j) => d.name || `Dataset ${j + 1}`);
+  return rows.flatMap((r) => cols.map((c) => `${r} / ${c}`));
 }
 
 // ------------------------------------------------------------ three-way

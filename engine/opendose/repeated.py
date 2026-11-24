@@ -37,7 +37,7 @@ from itertools import combinations
 import numpy as np
 from scipy import stats
 
-from . import effectsize, fdr
+from . import effectsize, fdr, twoway_contrasts
 from .moretests import comparison_family
 from .ttests import no_residual
 
@@ -790,3 +790,203 @@ def friedman(datasets, names=None, *, dunns: bool = True,
             "dunn_family": dunn_family, "correction": dunn_correction,
             "se": se, "mean_ranks": [float(v) for v in mean_ranks]}
     return out
+
+
+# ------------------------------------------- RM interaction contrasts (P-83)
+
+RM_CONTRAST_SOURCE = (
+    "Maxwell & Delaney 2004, Designing Experiments and Analyzing Data, 2nd "
+    "ed., ch. 12-14 (contrasts in within-subject and split-plot designs, "
+    "each with its own error term); Gelman & Stern 2006, Am Stat 60:328")
+
+
+def _score_entry(diff, se, df, ci_level):
+    """t entry of a contrast of subjects' scores; no scatter in the scores
+    leaves t and P undefined and says so (never a silent NaN)."""
+    if not se > 0:
+        return {"difference": float(diff), "se": 0.0, "t": None,
+                "df": float(df), "ci": None, "p": None,
+                "note": "undefined: the subjects' contrast scores have no "
+                        "scatter"}
+    t = diff / se
+    half = float(stats.t.ppf((1 + ci_level) / 2, df)) * se
+    return {"difference": float(diff), "se": float(se), "t": float(t),
+            "df": float(df), "ci": [float(diff - half), float(diff + half)],
+            "p": 2.0 * float(stats.t.sf(abs(t), df))}
+
+
+def rm_contrasts(cells, *, design: str = "mixed", row_names=None,
+                 col_names=None, ci_level: float = 0.95, rows=None,
+                 cols=None, max_contrasts: int = 200) -> dict:
+    """Interaction contrasts (difference of differences) and simple
+    effects after a two-way repeated-measures ANOVA, each tested on the
+    subjects' own contrast scores (Maxwell & Delaney 2004, ch. 12-14: a
+    separate error term per contrast, which needs no sphericity; the
+    same estimates, SEs and df as emmeans on afex's multivariate model).
+
+    design "mixed" (rows repeated, columns independent groups, as
+    rm_two_way_mixed): a row contrast is scored per subject, d_s =
+    y[i2, s] - y[i1, s]; the difference of differences is mean(d | j2) -
+    mean(d | j1), SE from the variance of d pooled across all groups,
+    df = subjects - groups. In a 2 x 2 design it is the pooled two-sample
+    t test on the per-subject differences, and t^2 the interaction F.
+    The column (group) simple effects at row i use the variance of
+    y[i, .] pooled across groups on the same df.
+    design "both" (every subject in every cell, as rm_two_way_both):
+    each contrast is a one-sample t test of the subjects' scores on
+    n - 1 df; the 2 x 2 difference of differences is the t test of the
+    per-subject differences of differences.
+    Subjects missing a value are left out, as in the ANOVA. P values are
+    unadjusted (each contrast is its own question)."""
+    a = len(cells)
+    b = len(cells[0]) if a else 0
+    row_names = row_names or [f"Row {i + 1}" for i in range(a)]
+    col_names = col_names or [f"Column {j + 1}" for j in range(b)]
+    if design == "both":
+        n = min(len(cells[i][j]) for i in range(a) for j in range(b))
+        keep = [s for s in range(n)
+                if all(cells[i][j][s] is not None for i in range(a)
+                       for j in range(b))]
+        if len(keep) < 2:
+            raise ValueError("need >= 2 subjects with complete data")
+        Y = np.array([[[float(cells[i][j][s]) for s in keep]
+                       for j in range(b)] for i in range(a)])
+        dfe = len(keep) - 1
+
+        def se_of(v):
+            return float(v.std(ddof=1)) / math.sqrt(v.size)
+
+        error_term = (f"the subjects' contrast scores (one-sample t, df = "
+                      f"{len(keep)} subjects - 1)")
+    elif design == "mixed":
+        group, rows_ = [], []
+        for j in range(b):
+            n_sub = max(len(cells[i][j]) for i in range(a))
+            for s in range(n_sub):
+                vals = [cells[i][j][s] if s < len(cells[i][j]) else None
+                        for i in range(a)]
+                if all(v is not None for v in vals):
+                    rows_.append([float(v) for v in vals])
+                    group.append(j)
+        group = np.array(group, int)
+        M = np.array(rows_)                       # subjects x rows
+        ns = np.bincount(group, minlength=b)
+        if (ns < 2).any():
+            raise ValueError("need >= 2 complete subjects per group")
+        N = int(ns.sum())
+        dfe = N - b
+
+        def pooled_var(v):
+            ss = sum(float(((v[group == j] - v[group == j].mean()) ** 2).sum())
+                     for j in range(b))
+            return ss / dfe
+
+        error_term = (f"the subjects' contrast scores, variance pooled "
+                      f"across the {b} groups (df = {N} subjects - {b} "
+                      "groups)")
+    else:
+        raise ValueError(f"unknown design: {design}")
+
+    row_idx = list(rows) if rows is not None else list(range(a))
+    col_idx = list(cols) if cols is not None else list(range(b))
+    for i in row_idx:
+        if not 0 <= int(i) < a:
+            raise ValueError(f"interaction row index {i} out of range")
+    for j in col_idx:
+        if not 0 <= int(j) < b:
+            raise ValueError(f"interaction column index {j} out of range")
+    n_squares = (len(row_idx) * (len(row_idx) - 1) // 2
+                 * len(col_idx) * (len(col_idx) - 1) // 2)
+    ic = {"ci_level": ci_level, "n_contrasts": 0, "contrasts": [],
+          "df_residual": float(dfe),
+          "p_adjustment": "none (each contrast is its own question)",
+          "error_term": error_term, "source": RM_CONTRAST_SOURCE,
+          "notes": []}
+    ic["explainer"] = twoway_contrasts.EXPLAINER
+    if n_squares > max_contrasts:
+        ic["notes"].append(
+            f"{n_squares} 2 x 2 sub-squares exceed the limit of "
+            f"{max_contrasts}: none computed; choose two rows and two "
+            "columns (options.interaction_rows / interaction_cols)")
+        ic["withheld"] = True
+    else:
+        for i1, i2 in combinations(row_idx, 2):
+            for j1, j2 in combinations(col_idx, 2):
+                if design == "mixed":
+                    d = M[:, i2] - M[:, i1]
+                    e1 = float(d[group == j1].mean())
+                    e2 = float(d[group == j2].mean())
+                    se = math.sqrt(pooled_var(d) * (1 / ns[j1] + 1 / ns[j2]))
+                else:
+                    d1 = Y[i2, j1] - Y[i1, j1]
+                    d2 = Y[i2, j2] - Y[i1, j2]
+                    dd = d2 - d1
+                    e1, e2 = float(d1.mean()), float(d2.mean())
+                    se = se_of(dd)
+                entry = {
+                    "rows": [row_names[i1], row_names[i2]],
+                    "cols": [col_names[j1], col_names[j2]],
+                    "row_indices": [int(i1), int(i2)],
+                    "col_indices": [int(j1), int(j2)],
+                    "label": (f"({row_names[i2]} - {row_names[i1]}) in "
+                              f"{col_names[j2]} minus ({row_names[i2]} - "
+                              f"{row_names[i1]}) in {col_names[j1]}"),
+                    "effect_in_col_1": e1, "effect_in_col_2": e2,
+                    **_score_entry(e2 - e1, se, dfe, ci_level),
+                }
+                entry["F"] = entry["t"] ** 2 if entry["t"] is not None else None
+                ic["contrasts"].append(entry)
+    ic["n_contrasts"] = len(ic["contrasts"])
+    if a == 2 and b == 2 and ic["contrasts"]:
+        ic["contrasts"][0]["equals_interaction_test"] = True
+        ic["notes"].append("2 x 2 design: this contrast's t^2 is the "
+                           "interaction F and its P the interaction P")
+
+    # simple effects: rows within each column, columns within each row
+    rows_within = []
+    for j in range(b):
+        block = {"within": col_names[j], "direction": "rows_within_columns",
+                 "n_levels": a, "F": None, "dfn": a - 1, "dfd": float(dfe),
+                 "p": None, "differences": [], "p_label": "unadjusted"}
+        for i1, i2 in combinations(range(a), 2):
+            if design == "mixed":
+                d = M[:, i2] - M[:, i1]
+                diff = float(d[group == j].mean())
+                se = math.sqrt(pooled_var(d) / ns[j])
+            else:
+                d = Y[i2, j] - Y[i1, j]
+                diff = float(d.mean())
+                se = se_of(d)
+            block["differences"].append({
+                "pair": f"{row_names[i2]} - {row_names[i1]}",
+                "first": row_names[i2], "second": row_names[i1],
+                **_score_entry(diff, se, dfe, ci_level),
+                "p_label": "unadjusted"})
+        rows_within.append(block)
+    cols_within = []
+    for i in range(a):
+        block = {"within": row_names[i], "direction": "columns_within_rows",
+                 "n_levels": b, "F": None, "dfn": b - 1, "dfd": float(dfe),
+                 "p": None, "differences": [], "p_label": "unadjusted"}
+        for j1, j2 in combinations(range(b), 2):
+            if design == "mixed":
+                v = M[:, i]
+                diff = float(v[group == j2].mean() - v[group == j1].mean())
+                se = math.sqrt(pooled_var(v) * (1 / ns[j1] + 1 / ns[j2]))
+            else:
+                d = Y[i, j2] - Y[i, j1]
+                diff = float(d.mean())
+                se = se_of(d)
+            block["differences"].append({
+                "pair": f"{col_names[j2]} - {col_names[j1]}",
+                "first": col_names[j2], "second": col_names[j1],
+                **_score_entry(diff, se, dfe, ci_level),
+                "p_label": "unadjusted"})
+        cols_within.append(block)
+    note = ("The contrasts and simple effects of a repeated-measures design "
+            f"are tested on {error_term}, not on the pooled ANOVA residual, "
+            "so they need no sphericity.")
+    return {"interaction_contrasts": ic,
+            "simple_effects": cols_within,
+            "simple_effects_rows_within_columns": rows_within,
+            "contrast_notes": [note]}

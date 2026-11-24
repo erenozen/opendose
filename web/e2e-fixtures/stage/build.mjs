@@ -799,3 +799,78 @@ const longData = (name, names, rows, categorical) => data(name, {
     format: "plain", fontSize: 14, bold: true, font: "sans", position: "inside" } };
   write("source-data.json", project("Source data", [c, t, ct, r, cg, g, lay], { selected: lay.id }));
 }
+
+// lmm.json (P-87): lme4's sleepstudy under the grouping-column mixed model
+// with Days as a covariate and a random slope (Satterthwaite df), and the
+// synthetic animal / slice / cell design of engine/tests/reference/
+// lmm_long.py (genotype fixed, cell size a covariate, slices nested in
+// animals, Kenward-Roger df)
+{
+  const fx = (f) => readFileSync(join(here, "../../../engine/tests/fixtures", f), "utf8").trim().split("\n")
+    .slice(1).map((l) => l.split(",").map((c) => c.replace(/^"|"$/g, "")));
+  const sleep = fx("lme4_sleepstudy.csv").map((r) => [r[1], r[2], r[3]]);
+  const st = longData("Sleep study", ["Reaction", "Days", "Subject"], sleep, []);
+  const sr = results(st, "mv_mixed_grouping", { outcome: "Reaction", factor1: "", factor2: "",
+    grouping: "Subject", covariates: ["Days"], slopes: ["Days"], unit: "other", unitCustom: "subjects",
+    comparisons: "tukey", scope: "a_means", controlIndex: 0, ciLevel: 0.95, negativeVariance: "allow",
+    mixedDdf: "satterthwaite" }, "Mixed model of Sleep study");
+  const recs = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/lmm_long.json"),
+    "utf8")).animals.records;
+  const names = ["animal", "slice", "genotype", "size", "current"];
+  const at = longData("Patch clamp", names, recs.map((r) => names.map((k) => String(r[k]))),
+    ["animal", "slice", "genotype"]);
+  const ar = results(at, "mv_mixed_grouping", { outcome: "current", factor1: "genotype", factor2: "",
+    grouping: "animal", subgroup: "slice", covariates: ["size"], unit: "animal", unitCustom: "",
+    comparisons: "tukey", scope: "a_means", controlIndex: 0, ciLevel: 0.95, negativeVariance: "allow",
+    mixedDdf: "kenward_roger" }, "Mixed model of Patch clamp");
+  write("lmm.json", project("Mixed models", [st, sr, at, ar], { selected: sr.id }));
+}
+
+// contrasts.json (P-83; engine/tests/reference/rm_contrasts.py): the 2 x 2
+// mixed design (drug within, genotype between, 6 mice each) under two-way
+// RM ANOVA with the Interaction block first; three groups under one-way
+// ANOVA with a planned and a post hoc custom contrast; a 2 x 2 ordinary
+// two-way ANOVA with a post hoc contrast over its cells
+{
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/rm_contrasts.json"), "utf8"));
+  const mx = ref.mixed_2x2.records;
+  const rm = data("Drug by genotype", table("grouped", { rowTitles: ["Vehicle", "Drug"], yTitle: "Response",
+    datasets: ["WT", "KO"].map((g) => ({ name: g,
+      rows: ["Vehicle", "Drug"].map((lev) => mx.filter((r) => r.genotype === g).map((r) => String(r[lev]))) })) }));
+  const rr = results(rm, "grouped_two_way", { design: "rm_rows", rowFactor: "Drug", colFactor: "Genotype",
+    interactionFocus: true }, "Two-way RM ANOVA of Drug by genotype");
+  const ow = ref.oneway_custom.groups;
+  const three = data("Three groups", table("column", { datasets: Object.entries(ow).map(([nm, v]) => col(nm, v)) }));
+  const r3 = results(three, "column", { analysis: "anova", anovaKind: "parametric", comparisons: "none",
+    customContrasts: [{ name: "Drugs vs vehicle", coefficients: [-2, 1, 1], planned: true },
+      { name: "A vs B", coefficients: [0, 1, -1], planned: false }] }, "One-way ANOVA of Three groups");
+  const tw = ref.twoway_custom.records;
+  const two = data("Genotype by drug", table("grouped", { rowTitles: ["WT", "KO"], datasets: ["Vehicle", "Drug"]
+    .map((c) => ({ name: c, rows: ["WT", "KO"].map((r) => tw.filter((x) => x.row === r && x.col === c)
+      .map((x) => String(x.y))) })) }));
+  const r2 = results(two, "grouped_two_way", { design: "none", rowFactor: "Genotype", colFactor: "Drug",
+    customContrasts: [{ name: "Difference of differences", coefficients: [1, -1, -1, 1], planned: false }] },
+  "Two-way ANOVA of Genotype by drug");
+  write("contrasts.json", project("Contrasts", [rm, rr, three, r3, two, r2], { selected: rr.id }));
+}
+
+// precision.json (P-94; engine/tests/reference/assay_precision.py): an
+// ELISA validation in the standard-curve layout (4 plates on 2 days, QC
+// low / mid / high in triplicate with their nominal concentrations) and
+// VCA's dataEP05A2_1 as a nested table (20 days as columns, 2 runs as
+// subcolumns, 2 replicates down the rows) under the precision analysis
+{
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/assay_precision.json"), "utf8"));
+  const el = ref.elisa;
+  const elisa = longData("ELISA validation", el.columns, el.rows, ["Type", "Name", "Group", "Plate", "Day"]);
+  const re = results(elisa, "assay_stdcurve", { unit: "pg/mL" }, "Standard curve of ELISA validation");
+  const ep = readFileSync(join(here, "../../../engine/tests/fixtures/vca_dataEP05A2_1.csv"), "utf8").trim()
+    .split("\n").slice(1).map((l) => l.split(","));
+  const days = [...new Set(ep.map((r) => r[0]))];
+  const nested = data("EP05 20 x 2 x 2", { ...table("nested", { yTitle: "mg/dL", datasets: days.map((d) => {
+    const runs = [1, 2].map((k) => ep.filter((r) => r[0] === d && r[1] === String(k)).map((r) => r[2]));
+    return { name: `Day ${d}`, subTitles: ["Run 1", "Run 2"], rows: [0, 1].map((i) => runs.map((v) => v[i])) };
+  }) }) });
+  const rn = results(nested, "nested_precision", {}, "Precision of EP05 20 x 2 x 2");
+  write("precision.json", project("Precision", [elisa, re, nested, rn], { selected: re.id }));
+}

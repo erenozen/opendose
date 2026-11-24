@@ -2322,3 +2322,143 @@ the mean baseline 51.681679 and 46.018321, and the equal-slopes F(1, 16)
 acceptance dishes with a profile-likelihood CI gives odds ratio 3.195907
 (2.127097 to 4.880865) and Pearson dispersion 0.027229 on 2 df. All
 equal the engine.
+
+## Feature validation: mixed models, RM contrasts, assay precision (2026-11-24)
+
+### P-87 General linear mixed model on a long table
+
+`lmm.lmm_long` (API handler `lmm`; the multiple-variables sheet "Mixed
+model with a grouping column" switches to it once a nested level or a
+covariate is chosen): outcome ~ factors (0 to 2, with interaction) +
+covariates + (1 [+ slopes] | group) [+ (1 | group:nested level)],
+fitted by REML on the profiled deviance of Bates et al. (2015, J Stat
+Softw 67(1)), with treatment-coded fixed effects (lme4's table), Type
+III F tests of the cell means, and Kenward-Roger (1997) or Satterthwaite
+(lmerTest; Kuznetsova et al. 2017, J Stat Softw 82(13)) df from
+`ddfm.GeneralBlockDdf`. Variances are bounded at zero; a variance at
+zero or an intercept-slope correlation of +-1 is reported as a boundary
+(singular) fit in words, and a fit whose scaled gradient exceeds 0.002
+(lme4's check) or whose curvature is not positive definite says it did
+not converge. `ddfm.BlockDdf` was refactored to share the block code;
+the time-course models' KR and Satterthwaite results are bit-identical
+to main (checked on all four covariance structures).
+
+Reference: `engine/tests/reference/lmm_long.py` (statsmodels 0.15
+`MixedLM`, REML, with `vc_formula` for the nested level; an independent
+dense n x n Satterthwaite with a numerical Hessian and a dense
+Kenward-Roger; published lme4 / lmerTest output; R is not installed).
+Data: lme4's sleepstudy and Pastes (engine/tests/fixtures), a synthetic
+animal / slice / cell design (12 animals, 36 slices, 172 cells).
+`engine/tests/test_lmm.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| sleepstudy, Reaction ~ Days + (1 \| Subject) | (Intercept) 251.4051, SE 9.7467, df 22.8102; Days 10.4673, SE 0.8042, df 161 (lmerTest, published; dense Satterthwaite 22.8103 / 161.000); REML criterion 1786.465 | 1e-7 estimates, 1e-6 SE, 1e-4 df, published to 4 decimals |
+| sleepstudy, Reaction ~ Days + (Days \| Subject) | REML criterion 1743.6; variances 612.09 and 35.07, r = 0.07 (0.06555), residual 654.94; SE 6.825 and 1.546 on 17 df (lme4, published) | 1e-4 variances, 1e-5 SE, 1e-4 df |
+| Pastes, strength ~ 1 + (1 \| batch/cask) | 60.0533, SE 0.6769, batch variance 1.657, residual 0.678 (lme4 via statsmodels' test suite); cask 8.433 (statsmodels); df 9 | published to 3 to 4 decimals; statsmodels 1e-3 |
+| animal / slice / cell, current ~ genotype + size + (1 \| animal) + (1 \| animal:slice) | KO -0.35222, SE 0.88085, Satterthwaite df 9.9799, KR df 10.0045, KR SE 0.88095; size 0.49732, SE 0.036381; variances 1.8377, 0.68068, 3.96896; REML criterion 821.4231 | 1e-6 estimates, 1e-5 SE, 1e-4 df |
+
+Also tested: scaling the outcome by 1000 and the covariate by 1e-6 and
+shuffling the rows scale every estimate, SE and variance exactly and
+leave df, F and P; outcomes at 1e-12 and 1e12 give the same df 17;
+numeric subject IDs are labels; blank or non-numeric values are left
+out and counted; a group variance that the data put at zero is a stated
+boundary fit whose intercept df become n - 1 (the parameter is held at
+zero for the df); a perfectly correlated slope is named; one group, all
+values equal, two rows, a constant covariate, a slope that does not vary
+within groups or is not a covariate, a nested level with one value per
+group and a column used twice are refused with a sentence; with two
+factors the interaction F is the square of the 2 x 2 difference of
+differences' t. e2e (`e2e-results.mjs`): sleepstudy pasted as a long
+table gives the lmerTest numbers, then the random slope's; Pastes with
+the nested level gives lme4's.
+
+### P-83 Interaction contrasts for RM designs and custom contrasts
+
+`repeated.rm_contrasts` (merged into `rm_two_way` results; the grouped
+sheet's two-way RM ANOVA now shows the Interaction block): every 2 x 2
+difference of differences and the simple effects tested on the
+subjects' own contrast scores (Maxwell & Delaney 2004, ch. 12 to 14; a
+separate error term per contrast, no sphericity assumed; the estimates,
+SEs and df of emmeans on afex's multivariate model). Mixed design (rows
+repeated, columns groups): variance of the scores pooled across groups,
+df = subjects - groups; both factors repeated: one-sample t of the
+scores, df = subjects - 1. `twoway_contrasts.custom_contrasts` (API
+option `custom_contrasts` of `anova` and `two_way_anova`): coefficients
+over the group or cell means on the pooled residual; planned contrasts
+unadjusted, post hoc contrasts by Scheffe's method (P from F = t^2 /
+(k - 1) on (k - 1, df), simultaneous interval sqrt((k - 1) F_crit) SE;
+Scheffe 1953, Biometrika 40:87). Coefficients that do not add up to 0,
+a wrong count, all zeros, an empty group and no scatter are stated.
+
+Reference: `engine/tests/reference/rm_contrasts.py` (scipy t tests of
+the per-subject scores, pingouin 0.7 mixed_anova / rm_anova,
+statsmodels OLS and t_test; R is not installed).
+`engine/tests/test_rm_contrasts.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 2 x 2, genotype between, drug within, 6 mice per genotype (acceptance) | drug effect 4.2733 (WT), 6.4383 (KO); difference 2.165, SE 0.84008, t(10) = 2.5771, P = 0.027551, 95% CI 0.29319 to 4.0368 = the pooled t test of the per-mouse differences (scipy); t^2 = 6.6417 = the interaction F (pingouin, P 0.027551) | 1e-12 (P 1e-10) |
+| same, simple effects | drug within KO 6.4383, SE 0.59402; genotype within Drug 3.21, SE 1.3454, P 0.038229 (statsmodels OLS of the scores) | 1e-10 |
+| 2 x 2, both within, 8 subjects | difference 2.3888, SE 0.49169, t(7) = 4.8582, P = 0.0018388 (scipy one-sample t); F = 23.603 (pingouin) | 1e-12 |
+| 3 x 2 mixed (3 times, 5 + 7 subjects) | (T0, T1) 4.8091, SE 0.86196, P 0.00023434; (T0, T2) 7.202, SE 1.1957; (T1, T2) 2.3929, P 0.06236, all on 10 df (statsmodels OLS) | 1e-10 |
+| one-way, 3 groups, (-2, 1, 1) and (0, 1, -1) | estimate 7.7706, SE 2.2549, t(15) = 3.4461, planned P 0.0036006 (statsmodels t_test); Scheffe F and P on (2, 15) df and simultaneous intervals (scipy) | 1e-10 |
+| two-way 2 x 2 cells, (1, -1, -1, 1) post hoc | statsmodels t_test estimate and SE; Scheffe on (3, 12) df | 1e-10 |
+
+Also tested: the contrast c_i = n_i (m_i - mean) gives a Scheffe F equal
+to the one-way ANOVA F and its P (Scheffe's property); the planned 2 x 2
+cell contrast's t^2 is the two-way interaction F; swapping the groups
+flips the sign only; x 1000 units scale the difference and keep t; an
+incomplete subject is left out as in the ANOVA; scores without scatter
+give no t or P and say so. e2e (`e2e-results.mjs`): the RM 2 x 2 above
+in the grouped sheet's Interaction block, the one-way contrasts and a
+contrast typed in the "Custom contrast…" dialog, and the two-way cell
+contrast.
+
+### P-94 Assay precision and recovery
+
+`precision.precision_study` (API handler `precision_study`; the
+standard-curve module's Precision report for every sample measured on
+two or more plates, and the nested table's "Precision study" analysis):
+ANOVA estimators of the nested random model day / run / replicate with
+Type I sums of squares and the unbalanced expected mean squares
+(Searle, Casella & McCulloch 1992, ch. 5; CLSI EP05-A3), negative
+components reported as 0 with a sentence; repeatability and total
+variances with chi-square CIs (Satterthwaite's df for the total),
+between-run and between-day with Wald CIs truncated at 0 (VCA's
+VCAinference); SD and CV intervals as square roots; the repeatability
+coefficient 1.96 sqrt(2) s_w (Bland & Altman 1996, BMJ 313:744); recovery
+against the nominal with a t interval from the run means, accepted
+within the chosen limits (ICH M10 section 3.2.5: +-15%, CV 15%).
+
+Reference: `engine/tests/reference/assay_precision.py` (VCA 1.5.1's own
+unit-test values, from SAS 9.2 PROC NESTED / VARCOMP / MIXED, on CLSI
+EP05-A2 dataEP05A2_1 read from the package's RData; statsmodels 0.15
+Type I mean squares with the EP05-A3 formulas by hand; statsmodels
+MixedLM REML; R is not installed). `engine/tests/test_precision.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| dataEP05A2_1, 20 days x 2 runs x 2 (acceptance) | variances total 3.298986, day 0.001096, run 1.344492, error 1.953397; 95% CIs total 2.4156 to 4.7767, day 0 to 1.0322, run 0 to 2.8455, error 1.3167 to 3.1980 (VCA / SAS) | 6 and 4 decimals as published |
+| same, by hand | Satterthwaite df 67.088, CV total 7.2669%, repeatability 5.5919%, repeatability coefficient 3.8740 | 1e-10 |
+| dataEP05A2_1 without rows 11, 12, 17, 37, 45, 56, 57, 68 (unbalanced) | total 3.272031, day 0.278178, run 0.875624, error 2.118229 (VCA / SAS) | 6 decimals |
+| 40 runs x 2 (no days) | run 1.3456, error 1.9534 (ANOVA; MixedLM REML to 1e-3) | 1e-12 |
+| QC at 50, 4 runs x 5 | recovery 103.05% (97.97 to 108.14), within-run CV 1.6652%, total 3.4391% | 1e-10 |
+| ELISA QC low / mid / high on 4 plates (2 days x 2 runs, triplicates), back-calculated by the engine's 4PL | CVs and recovery from statsmodels' mean squares (QC mid: repeatability 3.9115%, total 4.5519%, between-run negative so 0, recovery 99.248%) | 1e-9 |
+
+Also tested: x 1000 units and reversed rows scale the variances by 1e6
+and keep the CVs; values at 1e-12 keep them; all values equal give 0,
+not NaN; one run, one value per run, one day and as many runs as days
+are refused with a sentence; blanks are counted; a nominal of 0 is
+refused. e2e (`e2e-assays.mjs`): the Precision report of the ELISA
+validation, the wizard's Precision step with a 3% CV limit failing QC
+high, and dataEP05A2_1 as a nested table giving VCA's CVs and total CI.
+
+Independent check (2026-11-24, by the lead): the P-83 acceptance
+difference of differences recomputed as scipy.stats.ttest_ind of the
+per-mouse (Drug - Vehicle) differences, KO vs WT, pooled SD on 10 df:
+2.165 (95% CI 0.293195 to 4.036805), P = 0.0275507, t^2 = 6.641695 (the
+interaction F); the P-87 sleepstudy random-intercept fixed effects
+agree with lme4's published fit (Days 10.4673, SE 0.8042; intercept
+251.4051, SE 9.7467) and lmerTest's Satterthwaite df (22.81 for the
+intercept); the P-94 EP05 components agree with VCA's validated values.

@@ -867,6 +867,69 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
   expect("P-50: closing the calculator returns to the wizard", await wizard().isVisible());
   await wizard().getByRole("button", { name: "Cancel" }).click();
 }
+// --- P-94: assay precision and recovery. (a) The plan's acceptance data:
+// VCA's dataEP05A2_1 (CLSI EP05-A2, 20 days x 2 runs x 2 replicates) as a
+// nested table: VCA's SAS-validated components (engine/tests/reference/
+// assay_precision.py) give repeatability CV 5.59%, between-run 4.64%,
+// between-day 0.132% and total 7.27%. (b) An ELISA validation in the
+// standard-curve layout (4 plates on 2 days, QC low / mid / high): the
+// Precision report from the back-calculated concentrations against the
+// EP05-A3 formulas on statsmodels' mean squares.
+{
+  const PREF = JSON.parse(readFileSync(new URL("../../engine/tests/reference/assay_precision.json",
+    import.meta.url), "utf8"));
+  const sig3 = (v) => String(Number(v.toPrecision(3)));
+  await page.setInputFiles(OPEN_INPUT, `${STAGE}precision.json`);
+  await page.waitForSelector(".std-results .precision-report", { timeout: 180000 });
+  const qcRow = async (name) => (await page.locator(".precision-report tbody tr", { hasText: new RegExp(`^${name}`) })
+    .first().innerText()).replace(/\s+/g, " ").trim();
+  for (const [name, r] of Object.entries(PREF.elisa.samples)) {
+    const row = await qcRow(name);
+    expect(`P-94 Precision report: ${name}, repeatability ${sig3(r.cv_repeatability)}%, total ${sig3(r.cv_total)}%, `
+      + `recovery ${String(Number(r.recovery_percent.toPrecision(4)))}%`,
+      row.startsWith(`${name} 4 (2 days) `) && row.includes(` ${sig3(r.cv_repeatability)}% `)
+      && row.includes(` ${sig3(r.cv_total)}% `)
+      && row.includes(` ${String(Number(r.recovery_percent.toPrecision(4)))}% `) && row.endsWith("Pass"), row);
+  }
+  const mid = page.locator(".precision-detail", { hasText: /^QC mid/ }).first();
+  await mid.locator("summary").click();
+  expect("P-94 a negative between-run variance is reported as 0 and said so",
+    /The between-run variance is estimated as negative \(.+\): the runs and days differ less than the scatter within runs predicts\. It is reported as 0/
+      .test(await mid.innerText()));
+  expect("P-94 the methods text names EP05-A3, the VCA intervals and ICH M10's limits",
+    await waitText(".pane-methods", "Precision of the 3 samples measured on two or more plates"));
+  await page.getByRole("button", { name: "Open setup wizard…" }).click();
+  await wizard().waitFor();
+  await wizard().getByRole("button", { name: /Precision/ }).click();
+  expect("P-94 wizard: the Precision step names the QC samples and previews the report",
+    (await wizard().innerText()).includes("Precision samples: QC low, QC mid, QC high.")
+    && await waitText("dialog.assay-wizard .precision-report", "QC mid4 (2 days)", 60000));
+  await wizard().getByLabel("CV at most").fill("3");
+  expect("P-94 wizard: a 3% CV limit fails QC high on its CV",
+    await waitText("dialog.assay-wizard .precision-report", "Fail (CV)", 60000));
+  await wizard().getByRole("button", { name: "Cancel" }).click();
+  await wizard().waitFor({ state: "detached", timeout: 10000 });
+
+  await navRow("Precision of EP05 20 x 2 x 2").click();
+  await page.waitForSelector(".precision-results .precision-report tbody tr", { timeout: 120000 });
+  const pub = PREF.published_vca.balanced;
+  const mean = PREF.by_hand.mean;
+  const cv = (v) => sig3(100 * Math.sqrt(v) / mean);
+  const ep = (await page.locator(".precision-results .precision-report tbody tr").first().innerText())
+    .replace(/\s+/g, " ").trim();
+  expect(`P-94 acceptance: dataEP05A2_1 as a nested table, CVs from VCA's components: repeatability `
+    + `${cv(pub.error)}%, between-run ${cv(pub.run)}%, between-day ${cv(pub.day)}%, total ${cv(pub.total)}%`,
+    ep.startsWith("mg/dL 40 (20 days) 24.99 ") && ep.includes(` ${cv(pub.error)}% `) && ep.includes(` ${cv(pub.run)}% `)
+      && ep.includes(` ${cv(pub.day)}% `) && ep.includes(` ${cv(pub.total)}% `), ep);
+  const detail = page.locator(".precision-results .precision-detail").first();
+  await detail.locator("summary").click();
+  const totalRow = (await detail.locator("tbody tr", { hasText: /^Within laboratory/ }).innerText())
+    .replace(/\s+/g, " ");
+  expect("P-94 total variance 3.299 with VCA's 95% CI 2.416 to 4.777",
+    totalRow.includes("3.299") && totalRow.includes("2.416 to 4.777"), totalRow);
+  const axe = await axeViolations([".precision-results", ".pane-controls"]);
+  expect("P-94 axe: the precision results and controls pass", axe.length === 0, axe.join(" | "));
+}
 console.log(errors.length ? `errors:\n${errors.join("\n")}` : "errors: none");
 await browser.close();
 if (fail.length || errors.length) {

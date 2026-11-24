@@ -16,6 +16,7 @@ import { OrderedTrendResults } from "../sheets/column/OrderedTrend";
 import CochranQ from "../sheets/column/CochranQ";
 import { RmCorrResults } from "../sheets/column/RmCorr";
 import { CorrelationComparison } from "../sheets/column/CompareCorr";
+import { CustomContrastsTable } from "../sheets/common/CustomContrasts";
 
 interface Props {
   result: Record<string, unknown> | null;
@@ -511,6 +512,7 @@ function Anova({ result }: { result: any }) {
           <ComparisonsTable mc={result.multiple_comparisons} />
         </>
       )}
+      <CustomContrastsTable block={result.custom_contrasts} />
       {result.trend && <TrendBlock trend={result.trend} />}
     </div>
   );

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import traceback
 
 from . import (anova, columnstats, contingency, correlation, descriptive,
@@ -1152,6 +1153,16 @@ def _anova(data, options):
                 [c for c in cols if len(c) > 0], nonempty_names)
         except ValueError as exc:
             result["trend"] = {"error": str(exc)}
+    if options.get("custom_contrasts"):
+        # P-83: contrasts typed as coefficients (planned: t test;
+        # post hoc: Scheffe), on the ANOVA's pooled residual
+        t = result["table"]
+        result["custom_contrasts"] = twoway_contrasts.custom_contrasts(
+            [(math.fsum(float(v) for v in c) / len(c)) if len(c) else None
+             for c in cols],
+            [len(c) for c in cols], t["ms_within"], t["df_within"],
+            options["custom_contrasts"], names=names,
+            ci_level=options.get("ci_level", 0.95))
     method = options.get("comparisons")
     if method:
         result["multiple_comparisons"] = anova.multiple_comparisons(
@@ -1457,6 +1468,24 @@ def _two_way_anova(data, options):
             ci_level=options.get("ci_level", 0.95),
             rows=options.get("interaction_rows"),
             cols=options.get("interaction_cols")))
+    if options.get("custom_contrasts"):
+        # P-83: coefficients over the cells, row by row (row 1 / every
+        # column, then row 2 ...), on the within-cell residual
+        means, ns, ss_w, df_w = twoway_contrasts.cell_summaries(cells)
+        rn = options.get("row_names") or [
+            f"Row {i + 1}" for i in range(len(cells))]
+        cn = [nm or f"Column {j + 1}" for j, nm in enumerate(names)]
+        if df_w >= 1 and ss_w > 0:
+            result["custom_contrasts"] = twoway_contrasts.custom_contrasts(
+                [m for row in means for m in row],
+                [n for row in ns for n in row], ss_w / df_w, df_w,
+                options["custom_contrasts"],
+                names=[f"{r} / {c}" for r in rn for c in cn],
+                ci_level=options.get("ci_level", 0.95))
+        else:
+            result["custom_contrasts"] = {
+                "contrasts": [], "error": "custom contrasts need replicate "
+                "values within the cells (a within-cell residual)"}
     method = options.get("comparisons")  # tukey | sidak | bonferroni
     if method:
         row_names = options.get("row_names") or [
@@ -1860,11 +1889,27 @@ def _rm_two_way(data, options):
                       for ds in data["datasets"]])
     row_names = options.get("row_names") or [
         f"Row {i + 1}" for i in range(n_rows)]
-    if options.get("design", "mixed") == "both":
-        return repeated.rm_two_way_both(cells, row_names=row_names,
-                                        col_names=names)
-    return repeated.rm_two_way_mixed(cells, row_names=row_names,
-                                     col_names=names)
+    design = options.get("design", "mixed")
+    if design == "both":
+        result = repeated.rm_two_way_both(cells, row_names=row_names,
+                                          col_names=names)
+    else:
+        result = repeated.rm_two_way_mixed(cells, row_names=row_names,
+                                           col_names=names)
+    if options.get("interaction_contrasts", True):
+        # P-83: difference of differences and simple effects on the
+        # subjects' own contrast scores (repeated.rm_contrasts)
+        try:
+            result.update(repeated.rm_contrasts(
+                cells, design=design, row_names=result["row_names"],
+                col_names=[nm or f"Column {j + 1}"
+                           for j, nm in enumerate(names)],
+                ci_level=options.get("ci_level", 0.95),
+                rows=options.get("interaction_rows"),
+                cols=options.get("interaction_cols")))
+        except ValueError as exc:
+            result["contrast_notes"] = [str(exc)]
+    return result
 
 
 def _ec50_shift(data, options):
@@ -4681,6 +4726,53 @@ _HANDLERS.update({
     "mixed_grouping": _mixed_grouping,
     "mixed_timecourse": _mixed_timecourse,
 })
+
+from . import lmm  # noqa: E402
+
+
+def _lmm(data, options):
+    """General linear mixed model on a long table (opendose.lmm, P-87):
+    outcome ~ factors (0-2, with interaction) + covariates + (1 [+
+    slopes] | group) [+ (1 | group:subgroup)]. data: {"variables":
+    [{"name", "values"}]}. options: outcome, group (required), subgroup,
+    factors, covariates, slopes (covariates with a random slope on
+    group), slope_structure ("correlated" | "independent"), ddf
+    ("kenward_roger" | "satterthwaite"), ci_level, levels, comparisons,
+    comparison_scope, control_index, group_word, subgroup_word. Result:
+    {"analysis": "lmm", "formula", "fixed_effects": [{term, estimate,
+    se, df, t, p, ci}], "anova": [{term, f, dfn, dfd, p}],
+    "random_effects", "correlations", "residual", "boundary",
+    "converged", "emmeans", "comparisons", "goodness_of_fit",
+    "warnings", ...}."""
+    for key in ("outcome", "group"):
+        if not options.get(key):
+            raise ValueError(f"lmm needs options.{key}")
+    return lmm.lmm_long(
+        _mv_variables(data), options["outcome"],
+        factors=options.get("factors") or [],
+        covariates=options.get("covariates") or [],
+        group=options["group"], subgroup=options.get("subgroup") or None,
+        slopes=options.get("slopes") or [], options=options)
+
+
+_HANDLERS["lmm"] = _lmm
+
+from . import precision  # noqa: E402
+
+
+def _precision_study(data, options):
+    """Assay precision and recovery (opendose.precision, P-94): per
+    sample, repeatability (within-run), between-run, between-day and total
+    variance components with SD, CV and CIs (CLSI EP05-A3 / VCA), the
+    repeatability coefficient and, with a nominal concentration, recovery
+    with the acceptance verdicts. data: {"samples": [{"name", "values",
+    "runs", "days"?, "nominal"?}]} or {"records": [{value, run, day?,
+    sample?, nominal?}]}. options: ci_level, recovery_limit, cv_limit
+    (percent), use_days."""
+    return precision.precision_study(data, options)
+
+
+_HANDLERS["precision_study"] = _precision_study
 
 
 def analyze(payload: dict) -> dict:

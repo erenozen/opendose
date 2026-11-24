@@ -1,4 +1,5 @@
-// The Interaction block of an ordinary two-way ANOVA, as data: the
+// The Interaction block of a two-way ANOVA (ordinary, or repeated
+// measures since P-83: repeated.rm_contrasts), as data: the
 // interaction test from the ANOVA table, the engine's interaction
 // contrasts (difference of differences with its CI, one per 2 x 2
 // sub-square), the simple effects and the sentence that answers "is the
@@ -47,6 +48,9 @@ export interface InteractionSummary {
   notes: string[];
   withheld: boolean;
   explainer: string | null;
+  /** What the contrasts are tested on (repeated measures: the subjects'
+   *  own contrast scores; null = the pooled ANOVA residual). */
+  repeatedError: string | null;
 }
 
 /** Whether an ordinary two-way ANOVA result is the main-effects
@@ -71,13 +75,14 @@ function effects(blocks: unknown): SimpleEffect[] {
 }
 
 /** The block's content, or null when the result carries no contrasts
- *  (repeated-measures designs, older results). */
+ *  (the mixed-model fit, older results). */
 export function interactionSummary(result: unknown): InteractionSummary | null {
   const r = (result && typeof result === "object" ? result : {}) as R;
   const ic = r.interaction_contrasts as R | undefined;
   if (!ic || typeof ic !== "object") return null;
   const src = r.sources?.interaction as R | undefined;
-  const test = src ? { F: num(src.F), dfn: num(src.df), dfd: num(r.sources?.residual?.df),
+  // fully repeated designs test the interaction on its own error term
+  const test = src ? { F: num(src.F), dfn: num(src.df), dfd: num(src.error_df ?? r.sources?.residual?.df),
     p: num(src.p) } : null;
   const contrasts: Contrast[] = (Array.isArray(ic.contrasts) ? ic.contrasts as R[] : [])
     .filter((c) => num(c.difference) !== null)
@@ -99,6 +104,8 @@ export function interactionSummary(result: unknown): InteractionSummary | null {
     ciLevel: num(ic.ci_level) ?? 0.95,
     notes, withheld: ic.withheld === true,
     explainer: typeof ic.explainer === "string" ? ic.explainer : null,
+    repeatedError: /^rm_two_way_/.test(String(r.analysis ?? "")) && typeof ic.error_term === "string"
+      ? ic.error_term : null,
   };
 }
 

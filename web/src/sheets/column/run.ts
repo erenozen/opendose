@@ -21,6 +21,7 @@ import { correlationXRequests } from "./correlationX.ts";
 import { columnCompareOption, xyComparePayload } from "./compareCorr.ts";
 import { mixedOptions, rmComparisonsSpec, fitsMixedModel } from "./rmPosthoc.ts";
 import { subjectLabels } from "./rmCorr.ts";
+import { contrastsOption } from "../common/customContrasts.ts";
 
 export function runColumn(engine: EngineBridge, table: DataTableModel,
   o: ColumnOptionsState): Record<string, unknown> {
@@ -215,6 +216,8 @@ export function columnPayload(table: DataTableModel, o: ColumnOptionsState):
         ...familyOptions(o, base.data.datasets.length),
         ...logScaleOptions(o),
         ...(o.anovaKind === "parametric" && o.anovaTrend ? { trend: true } : {}),
+        // custom contrasts (P-83, common/customContrasts.ts)
+        ...(o.anovaKind === "parametric" ? contrastsOption(o.customContrasts) : {}),
         // Jonckheere-Terpstra after Kruskal-Wallis (orderedTrend.ts)
         ...(o.anovaKind === "nonparametric" && o.rankTrend ? { trend: true } : {}),
       } };

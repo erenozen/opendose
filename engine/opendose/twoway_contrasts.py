@@ -272,3 +272,105 @@ def contrasts_from_stats(means, ns, ss_w, df_w, base_result, *, row_names,
             ci_level=ci_level),
         "contrast_notes": notes,
     }
+
+
+# ------------------------------------------------ custom contrasts (P-83)
+
+CUSTOM_SOURCE = ("Maxwell & Delaney 2004, ch. 4-5 (planned contrasts; "
+                 "Scheffe's method for contrasts chosen after looking at "
+                 "the data); Scheffe 1953, Biometrika 40:87-104")
+
+
+def _fmt_coef(c: float) -> str:
+    return str(int(c)) if float(c).is_integer() else f"{c:g}"
+
+
+def contrast_label(coefficients, names) -> str:
+    """'Drug A + Drug B - 2 × Vehicle' style label of a contrast."""
+    parts = []
+    for c, nm in zip(coefficients, names):
+        if c == 0:
+            continue
+        mag = abs(c)
+        term = nm if mag == 1 else f"{_fmt_coef(mag)} × {nm}"
+        sign = "-" if c < 0 else "+"
+        parts.append((sign, term))
+    if not parts:
+        return "0"
+    out = ("-" if parts[0][0] == "-" else "") + parts[0][1]
+    for sign, term in parts[1:]:
+        out += f" {sign} {term}"
+    return out
+
+
+def custom_contrasts(means, ns, ms_res, df_res, specs, *, names,
+                     ci_level: float = 0.95) -> dict:
+    """Contrasts typed as coefficients over k means (one-way groups, or
+    the a x b cells of a two-way design in row-major order) with the
+    pooled residual MS_res on df_res:
+
+        estimate = sum c_i m_i,  SE = sqrt(MS_res * sum c_i^2 / n_i).
+
+    A planned contrast (named before seeing the data) gets its own t test
+    and t interval, unadjusted. A post hoc contrast is adjusted by
+    Scheffe's method for the family of every contrast among the k means:
+    P from F = t^2 / (k - 1) on (k - 1, df_res), and the simultaneous
+    interval estimate +- sqrt((k - 1) F_crit(k - 1, df_res)) SE
+    (Maxwell & Delaney 2004, ch. 5). Coefficients must add up to 0."""
+    k = len(means)
+    out = {"contrasts": [], "n_means": k, "names": list(names),
+           "ms_residual": float(ms_res), "df_residual": float(df_res),
+           "ci_level": ci_level, "source": CUSTOM_SOURCE,
+           "scheffe_df": [k - 1, float(df_res)]}
+    for idx, spec in enumerate(specs or []):
+        coef = [float(c) for c in (spec.get("coefficients") or [])]
+        planned = bool(spec.get("planned", False))
+        name = str(spec.get("name") or "").strip() or f"Contrast {idx + 1}"
+        entry = {"name": name, "coefficients": coef, "planned": planned,
+                 "kind": "planned" if planned else "post hoc"}
+        out["contrasts"].append(entry)
+        if len(coef) != k:
+            entry["error"] = (f"{len(coef)} coefficients for {k} means: "
+                              "enter one per mean")
+            continue
+        if not any(coef):
+            entry["error"] = "every coefficient is 0: enter at least two"
+            continue
+        total = math.fsum(coef)
+        if abs(total) > 1e-9 * max(abs(c) for c in coef):
+            entry["error"] = (f"the coefficients add up to {total:g}, not 0: "
+                              "a contrast compares means, so they must "
+                              "add up to 0")
+            continue
+        used = [i for i, c in enumerate(coef) if c]
+        empty = [names[i] for i in used if means[i] is None or not ns[i]]
+        if empty:
+            entry["error"] = f"no values in {', '.join(empty)}"
+            continue
+        entry["label"] = contrast_label(coef, names)
+        est = math.fsum(coef[i] * means[i] for i in used)
+        se = math.sqrt(ms_res * math.fsum(coef[i] ** 2 / ns[i] for i in used))
+        entry["estimate"] = float(est)
+        entry["se"] = float(se)
+        entry["df"] = float(df_res)
+        if not se > 0:
+            entry.update({"t": None, "p": None, "ci": None,
+                          "note": "undefined: no scatter within groups"})
+            continue
+        t = est / se
+        entry["t"] = float(t)
+        if planned:
+            entry["p"] = 2.0 * float(stats.t.sf(abs(t), df_res))
+            half = float(stats.t.ppf((1 + ci_level) / 2, df_res)) * se
+            entry["adjustment"] = "none (planned)"
+        else:
+            if k < 2:
+                entry["error"] = "Scheffe's method needs at least 2 means"
+                continue
+            f = t * t / (k - 1)
+            entry["F"] = float(f)
+            entry["p"] = float(stats.f.sf(f, k - 1, df_res))
+            half = math.sqrt((k - 1) * float(stats.f.ppf(ci_level, k - 1, df_res))) * se
+            entry["adjustment"] = f"Scheffe ({k - 1}, {_fmt_coef(df_res)} df)"
+        entry["ci"] = [float(est - half), float(est + half)]
+    return out

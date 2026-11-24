@@ -12,11 +12,13 @@
 // Passing-Bablok (P-42), Lin's CCC (P-43) and the reliability ICC (P-44);
 // quasi-Poisson (P-46), partial and compared correlations (P-48), the
 // survival difference at a chosen time (P-28) and the references behind
-// a Normalize (P-57).
+// a Normalize (P-57); the general linear mixed model on a long table
+// (P-87); interaction contrasts in RM designs and custom contrasts (P-83).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
+import { createRequire } from "node:module";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -1080,6 +1082,160 @@ const analyzeWith = async (re) => {
     rows[0] === "WT 21, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)"
       && rows[1] === "KO 31.33, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)",
     rows.join(" | "));
+}
+
+// --- P-87: the general linear mixed model on a long table -------------------
+{
+  // engine/tests/reference/lmm_long.py: statsmodels MixedLM plus the
+  // published lme4 / lmerTest output for sleepstudy and Pastes; the df from
+  // an independent dense Satterthwaite / Kenward-Roger implementation.
+  const fix = (name) => readFileSync(join(here, "..", "..", "engine", "tests", "fixtures", name), "utf8")
+    .trim().split("\n").map((l) => l.split(",").map((c) => c.replace(/^"|"$/g, "")));
+  const tsv = (rows, cols) => [cols.map((c) => rows[0][c]).join("\t"),
+    ...rows.slice(1).map((r) => cols.map((c) => r[c]).join("\t"))].join("\n");
+  const lmmRow = async (term) => (await page.locator(".lmm-results section[aria-label='Fixed effects'] tbody tr", {
+    has: page.locator("th", { hasText: new RegExp(`^${term.replace(/[()]/g, "\\$&")}$`) }) }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const sleep = fix("lme4_sleepstudy.csv");
+  await pastedTable("multivariable", "Sleep study", tsv(sleep, [1, 2, 3]));
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Mixed model with a grouping column/ }).click();
+  const controls = page.locator(".pane-controls");
+  await controls.getByLabel("Grouping column (random)").selectOption("Subject");
+  await controls.getByRole("checkbox", { name: "Days", exact: true }).check();
+  await controls.getByLabel("Degrees of freedom (mixed model)").selectOption("satterthwaite");
+  const fitted = await liveResults(/lme4: Reaction ~ Days \+ \(1 \| Subject\)/, 90000);
+  // lmerTest (published): (Intercept) 251.4051 SE 9.7467 df 22.81; Days
+  // 10.4673 SE 0.8042 df 161
+  const icpt = await lmmRow("(Intercept)");
+  const days = await lmmRow("Days");
+  expect("P-87 acceptance: sleepstudy, random intercept, fixed effects and SEs as lme4, Satterthwaite df as lmerTest",
+    fitted && /^\(Intercept\) 251\.4 9\.747 22\.81 /.test(icpt) && /^Days 10\.47 0\.8042 161 13\.02 /.test(days),
+    `${icpt} / ${days}`);
+  expect("P-87 the design note counts 18 subjects, not 180 values",
+    await liveResults(/df come from the 18 Subject groups, not from the 180 values: Satterthwaite df/));
+  // random slope: (Intercept) SE 6.825, Days SE 1.546, df 17; variances
+  // 612.1 / 35.07, correlation 0.066, residual 654.9
+  await controls.getByRole("checkbox", { name: "Random slope of Days by Subject" }).check();
+  const slope = await liveResults(/lme4: Reaction ~ Days \+ \(1 \+ Days \| Subject\)/, 90000);
+  const days2 = await lmmRow("Days");
+  const re = (await page.locator(".lmm-results section[aria-label='Random effects']").innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect("P-87 random slope: Days SE 1.546 on 17 df; variances 612.1 and 35.07, r = 0.0656, residual 654.9",
+    slope && /^Days 10\.47 1\.546 17 6\.771 /.test(days2) && re.includes("Subject (Intercept) 612.1 24.74")
+      && re.includes("Subject Days 35.07 5.922") && re.includes("Residual 654.9 25.59")
+      && re.includes("Correlation of (Intercept) and Days by Subject: 0.0656"), `${days2} / ${re.slice(0, 300)}`);
+  const methods = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("P-87 methods text: random slope correlated with the intercept, Satterthwaite as lmerTest",
+    methods.includes("a random intercept for each Subject with a random slope of Days (correlated with the intercept)")
+      && methods.includes("Satterthwaite's method (as in lmerTest"), methods.slice(0, 300));
+
+  // Pastes: strength ~ 1 + (1 | batch) + (1 | batch:cask); lme4: intercept
+  // 60.0533 (SE 0.6769), batch variance 1.657, residual 0.678
+  const pastes = fix("lme4_pastes.csv");
+  await pastedTable("multivariable", "Pastes", tsv(pastes, [1, 2, 3]));
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Mixed model with a grouping column/ }).click();
+  await controls.getByLabel("Grouping column (random)").selectOption("batch");
+  await controls.getByLabel("Nested level (random)").selectOption("cask");
+  await controls.getByLabel("Factor", { exact: true }).selectOption("");
+  const nestedOk = await liveResults(/lme4: strength ~ 1 \+ \(1 \| batch\) \+ \(1 \| batch:cask\)/, 90000);
+  const ic = await lmmRow("(Intercept)");
+  const re2 = (await page.locator(".lmm-results section[aria-label='Random effects']").innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect("P-87 acceptance: Pastes, two nested levels: intercept 60.05 (SE 0.6769, 9 df), batch 1.657, cask 8.434, residual 0.678",
+    nestedOk && /^\(Intercept\) 60\.05 0\.6769 9 88\.72 /.test(ic) && re2.includes("batch (Intercept) 1.657")
+      && re2.includes("cask (Intercept) 8.434") && re2.includes("Residual 0.678"), `${ic} / ${re2.slice(0, 300)}`);
+  expect("P-87 nested: the design note counts batches and casks within them",
+    await liveResults(/df come from the 10 batch groups \(30 cask groups within them\), not from the 60 values/));
+  const axe = await page.evaluate(async (src) => {
+    // eslint-disable-next-line no-eval
+    if (!window.axe) (0, eval)(src);
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(document.querySelector(".pane-controls"), { runOnly: { type: "rule",
+      values: ["select-name", "label", "aria-input-field-name", "button-name"] } });
+    return r.violations.map((v) => v.id);
+  }, readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"));
+  expect("P-87 axe: the mixed model controls have names", axe.length === 0, axe.join(", "));
+}
+
+// --- P-83: interaction contrasts in RM designs, custom contrasts -----------
+{
+  // engine/tests/reference/rm_contrasts.py: the 2 x 2 difference of
+  // differences equals the pooled t test of the per-mouse drug effects
+  // (scipy) and t^2 the mixed ANOVA's interaction F (pingouin); custom
+  // contrasts from statsmodels OLS t_test, Scheffe's P from scipy
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/rm_contrasts.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "contrasts.json"));
+  const block = page.locator(".pane-results .interaction-block").first();
+  const shown = await appears(block.locator(".interaction-dod"), 180000);
+  const mx = REF.mixed_2x2;
+  const dod = (await block.locator(".interaction-dod").innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect("P-83 acceptance: RM 2 x 2, the drug effect in KO minus the drug effect in WT with its CI "
+    + "(the t test of the per-mouse drug effects)",
+    shown && dod.includes(`is ${sig4(mx.effect_wt)} in WT and ${sig4(mx.effect_ko)} in KO: the difference between `
+      + `these effects is ${sig4(mx.difference)} (95% CI ${sig4(mx.ci[0])} to ${sig4(mx.ci[1])}), P = ${sig4(mx.p)}.`), dod);
+  const test = (await block.locator(".interaction-test").innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect("P-83 its t^2 is the RM ANOVA's interaction F(1, 10) = 6.642 (pingouin)",
+    test.includes(`F(1, 10) = ${sig4(mx.interaction_F_pingouin)}`), test);
+  const simple = (await block.getByRole("table", { name: "Simple effects: Drug within each Genotype" })
+    .innerText().catch(() => "")).replace(/\s+/g, " ");
+  const ko = mx.drug_within_genotype.KO;
+  expect("P-83 simple effects: the drug effect within KO on the mice's own differences",
+    simple.includes(`KO Drug − Vehicle ${sig4(ko.difference)}`), simple);
+  expect("P-83 the block says the contrasts need no sphericity",
+    /tested on the subjects' contrast scores, variance pooled across the 2 groups/.test(await block.innerText()));
+
+  // one-way ANOVA: a planned and a post hoc contrast
+  await page.getByRole("treeitem", { name: "One-way ANOVA of Three groups", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const cc = page.locator(".pane-results .custom-contrasts-results").first();
+  await appears(cc, 120000);
+  const rows = async () => (await cc.locator("tbody tr").allInnerTexts().catch(() => []))
+    .map((t) => t.replace(/\s+/g, " ").trim());
+  const [c1, c2] = REF.oneway_custom.contrasts;
+  const got = await rows();
+  expect("P-83 planned contrast: −2 × Vehicle + Drug A + Drug B, estimate, SE and t interval as statsmodels",
+    got[0]?.startsWith(`Drugs vs vehicle: −2 × Vehicle + Drug A + Drug B planned ${sig4(c1.estimate)} ${sig4(c1.se)} `
+      + `${sig4(c1.ci_planned[0])} to ${sig4(c1.ci_planned[1])}`) && got[0].endsWith("none (planned)"), got[0]);
+  expect("P-83 post hoc contrast: Scheffé's simultaneous interval and P on (2, 15) df",
+    got[1]?.startsWith(`A vs B: Drug A − Drug B post hoc ${sig4(c2.estimate)} ${sig4(c2.se)} `
+      + `${sig4(c2.ci_scheffe[0])} to ${sig4(c2.ci_scheffe[1])}`) && got[1].endsWith("Scheffé (2, 15 df)"), got[1]);
+  // type a new contrast in the dialog
+  const controls = page.locator(".pane-controls");
+  await controls.getByRole("button", { name: "Custom contrast…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Custom contrast" });
+  await dlg.getByLabel("Name").fill("Drug A vs vehicle");
+  await dlg.getByLabel("Coefficient: Vehicle").fill("-1");
+  await dlg.getByLabel("Coefficient: Drug A").fill("2");
+  await dlg.getByRole("button", { name: "Add contrast" }).click();
+  expect("P-83 coefficients that do not add up to 0 are refused with what to do",
+    /Make the coefficients add up to 0 \(they add up to 1\)/.test(await dlg.locator('.contrast-status[role="status"]').innerText()));
+  await dlg.getByLabel("Coefficient: Drug A").fill("1");
+  await dlg.getByRole("button", { name: "Add contrast" }).click();
+  await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  const g = REF.oneway_custom.groups;
+  const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+  await page.waitForFunction(() => document.querySelectorAll(".custom-contrasts-results tbody tr").length === 3,
+    null, { timeout: 60000 }).catch(() => {});
+  const third = (await rows())[2] ?? "";
+  expect("P-83 the typed contrast is added as planned: Drug A − Vehicle",
+    third.startsWith(`Drug A vs vehicle: −Vehicle + Drug A planned ${sig4(mean(g["Drug A"]) - mean(g.Vehicle))} `), third);
+
+  // two-way ANOVA: a post hoc contrast over the cells
+  await page.getByRole("treeitem", { name: "Two-way ANOVA of Genotype by drug", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const cc2 = page.locator(".pane-results .custom-contrasts-results").first();
+  await appears(cc2, 120000);
+  const tw = REF.twoway_custom;
+  const row2 = ((await cc2.locator("tbody tr").first().innerText().catch(() => "")).replace(/\s+/g, " ")).trim();
+  expect("P-83 two-way: WT / Vehicle − WT / Drug − KO / Vehicle + KO / Drug, Scheffé on (3, 12) df",
+    row2.startsWith(`Difference of differences: WT / Vehicle − WT / Drug − KO / Vehicle + KO / Drug post hoc `
+      + `${sig4(tw.estimate)} ${sig4(tw.se)} ${sig4(tw.ci_scheffe[0])} to ${sig4(tw.ci_scheffe[1])}`)
+      && row2.endsWith("Scheffé (3, 12 df)"), row2);
 }
 
 // ------------------------------------------------------------------------
