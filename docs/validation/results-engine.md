@@ -2509,3 +2509,53 @@ kind (rounding to cmprsk's 1.99, 0.16, 0.089, 0.77), the incidences at
 month 20, the cumulative incidence graph of Tumour and then of Other
 death (each curve at month 20 equal to the engine's value).
 
+### P-91 Parametric survival models
+
+`parametric_survival.parametric_survival` (API handler
+`parametric_survival`; the survival table's "Parametric survival model"
+analysis): accelerated failure time models log T = x'b + s W with W
+extreme value (Weibull; exponential with s = 1) or normal (log-normal),
+maximum likelihood by Newton-Raphson on the analytic observed
+information (Kalbfleisch & Prentice 2002, ch. 2-3; Collett 2015, ch. 6),
+survreg's parameterisation and log-likelihood (the density of T);
+time ratios exp(b) with Wald CIs; percentile times exp(x'b + s w_p) with
+delta-method CIs on the log scale; a percentile later than the group's
+last follow-up flagged as extrapolated next to the number; the
+likelihood-ratio test against no group effect and the AIC of all three
+distributions.
+
+Reference: `engine/tests/reference/parametric_survival.py` (R is not
+installed: an independent censored MLE written from scipy.stats
+densities and maximised with scipy.optimize, finite-difference Hessian
+and gradient; lifelines 0.30.3 WeibullAFTFitter / LogNormalAFTFitter,
+installed for the script only; the exponential's closed form; published
+survreg output on survival::lung, Therneau's "The survival package"
+vignette section 4.1). `engine/tests/test_parametric_survival.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| ovarian by rx, Weibull (acceptance) | rx coefficient 0.55927 (SE 0.52922), intercept 6.82451, scale 0.88566, loglik -97.36415, medians 665.08 and 1163.49 days, time ratio 1.7494 (0.6200 to 4.9358) (independent MLE; lifelines to 2e-5) | 1e-6 (SEs and CIs 1e-4) |
+| ovarian by rx, log-normal | coefficient 0.78644, scale 1.17362, loglik -96.04082 (independent MLE; lifelines) | 1e-6 |
+| ovarian by rx, exponential | coefficients log(T_1/d_1) = 6.86768 and 0.61253, SEs sqrt(1/d), medians log 2 T/d = 665.92 and 1228.67 (closed form) | 1e-10 |
+| lung, Weibull ~ age + sex + ph.karno, n = 227 | 5.326344, -0.008910282, 0.3701786, 0.009263843, scale 0.7551354, loglik -1138.7, intercept only -1147.5 (published survreg; survreg's convergence leaves its print within 4e-5 of the maximum, where the engine's gradient is 7e-10) | 1e-4 relative; loglik to 0.1 |
+
+Also tested: times x 1e-12, 1/30.4375, 1e12 shift only the intercept
+(by log of the factor) and scale every percentile; swapping the groups
+inverts the time ratio; S(t_p) = 1 - p for the Weibull; a group without
+events, every subject censored, a time of 0, all events at one time
+(Weibull and log-normal; the exponential fits), one subject, codes
+other than 0 / 1, unknown distributions and percentiles outside (0, 1)
+give a sentence, not a NaN. e2e (`e2e-results.mjs`): the ovarian table's
+Weibull coefficient, scale, medians and the median's CI; the time ratio
+as the headline; rx 2's 75% time (2150 days, after its last follow-up
+at 1227) flagged Extrapolated with its explanation; the exponential's
+medians equal to the closed form.
+
+Independent check values (for the lead): P-90, the trial table in
+`web/e2e-fixtures/stage/survival-models.json` ("Competing risks of
+Trial by drug"): Gray's chi-square 1.988 (P 0.1585) for code 1 and
+0.08857 (P 0.766) for code 2; Drug A's cumulative incidence of code 1
+at month 20 0.1735 (0.1059 to 0.255, SE 0.03851). P-91, "Parametric
+survival of Ovarian by treatment": Weibull rx 2 coefficient 0.5593 (SE
+0.5292), scale 0.8857, medians 665.1 and 1163 days, time ratio 1.749
+(0.62 to 4.936).

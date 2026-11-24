@@ -1305,6 +1305,58 @@ const analyzeWith = async (re) => {
     (await yTitle()) === "Cumulative incidence of Other death (%)" && near(ys2, "2"), `${await yTitle()} ${ys2}`);
 }
 
+// --- P-91: parametric survival models (AFT) --------------------------------
+{
+  // engine/tests/reference/parametric_survival.py: R's ovarian data by
+  // treatment (rx 1, rx 2), Weibull AFT: rx coefficient 0.5593 (SE
+  // 0.5292), scale 0.8857, medians 665.1 and 1163 days (independent MLE,
+  // lifelines 0.30.3); exponential medians = log 2 x total time / events
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/parametric_survival.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  // the fixture of the P-90 step is open: the ovarian table is in it
+  await page.getByRole("treeitem", { name: "Parametric survival of Ovarian by treatment", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const coefs = page.getByRole("group", { name: "Coefficients", exact: true });
+  await appears(coefs, 180000);
+  const rows = async (loc) => (await loc.locator("tbody tr").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim());
+  const w = REF.ovarian.weibull;
+  const c = await rows(coefs);
+  const scale = await rows(page.getByRole("group", { name: "Scale", exact: true }));
+  const pcts = await rows(page.getByRole("group", { name: "Percentile survival times" }));
+  const med = (g) => pcts.find((r) => r.startsWith(`${g} Median (50%) `)) ?? "";
+  expect(`P-91 acceptance: Weibull AFT on ovarian by treatment: coefficient ${sig4(w.coef[1])} (SE ${sig4(w.se[1])}), `
+    + `scale ${sig4(w.scale)}, medians ${sig4(w.percentiles["rx 1"]["0.5"].time)} and ${sig4(w.percentiles["rx 2"]["0.5"].time)}`,
+  c[1]?.startsWith(`Group: rx 2 ${sig4(w.coef[1])} ${sig4(w.se[1])} `)
+      && scale[0]?.startsWith(`Scale σ ${sig4(w.scale)} `)
+      && med("rx 1").startsWith(`rx 1 Median (50%) ${sig4(w.percentiles["rx 1"]["0.5"].time)} `)
+      && med("rx 2").startsWith(`rx 2 Median (50%) ${sig4(w.percentiles["rx 2"]["0.5"].time)} `),
+  `${c[1]} | ${scale[0]} | ${med("rx 1")} | ${med("rx 2")}`);
+  const ciTxt = (ci) => `${sig4(ci[0])} to ${sig4(ci[1])}`;
+  expect("P-91 the median's delta-method CI (rx 1)",
+    med("rx 1").includes(ciTxt(w.percentiles["rx 1"]["0.5"].ci)), med("rx 1"));
+  expect("P-91 the time ratio is the headline, with its CI",
+    await answerText(new RegExp(`Time ratio \\(Weibull AFT\\)\\s*${sig4(w.time_ratio).replace(".", "\\.")}`)));
+  // rx 2's 75% time (2150 days) is past its last follow-up (1227): flagged
+  const p75 = pcts.find((r) => r.startsWith("rx 2 75% ")) ?? "";
+  expect("P-91 extrapolation beyond follow-up is flagged next to the number",
+    p75.startsWith(`rx 2 75% Extrapolated ${sig4(w.percentiles["rx 2"]["0.75"].time)} `), p75);
+  const block = page.locator('section[aria-label="Percentile survival times"]');
+  await block.getByRole("button", { name: "Extrapolated" }).first().click();
+  expect("P-91 the Extrapolated badge opens its explanation",
+    // the first badge is rx 1's 75% time (1229 days; rx 1 was followed to 1106)
+    new RegExp(`rx 1, 75%: ${sig4(w.percentiles["rx 1"]["0.75"].time)} is later than the last follow-up \\(1106\\)`)
+      .test(await block.innerText()));
+  // the exponential model: its medians are the closed form
+  await page.getByRole("group", { name: "Model" }).getByLabel("Distribution").selectOption("exponential");
+  await liveResults(/Exponential accelerated failure time model/);
+  const cf = REF.ovarian.exponential_closed_form.median;
+  const pe = await rows(page.getByRole("group", { name: "Percentile survival times" }));
+  expect(`P-91 exponential medians = log 2 x total time / events (${sig4(cf["rx 1"])}, ${sig4(cf["rx 2"])})`,
+    pe.some((r) => r.startsWith(`rx 1 Median (50%) ${sig4(cf["rx 1"])} `))
+      // rx 2's exponential median (1229 days) is one day past its last follow-up (1227)
+      && pe.some((r) => r.startsWith(`rx 2 Median (50%) Extrapolated ${sig4(cf["rx 2"])} `)), pe.join(" | "));
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

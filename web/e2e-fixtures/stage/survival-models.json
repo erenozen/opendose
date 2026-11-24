@@ -881,6 +881,161 @@
     }
    },
    "name": "Cumulative incidence of Trial by drug"
+  },
+  {
+   "id": "d004",
+   "kind": "data",
+   "name": "Ovarian by treatment",
+   "table": {
+    "type": "survival",
+    "x": [],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "days",
+    "yTitle": "",
+    "rowTitles": [],
+    "datasets": [
+     {
+      "name": "rx 1",
+      "subTitles": [
+       "Time",
+       "Event"
+      ],
+      "rows": [
+       [
+        "59",
+        "1"
+       ],
+       [
+        "115",
+        "1"
+       ],
+       [
+        "156",
+        "1"
+       ],
+       [
+        "431",
+        "1"
+       ],
+       [
+        "448",
+        "0"
+       ],
+       [
+        "477",
+        "0"
+       ],
+       [
+        "638",
+        "1"
+       ],
+       [
+        "803",
+        "0"
+       ],
+       [
+        "855",
+        "0"
+       ],
+       [
+        "1040",
+        "0"
+       ],
+       [
+        "1106",
+        "0"
+       ],
+       [
+        "268",
+        "1"
+       ],
+       [
+        "329",
+        "1"
+       ]
+      ]
+     },
+     {
+      "name": "rx 2",
+      "subTitles": [
+       "Time",
+       "Event"
+      ],
+      "rows": [
+       [
+        "421",
+        "0"
+       ],
+       [
+        "464",
+        "1"
+       ],
+       [
+        "475",
+        "1"
+       ],
+       [
+        "563",
+        "1"
+       ],
+       [
+        "744",
+        "0"
+       ],
+       [
+        "769",
+        "0"
+       ],
+       [
+        "770",
+        "0"
+       ],
+       [
+        "1129",
+        "0"
+       ],
+       [
+        "1206",
+        "0"
+       ],
+       [
+        "1227",
+        "0"
+       ],
+       [
+        "353",
+        "1"
+       ],
+       [
+        "365",
+        "1"
+       ],
+       [
+        "377",
+        "0"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r005",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "parametric_survival",
+   "options": {
+    "dist": "weibull",
+    "percentiles": [
+     0.25,
+     0.5,
+     0.75
+    ]
+   },
+   "name": "Parametric survival of Ovarian by treatment"
   }
  ]
 }

@@ -52,6 +52,25 @@ export function CompetingControls(_: ControlsProps<any>) {
   );
 }
 
+/** Parametric survival (P-91): what the model is; the distribution and
+ *  percentiles are chosen above the results. */
+export function ParametricControls(_: ControlsProps<any>) {
+  void _;
+  return (
+    <div className="controls">
+      <section>
+        <h3>Model</h3>
+        <p className="hint-block">
+          An accelerated failure time model on the time and event code (1 = event, 0 =
+          censored) of each subject, with the group as a factor and the first group as the
+          reference. Covariate columns are used by Cox regression, not here. Choose the
+          distribution and the percentiles above the results.
+        </p>
+      </section>
+    </div>
+  );
+}
+
 export function SurvivalResultsPanel(props: ResultsProps<unknown, any>) {
   const { sheet, result, table } = props;
   return (

@@ -41,7 +41,7 @@ from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
-from . import competing_risks
+from . import competing_risks, parametric_survival
 from . import logscale, rm_posthoc, twoway_contrasts
 from . import compare_params, flow, qpcr_refs
 from . import potency
@@ -1789,6 +1789,34 @@ def _competing_risks(data, options):
         ci_level=float(options.get("ci_level", 0.95)))
     res["warnings"] = warnings + list(res.get("warnings") or [])
     return {"analysis": "competing_risks", **res}
+
+
+def _parametric_survival(data, options):
+    """Exponential, Weibull or log-normal accelerated failure time model
+    with the group as the covariate (parametric_survival). Payload as
+    "survival" (datasets = groups, rows [time, event 1/0]). options: dist
+    ("weibull" (default) | "exponential" | "lognormal"), percentiles
+    ([fractions that have had the event]; default [0.25, 0.5, 0.75]),
+    ci_level (0.95). Result: {"analysis": "parametric_survival", "dist",
+    "label", "coefficients": [{name, coef, se, z, p, ci, time_ratio,
+    time_ratio_ci}], "scale": {value, ci, log_value, log_se, fixed},
+    "shape"?, "loglik", "loglik_null", "lr_test", "aic", "n_params",
+    "vcov", "converged", "iterations", "groups": [{name, n, events,
+    last_time, km_median, percentiles: [{p, time, se, se_log, ci,
+    beyond_follow_up}]}], "time_ratios": [{group, reference, value, ci,
+    p}], "compare": [{dist, label, loglik, aic, converged}], "reference",
+    "group_names", "n", "n_events", "ci_level", "warnings"}."""
+    groups, names, warnings = _survival_groups(data)
+    dist = options.get("dist", "weibull")
+    pcts = options.get("percentiles") or [0.25, 0.5, 0.75]
+    for p in pcts:
+        if not 0 < float(p) < 1:
+            raise ValueError("percentiles must be fractions between 0 and 1")
+    res = parametric_survival.parametric_survival(
+        groups, names, dist=dist, percentiles=[float(p) for p in pcts],
+        ci_level=float(options.get("ci_level", 0.95)))
+    res["warnings"] = warnings + list(res.get("warnings") or [])
+    return {"analysis": "parametric_survival", **res}
 
 
 def _residuals_column(data, options):
@@ -4529,6 +4557,7 @@ _HANDLERS.update({
     "rmst": _rmst,
     "residuals_column": _residuals_column,
     "competing_risks": _competing_risks,
+    "parametric_survival": _parametric_survival,
 })
 
 

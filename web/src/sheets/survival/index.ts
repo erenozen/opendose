@@ -8,10 +8,13 @@ import {
   type CoxOptions, type CoxResult,
 } from "./cox";
 import {
-  CompetingControls, SurvivalControls, SurvivalGraph, SurvivalOptions, SurvivalResultsPanel,
+  CompetingControls, ParametricControls, SurvivalControls, SurvivalGraph, SurvivalOptions, SurvivalResultsPanel,
 } from "./panels";
 import { DEFAULT_SURVIVAL_OPTIONS, normalizeSurvivalOptions, runSurvival } from "./extras";
 import { SurvivalMethods } from "./extrasPanels";
+import {
+  DEFAULT_PARAMETRIC_OPTIONS, normalizeParametricOptions, runParametric, type ParametricOptions,
+} from "./parametric";
 import {
   COMPETING_AUTO_Y, DEFAULT_COMPETING_OPTIONS, normalizeCompetingOptions, runCompeting,
   type CompetingOptions,
@@ -33,6 +36,10 @@ const CompetingResults = lazyPart(competingModule, "CompetingResults");
 const CompetingMethods = lazyPart(competingModule, "CompetingMethods");
 const CompetingGraph = lazyPart(competingModule, "CompetingGraph");
 const CompetingGraphOptions = lazyPart(competingModule, "CompetingGraphOptions");
+// Parametric survival (P-91) panels too.
+const parametricModule = () => import("./parametricPanels");
+const ParametricResults = lazyPart(parametricModule, "ParametricResults");
+const ParametricMethods = lazyPart(parametricModule, "ParametricMethods");
 // Entry from counts / dates, the per-group reading and the covariates.
 const SurvivalAside = lazyPart(() => import("./SurvivalAside"), "default");
 
@@ -129,6 +136,25 @@ const survivalCox = coxDefinitions(ANALYSIS_COX, "cox", "Cox proportional hazard
 export const coxAnalysis = survivalCox.analysis;
 export const coxGraphs = survivalCox.graphs;
 
+// P-91: ids are stored in project files: never rename them.
+export const ANALYSIS_PARAMETRIC = "parametric_survival";
+
+export const parametricAnalysis = defineAnalysis<ParametricOptions, Record<string, unknown>>({
+  id: ANALYSIS_PARAMETRIC,
+  label: "Parametric survival model (Weibull, log-normal, exponential)",
+  short: "Parametric survival",
+  description: "An accelerated failure time model: time ratios between groups and median and "
+    + "percentile survival times with confidence intervals, flagged where they extrapolate.",
+  sheetName: (t) => `Parametric survival of ${t}`,
+  defaultOptions: () => ({ ...DEFAULT_PARAMETRIC_OPTIONS }),
+  normalizeOptions: (raw) => normalizeParametricOptions(raw),
+  run: (engine, table, options) => runParametric(engine, table, options),
+  defaultGraph: null,
+  ControlsPanel: ParametricControls,
+  ResultsPanel: ParametricResults,
+  MethodsPanel: ParametricMethods,
+});
+
 // P-90: ids are stored in project files: never rename them.
 export const ANALYSIS_COMPETING = "competing_risks";
 export const GRAPH_COMPETING = "competing_cif";
@@ -193,6 +219,6 @@ export const survivalTable: TableTypeDef = {
   sampleName: "Survival example",
   Editor: DataGrid,
   EditorAside: SurvivalAside,
-  analyses: [survivalAnalysis, coxAnalysis, competingAnalysis],
+  analyses: [survivalAnalysis, coxAnalysis, parametricAnalysis, competingAnalysis],
   graphs: [survivalGraph, ...coxGraphs, competingGraph],
 };

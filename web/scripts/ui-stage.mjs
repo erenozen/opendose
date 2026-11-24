@@ -1209,6 +1209,24 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },
+  // P-91: a Weibull AFT model: the time ratio as the answer, then the
+  // percentile times with an Extrapolated badge open
+  { name: "results-parametric", setup: async (s) => {
+    await fixture(s, "survival-models.json", { live: true });
+    await selectSheet(s, "Parametric survival of Ovarian by treatment");
+    await s.page.locator('section[aria-label="Time ratios"]').first().waitFor({ timeout: 240000 });
+    await into(s, ".pane-answer", "start");
+    await settle(s, 800);
+  } },
+  { name: "results-parametric-percentiles", setup: async (s) => {
+    await fixture(s, "survival-models.json", { live: true });
+    await selectSheet(s, "Parametric survival of Ovarian by treatment");
+    const block = s.page.locator('section[aria-label="Percentile survival times"]').first();
+    await block.waitFor({ timeout: 240000 });
+    await click(s, block.getByRole("button", { name: "Extrapolated" }).first());
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   // P-89: the separation refusal offers Firth's correction
   { name: "results-firth-offer", setup: async (s) => {
     await fixture(s, "glm-models.json", { live: true });
