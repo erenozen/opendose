@@ -935,6 +935,13 @@
         "chosen": {
           "$ref": "#/definitions/ChosenTest",
           "description": "Why \"Help me choose…\" or \"Plan an experiment…\" picked this analysis (guide/choice.ts). Absent in files from before it was saved, and on sheets the wizard did not open."
+        },
+        "leftOut": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LeftOutValue"
+          },
+          "description": "Values left out of this analysis only (a sensitivity analysis): they stay in the table and in every other analysis, and each carries the reason given (project/leftOut.ts). Absent in files from before it existed, and on sheets that leave nothing out."
         }
       },
       "required": [
@@ -976,6 +983,38 @@
       ],
       "additionalProperties": false,
       "description": "The test chooser's reason for an analysis, kept with the results sheet it opened. It applies while the sheet runs `analysis` with `options` (the options the chooser set) unchanged; after the user changes one of them the reason no longer describes the test and is not shown."
+    },
+    "LeftOutValue": {
+      "type": "object",
+      "properties": {
+        "dataset": {
+          "type": "number",
+          "description": "The cell: data set index, row and subcolumn (0-based)."
+        },
+        "row": {
+          "type": "number"
+        },
+        "sub": {
+          "type": "number"
+        },
+        "value": {
+          "type": "string",
+          "description": "The cell's text when it was left out. A cell that no longer holds it (rows moved, the value edited) is not left out, and the Exclusions block says so, rather than leaving out whatever is there now."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why it is left out (never empty)."
+        }
+      },
+      "required": [
+        "dataset",
+        "row",
+        "sub",
+        "value",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "description": "One Y cell left out of one analysis, with why."
     },
     "GraphSheet": {
       "type": "object",

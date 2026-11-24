@@ -9,6 +9,7 @@ import { Button } from "../components/ui";
 import { renameForOptions } from "../app/resultsName";
 import { runEngine } from "../lib/engine";
 import { newId } from "../project/ids";
+import { sheetTable } from "../project/leftOut";
 import type { DataSheet, ResultsSheet } from "../project/types";
 import { tableP } from "../report/pformat";
 import { analysisDef } from "../sheets/registry";
@@ -60,8 +61,9 @@ export default function MultiplicityActions({ facts }: { facts: MultiplicityFact
       if (!def) throw new Error("no column analysis");
       const rows = await runEngine((engine) => runs.map((t) => {
         const s = project.sheets.find((x) => x.id === t.sheetId) as ResultsSheet;
-        const o = resolveOptions(def, s.options, data.table, project.prefs);
-        const r = def.run(engine, data.table, o) as R;
+        const at = sheetTable(s, data.table);
+        const o = resolveOptions(def, s.options, at, project.prefs);
+        const r = def.run(engine, at, o) as R;
         const p = typeof r?.p_two_tailed === "number" ? r.p_two_tailed : null;
         return { label: `${facts.names[t.a] ?? t.a} vs. ${facts.names[t.b] ?? t.b}`, p };
       }), { priority: "user" });

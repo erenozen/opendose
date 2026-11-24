@@ -294,6 +294,25 @@ export interface ResultsSheet extends SheetBase {
    *  (guide/choice.ts). Absent in files from before it was saved, and on
    *  sheets the wizard did not open. */
   chosen?: ChosenTest;
+  /** Values left out of this analysis only (a sensitivity analysis): they
+   *  stay in the table and in every other analysis, and each carries the
+   *  reason given (project/leftOut.ts). Absent in files from before it
+   *  existed, and on sheets that leave nothing out. */
+  leftOut?: LeftOutValue[];
+}
+
+/** One Y cell left out of one analysis, with why. */
+export interface LeftOutValue {
+  /** The cell: data set index, row and subcolumn (0-based). */
+  dataset: number;
+  row: number;
+  sub: number;
+  /** The cell's text when it was left out. A cell that no longer holds it
+   *  (rows moved, the value edited) is not left out, and the Exclusions
+   *  block says so, rather than leaving out whatever is there now. */
+  value: string;
+  /** Why it is left out (never empty). */
+  reason: string;
 }
 
 /** The test chooser's reason for an analysis, kept with the results sheet

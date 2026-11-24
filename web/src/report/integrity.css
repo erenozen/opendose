@@ -35,6 +35,14 @@
   color: var(--muted); font-size: var(--text-caption); margin: 10px 0 0; line-height: 1.5;
 }
 .exclusions-card a, .reproduce-strip a { color: var(--accent); }
+/* Left out of this analysis only (P-68) */
+.exclusions-card .exc-state { flex-basis: 100%; color: var(--warn-ink); font-size: var(--text-caption); }
+.exclusions-card .exc-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-4); }
+.leave-out-dialog .leave-out-cell { display: flex; flex-wrap: wrap; gap: var(--space-12); }
+.leave-out-dialog .leave-out-cell > * { flex: 1 1 120px; min-width: 0; }
+.leave-out-dialog .leave-out-value { margin: var(--space-4) 0 var(--space-12); }
+/* Nothing excluded: the block only offers the action; a printed sheet looks as before. */
+@media print { .exclusions-card.exclusions-none { display: none; } }
 
 .history-reproduction h3 { margin: 0 0 var(--space-4); font-size: var(--text-body); }
 .history-reproduction ul, .history-step .hs-exclusions {

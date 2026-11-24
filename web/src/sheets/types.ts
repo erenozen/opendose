@@ -61,6 +61,10 @@ export interface PlotProps<O = unknown, R = unknown> {
   format?: GraphFormat;
   /** Persist a new format (annotation drags). Absent on frozen graphs. */
   onFormatChange?: (f: GraphFormat) => void;
+  /** A data point was clicked: its data set and row in the table, to
+   *  leave it out of the bound analysis (P-68). Absent when that cannot
+   *  happen (no bound analysis, frozen, shared); panels may ignore it. */
+  onPointPick?: (cell: { dataset: number; row: number }) => void;
 }
 
 /** A graph kind's own options (which variable on X, slice labels, error

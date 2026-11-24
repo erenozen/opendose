@@ -5,6 +5,7 @@
 // provenance.json. Pure: the registry lookups come in as functions.
 import type { DataSheet, DataTableModel, Project, ProjectPrefs, TableType } from "../project/types.ts";
 import { excludedValues } from "../project/exclusions.ts";
+import { leftOutRows, sheetTable } from "../project/leftOut.ts";
 
 /** FNV-1a 64-bit hash of a string's UTF-8 bytes, as 16 hex digits. */
 export function fnv1a64(text: string): string {
@@ -105,13 +106,18 @@ export function familyProvenance(p: Project, data: DataSheet, deps: ProvenanceDe
   const steps: ProvenanceStep[] = [];
   for (const s of p.sheets) {
     if (s.kind === "results" && s.parentId === data.id) {
-      const resolved = deps.resolveOptions(t.type, s.analysis, s.options, t, p.prefs);
+      const at = sheetTable(s, t);
+      const resolved = deps.resolveOptions(t.type, s.analysis, s.options, at, p.prefs);
+      // values left out of this analysis only (P-68), with why
+      const left = leftOutRows(t, s.leftOut);
       const defaults = deps.defaultOptions(t.type, s.analysis, t, p.prefs);
       steps.push({
         kind: "analysis", sheet: s.name, sheet_id: s.id, analysis: s.analysis,
         label: deps.analysisLabel(t.type, s.analysis) ?? s.analysis,
         options: optionEntries(resolved, defaults),
         input: { table: data.name, fingerprint: fp },
+        ...(left.length ? { left_out: left.map((r) => ({ data_set: r.group, where: r.where,
+          value: r.value, reason: r.reason, applied: r.state === "applies" })) } : {}),
         frozen: !!s.frozen,
         result: resultSummary(s.frozen ? s.cached : deps.result(s.id)),
       });

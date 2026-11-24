@@ -52,8 +52,9 @@ export function replayPlanOf(p: Project): Record<string, unknown> {
   const sheets = p.sheets.map((s) => {
     if (s.kind === "data") return { ...s, table: clearYValues(s.table) };
     if (s.kind === "results") {
-      const { cached: _c, cachedKey: _k, frozen: _f, ...rest } = s;
-      void _c; void _k; void _f;
+      // values left out of one analysis name cells of these data, not the new
+      const { cached: _c, cachedKey: _k, frozen: _f, leftOut: _l, ...rest } = s;
+      void _c; void _k; void _f; void _l;
       return rest;
     }
     if (s.kind === "graph") {

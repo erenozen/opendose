@@ -6,6 +6,7 @@
 // job gives way to the visible one when a warm spare worker is ready).
 // Opening any sheet then shows its numbers at once.
 import { useEffect } from "react";
+import { sheetTable } from "../project/leftOut";
 import type { DataSheet } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { resolveOptions, resultKey, sheetRunner } from "./analysis";
@@ -25,10 +26,12 @@ export function useBackgroundRefresh() {
         if (!data || data.kind !== "data") continue;
         const def = analysisDef(data.table.type, s.analysis);
         if (!def) continue;
-        const options = resolveOptions(def, s.options, data.table, project.prefs);
-        const key = resultKey(s.analysis, options, data.table);
+        // what this analysis sees: values left out of it only (P-68) applied
+        const table = sheetTable(s, data.table);
+        const options = resolveOptions(def, s.options, table, project.prefs);
+        const key = resultKey(s.analysis, options, table);
         if (results.isCurrent(s.id, key) || results.isCancelled(s.id, key)) continue;
-        results.run(s.id, key, sheetRunner(def, data.table, options), "background");
+        results.run(s.id, key, sheetRunner(def, table, options), "background");
       }
     }, IDLE_MS);
     return () => clearTimeout(timer);

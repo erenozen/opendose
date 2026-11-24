@@ -864,6 +864,92 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   }
 }
 
+// --- P-126: an exercise link for teaching. The plan's acceptance test:
+// create an exercise link hiding the test and P; opening it shows the
+// data and the task; after choosing a test, the results appear. Numbers:
+// web/e2e-fixtures/reference/left_out_ttest.py (scipy ttest_ind).
+{
+  const ref = JSON.parse(readFileSync(join(here, "..", "e2e-fixtures", "reference", "left_out_ttest.json"), "utf8"));
+  const tRow = `t=-${Number(ref.all_values.t.toPrecision(4))}, df=${ref.all_values.df}`;
+  await fileMenu.click();
+  await page.getByRole("menuitem", { name: "New data table…" }).click();
+  const nd = page.locator(".new-table-dialog");
+  await nd.getByRole("radio", { name: "From a template" }).check();
+  await nd.getByRole("radio", { name: /Two-group t test/ }).check();
+  await nd.getByLabel("Table name").fill("Exercise data");
+  await nd.getByRole("button", { name: "Create from template" }).click();
+  await page.waitForFunction((t) => (document.querySelector('.pane-results[data-live="true"]')?.textContent ?? "")
+    .includes(t), tRow, { timeout: 120000 });
+  await page.getByRole("treeitem", { name: "Exercise data", exact: true }).first()
+    .locator(":scope > .nav-row").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Share this family…" }).click();
+  const exDlg = page.getByRole("dialog", { name: "Share “Exercise data”" });
+  await exDlg.waitFor({ timeout: 10000 });
+  await exDlg.getByLabel("Protect with a password (recommended)").uncheck();
+  await exDlg.getByLabel(/Make it an exercise/).check();
+  expect("P-126 the dialog says plainly that the answer is inside the link",
+    /Withheld in the app only\. The answer travels inside the link/.test(
+      (await exDlg.locator(".share-exercise").innerText()).replace(/\s+/g, " ")));
+  expect("P-126 no link until the task is written", await exDlg.getByLabel("Share link").count() === 0);
+  await exDlg.getByRole("button", { name: "Copy link" }).click();
+  expect("P-126 Copy link without a task asks for one",
+    await exDlg.getByText("Enter the task the student sees").isVisible());
+  const TASK = "Which test compares Control with Treated? Choose it, then read the result.";
+  await exDlg.getByLabel("Task for the student").fill(TASK);
+  expect("P-126 the test is withheld too by default",
+    await exDlg.getByLabel(/Also withhold which test was run/).isChecked());
+  const axEx = await axeDialog();
+  expect("P-126 axe-core: the Share dialog with the exercise options passes", axEx.length === 0, axEx.join(" | "));
+  const exLink = await exDlg.getByLabel("Share link").inputValue();
+  await exDlg.getByRole("button", { name: "Done" }).click();
+  // the student's browser
+  const ctxS = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
+  const student = await ctxS.newPage();
+  watch(student, "exercise");
+  await student.goto(exLink, { waitUntil: "domcontentloaded" });
+  const ex = student.getByRole("region", { name: "Exercise" });
+  await ex.waitFor({ timeout: 60000 });
+  await student.waitForFunction(() => globalThis.__opendoseEngine?.state.phase === "ready", null,
+    { timeout: 180000 }).catch(() => {});
+  await student.waitForTimeout(1500);
+  const body = await student.locator("body").innerText();
+  expect("P-126 the link opens with the task and the data",
+    (await ex.innerText()).includes(TASK)
+    && await student.locator('.data-table input[aria-label="Control, row 1"]').inputValue() === "23.1");
+  expect("P-126 no results, no P, no test name before the choice",
+    await student.locator(".pane-results, .pane-answer, .pane-methods").count() === 0
+    && !/P value|t=-|t test|Unpaired/i.test(body), body.match(/.{0,40}(P value|t=-|t test|Unpaired).{0,40}/i)?.[0] ?? "");
+  expect("P-126 the analysis goes by a neutral name and its settings are withheld",
+    await student.locator("header").getByRole("tab", { name: "Analysis 1" }).count() === 1
+    && await student.getByRole("treeitem", { name: "Analysis 1", exact: true }).count() === 1
+    && (await student.locator(".pane-controls").innerText()).includes("Settings withheld"));
+  await student.evaluate(readFileSync(axePath, "utf8")).catch(() => {});
+  const axW = await student.evaluate(async () => {
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(document.querySelector(".pane-exercise"),
+      { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+    return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 90)}`));
+  });
+  expect("P-126 axe-core: the withheld results pane passes", axW.length === 0, axW.join(" | "));
+  await ex.getByRole("button", { name: "Help me choose…" }).click();
+  const wiz = student.getByRole("dialog", { name: "Help me choose a test" });
+  await wiz.waitFor({ timeout: 10000 });
+  expect("P-126 Help me choose keeps the recommendation until the answers are committed",
+    !/Recommended/.test(await wiz.innerText())
+    && await wiz.getByRole("button", { name: "Commit my answers" }).count() === 1);
+  await wiz.getByRole("button", { name: "Commit my answers" }).click();
+  const revealed = await student.waitForFunction((t) => (document.querySelector(".pane-results")?.textContent ?? "")
+    .includes(t), tRow, { timeout: 120000 }).then(() => true, () => false);
+  expect(`P-126 after the choice the results appear (${tRow}, scipy)`, revealed);
+  const outcome = student.getByRole("region", { name: /Your answers point to/ });
+  const outText = await outcome.innerText().catch(() => "");
+  expect("P-126 the banner says what the answers point to and the analysis the link holds",
+    /Your answers point to: .+\./.test(outText) && outText.includes("Column stats of Exercise data"), outText);
+  expect("P-126 the analysis has its name back",
+    await student.getByRole("treeitem", { name: "Column stats of Exercise data", exact: true }).count() === 1);
+  await ctxS.close();
+}
+
 await page.screenshot({ path: join(tmp, "share.png") });
 console.log("files in", tmp);
 console.log("errors:", errors.length ? errors : "none");

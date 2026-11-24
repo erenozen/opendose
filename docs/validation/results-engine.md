@@ -2913,3 +2913,61 @@ by bounded minimisation of the restricted likelihood and the
 Hartung-Knapp interval written out: tau^2 0.313243, pooled log RR
 -0.714532 (SE 0.179782), HK 95% CI -1.108444 to -0.320621, RR 0.4894
 (0.3301 to 0.7257): the engine's values.
+
+## Feature validation: leaving a value out of one analysis (2026-11-24)
+
+### P-68 Leave a value out of one analysis
+
+`web/src/project/leftOut.ts`: a results sheet's `leftOut` names Y cells of
+its table, each with the value it held and the reason given (required).
+The analysis' input is built from the table with those cells excluded,
+exactly as excluding them in the table would (the same `excluded` keys and
+reasons), so no engine code is involved; the table, its other analyses and
+the graphs of other analyses keep the values. A cell that no longer holds
+its value (rows moved, the value edited) is not left out, and the
+Exclusions block says so. Values are only ever left out by the user, with
+a reason, and the results with them put back are always shown beside the
+sensitivity results (do-not-build 4).
+
+Identity (`leftOut.test.ts`): for the built-in "Two-group t test" table
+with Control row 3 (21.8) left out for "pipetting error noted", the table
+the analysis sees equals, key for key, the table with that cell excluded
+in the grid (Ctrl+E) with the same reason, so its engine payload and
+result fingerprint are the same. Migration: every project fixture saved
+before the key existed opens with no `leftOut`, its analyses see the very
+same table object and fingerprint, and saving it again writes no new key.
+
+Reference: `web/e2e-fixtures/reference/left_out_ttest.py`
+(`scipy.stats.ttest_ind`, Student, SciPy 1.18.1), Treated minus Control:
+
+| Data | t | df | P | Difference (95% CI) |
+|---|---|---|---|---|
+| Every value (the original analysis) | 5.596 | 10 | 2.290e-4 | 5.2 (3.129 to 7.271) |
+| Control row 3 (21.8) left out (the copy) | 5.245 | 9 | 5.313e-4 | 4.767 (2.711 to 6.823) |
+
+e2e-results drives the acceptance test: the template, Duplicate sheet,
+"Leave out of this analysis…" on the copy (data set, row, reason); the
+copy shows `t=-5.245, df=9` and Control n = 5, its Exclusions block
+(Control 6 entered, 1 excluded, 5 analysed) and the methods name the value
+and reason, and the results with it put back sit beside them; the original
+still shows `t=-5.596, df=10`; excluding the same cell in the table then
+gives the original exactly the copy's results table. A click on a point of
+the example dose-response graph opens the same dialog for that row.
+
+### P-126 Exercise links for teaching
+
+No computation: an exercise link is an ordinary share link with a
+top-level `exercise` key (the task, and whether the test is withheld), and
+the results it withholds are the engine's results of the shared project,
+shown unchanged once the student commits answers in Help me choose. The
+link holds the answer (the Share dialog says so). Unit tests
+(`share/__tests__/exercise.test.ts`): a link saved by main before the key
+existed decodes to the same project with no exercise, and a link made now
+without one is byte for byte the same text; the exercise survives a link
+too large for its cached results and a password-protected link; project
+files never carry it. e2e-share drives the acceptance test on the "Two-group
+t test" template: the student's page shows the task and the data, no
+result, P or test name (the analysis is "Analysis 1", its settings
+withheld); after Commit my answers the results show `t=-5.596, df=10`
+(the scipy reference of P-68) and a banner names what the answers point
+to and the analysis the link holds.

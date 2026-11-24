@@ -297,6 +297,8 @@ export function duplicateFamily(p: Project, id: string,
     k.name = rename(c.name);
     k.frozen = false;
     if (k.kind === "results") { delete k.cached; delete k.cachedKey; }
+    // values left out of one analysis name cells of the old values
+    if (k.kind === "results" && !opts.withData) delete k.leftOut;
     if (k.kind === "graph") {
       delete k.snapshot;
       k.resultsId = k.resultsId ? idMap.get(k.resultsId) ?? null : null;

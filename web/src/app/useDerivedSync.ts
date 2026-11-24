@@ -12,6 +12,7 @@ import { isCancelled, isEnginePending, runEngine, type EngineBridge } from "../l
 import {
   derivedOutputs, producerOrder, writeDerivedTable,
 } from "../project/derived";
+import { sheetTable } from "../project/leftOut";
 import type { DataSheet, Project, ResultsSheet } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { resolveOptions, resultKey, type CacheEntry, type ResultsCache } from "./analysis";
@@ -39,13 +40,15 @@ export function syncDerived(p: Project, engine: EngineBridge, results: ResultsCa
     if (!source || source.kind !== "data") continue;
     const def = analysisDef(source.table.type, prod.analysis);
     if (!def?.derivedTable) continue;
-    const options = resolveOptions(def, prod.options, source.table, next.prefs);
-    const key = resultKey(prod.analysis, options, source.table);
+    // values left out of the producing analysis only (P-68) applied
+    const table = sheetTable(prod, source.table);
+    const options = resolveOptions(def, prod.options, table, next.prefs);
+    const key = resultKey(prod.analysis, options, table);
     let entry = fresh.get(prod.id) ?? results.get(prod.id);
     if (entry?.key !== key) {
       let result: unknown;
       try {
-        result = def.run(engine, source.table, options);
+        result = def.run(engine, table, options);
       } catch (e) {
         if (isEnginePending(e)) throw e;
         result = { error: e instanceof Error ? e.message : String(e) };
