@@ -571,6 +571,199 @@ def multiple_regression(variables, outcome: str, predictors, *,
     }
 
 
+# ------------------------------------------- ANCOVA (baseline-adjusted comparison)
+
+def _ols_cov(X, y):
+    """Least squares with the residual SS, df and the coefficient covariance."""
+    beta, resid, rmat = _ols(X, y)
+    ss = float(resid @ resid)
+    df = X.shape[0] - X.shape[1]
+    rinv = np.linalg.inv(rmat)
+    return beta, resid, ss, df, (ss / df) * (rinv @ rinv.T) if df > 0 else None
+
+
+def ancova(variables, outcome: str, group: str, baseline: str, *,
+           reference_level=None, ci_level: float = 0.95) -> dict:
+    """Compare groups on a follow-up measurement adjusted for its baseline
+    (analysis of covariance): outcome = b0 + group effects + b1 * baseline,
+    fitted by least squares, one slope shared by every group.
+
+    Vickers & Altman 2001 (BMJ 323:1123, "Analysing controlled trials with
+    baseline and follow up measurements"): with a baseline measurement,
+    ANCOVA of the follow-up adjusted for baseline is unbiased under
+    randomisation and has more power than comparing follow-up alone or the
+    change from baseline. Reported, as R's lm(outcome ~ group + baseline)
+    with emmeans and car::Anova(type = 3) report them:
+
+    - adjusted means: each group's predicted outcome at the mean baseline
+      of the analysed rows, with SE sqrt(x0' V x0) and a t CI on the
+      residual df;
+    - adjusted differences: each group against the reference level (its
+      coefficient), with SE, t CI, t and P (not corrected for multiple
+      comparisons when there are three or more groups);
+    - the type III ANOVA table (drop-one sums of squares: with no
+      interaction in the model they do not depend on the coding);
+    - the equal-slopes check: the F test of the group x baseline
+      interaction (the model with a separate slope per group against the
+      shared slope), and each group's own slope.
+    Rows missing any of the three variables are left out (complete cases).
+    A numeric group column (1/2, 0/1) is read as levels."""
+    table = parse_table(variables)
+    by = _by_name(table)
+    for name in (outcome, group, baseline):
+        if name not in by:
+            raise ValueError(f"unknown variable: {name}")
+    if len({outcome, group, baseline}) < 3:
+        raise ValueError("the outcome, the baseline and the group must be three "
+                         "different variables")
+    for name, role in ((outcome, "outcome (follow-up)"), (baseline, "baseline")):
+        if by[name]["kind"] != "continuous":
+            raise ValueError(f"the {role} {name} must be a numeric variable")
+    if by[group]["kind"] == "continuous":
+        as_levels = {"name": group, "kind": "categorical",
+                     "values": [None if v is None else _level_text(v)
+                                for v in by[group]["values"]]}
+        table = [as_levels if v["name"] == group else v for v in table]
+        by = _by_name(table)
+    n_all = len(by[outcome]["values"])
+    rows = [i for i in range(n_all)
+            if all(by[v]["values"][i] is not None for v in (outcome, group, baseline))]
+    if not rows:
+        raise ValueError("no rows with an outcome, a baseline and a group")
+    levels = _levels(by[group]["values"], rows)
+    if len(levels) < 2:
+        raise ValueError(f"ANCOVA compares two or more groups: {group} has only one "
+                         "level in the rows with an outcome and a baseline")
+    if max(by[baseline]["values"][i] for i in rows) == min(by[baseline]["values"][i] for i in rows):
+        raise ValueError(f"the baseline {baseline} has the same value in every row, so it "
+                         "cannot adjust the comparison")
+    ref = levels[0] if reference_level in (None, "") else str(reference_level)
+    if ref not in levels:
+        raise ValueError(f"reference level {ref!r} not found in {group}")
+    if len(rows) <= len(levels) + 1:
+        raise ValueError(f"need more rows ({len(rows)}) than parameters "
+                         f"({len(levels) + 1}): ANCOVA needs at least one more row "
+                         "than the number of groups + 1")
+    try:
+        d = _design(table, outcome, [group, baseline], reference_levels={group: ref},
+                    outcome_kind="continuous")
+    except ValueError as e:
+        if "linearly dependent" not in str(e):
+            raise
+        raise ValueError(f"the baseline is the same within each group of {group}, so the "
+                         "baseline and group effects cannot be separated") from None
+    X, y = d["X"], np.array(d["y"], dtype=float)
+    n, k = X.shape
+    beta, resid, ss_res, df_res, cov = _ols_cov(X, y)
+    if ss_res <= 1e-26 * float(y @ y):
+        raise ValueError("the model fits every outcome value exactly (no residual "
+                         "variation), so no standard error or P value can be computed")
+    ms_res = ss_res / df_res
+    se = np.sqrt(np.diag(cov))
+    tcrit = float(stats.t.ppf((1 + ci_level) / 2, df_res))
+    gcols = d["terms"][group]
+    bcol = d["terms"][baseline][0]
+    others = [c.split("[", 1)[1][:-1] for c in (d["columns"][j] for j in gcols)]
+    order = [ref] + others
+    xbar = float(X[:, bcol].mean())
+
+    def _t_row(est, s):
+        t = est / s if s > 0 else math.inf
+        return {"estimate": float(est), "se": float(s),
+                "ci": [float(est - tcrit * s), float(est + tcrit * s)],
+                "t": float(abs(t)), "df": df_res,
+                "p": float(2 * stats.t.sf(abs(t), df_res))}
+
+    gvals = [by[group]["values"][i] for i in d["rows"]]
+    adjusted, raw = [], []
+    for lev in order:
+        x0 = np.zeros(k)
+        x0[0] = 1.0
+        x0[bcol] = xbar
+        if lev != ref:
+            x0[gcols[others.index(lev)]] = 1.0
+        row = _t_row(float(x0 @ beta), float(math.sqrt(x0 @ cov @ x0)))
+        mask = np.array([g == lev for g in gvals])
+        yy, bb = y[mask], X[mask, bcol]
+        adjusted.append({"level": lev, "n": int(mask.sum()), "mean": row["estimate"],
+                         "se": row["se"], "ci": row["ci"]})
+        raw.append({"level": lev, "n": int(mask.sum()),
+                    "baseline_mean": float(bb.mean()),
+                    "baseline_sd": float(bb.std(ddof=1)) if bb.size > 1 else None,
+                    "outcome_mean": float(yy.mean()),
+                    "outcome_sd": float(yy.std(ddof=1)) if yy.size > 1 else None})
+    differences = [{"level": lev, "vs": ref, **_t_row(beta[j], se[j])}
+                   for lev, j in zip(others, gcols)]
+    slope = {"name": baseline, **_t_row(beta[bcol], se[bcol])}
+
+    anova = []
+    for term, idx in ((group, gcols), (baseline, [bcol])):
+        _, _, ss_red, _, _ = _ols_cov(np.delete(X, idx, axis=1), y)
+        ss_t = ss_red - ss_res
+        f_t = (ss_t / len(idx)) / ms_res if ms_res > 0 else math.inf
+        anova.append({"source": term, "ss": ss_t, "df": len(idx), "ms": ss_t / len(idx),
+                      "F": float(f_t), "p": float(stats.f.sf(f_t, len(idx), df_res))})
+    anova.append({"source": "Residual", "ss": ss_res, "df": df_res, "ms": ms_res})
+
+    # equal slopes: a separate baseline slope per group (the interaction)
+    centred = X[:, bcol] - xbar
+    Xi = np.hstack([X, X[:, gcols] * centred[:, None]])
+    equal_slopes: dict
+    g1 = len(gcols)
+    if n - Xi.shape[1] < 1:
+        equal_slopes = {"error": "too few rows to fit a separate slope in each group "
+                                 f"(needs more than {Xi.shape[1]} rows)"}
+    elif np.linalg.matrix_rank(Xi / np.linalg.norm(Xi, axis=0)) < Xi.shape[1]:
+        equal_slopes = {"error": "a group has fewer than two different baseline values, "
+                                 "so its own slope cannot be estimated"}
+    else:
+        bi, _, ss_i, df_i, cov_i = _ols_cov(Xi, y)
+        drop = ss_res - ss_i
+        f_s = (drop / g1) / (ss_i / df_i) if ss_i > 0 else math.inf
+        slopes = []
+        for lev in order:
+            c = np.zeros(Xi.shape[1])
+            c[bcol] = 1.0
+            if lev != ref:
+                c[k + others.index(lev)] = 1.0
+            slopes.append({"level": lev, "slope": float(c @ bi),
+                           "se": float(math.sqrt(c @ cov_i @ c))})
+        equal_slopes = {"F": float(f_s), "df1": g1, "df2": df_i,
+                        "p": float(stats.f.sf(f_s, g1, df_i)) if math.isfinite(f_s) else 0.0,
+                        "slopes": slopes}
+
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+    warnings = []
+    if "p" in equal_slopes and equal_slopes["p"] < 0.05:
+        warnings.append(
+            f"The baseline slopes differ between the groups (group × {baseline} "
+            f"interaction P = {equal_slopes['p']:.3g}): the adjusted difference then "
+            "depends on the baseline value, so one adjusted difference does not "
+            "summarise the effect.")
+    fitted = X @ beta
+    return {
+        "outcome": outcome, "group": group, "baseline": baseline,
+        "reference_level": ref, "levels": order,
+        "n_rows_analyzed": n, "n_rows_skipped": d["n_rows"] - n,
+        "rows_used": d["rows"], "n_parameters": k, "ci_level": ci_level,
+        "baseline_mean": xbar,
+        "adjusted_means": adjusted,
+        "differences": differences,
+        "baseline_slope": slope,
+        "unadjusted": raw,
+        "anova": anova,
+        "equal_slopes": equal_slopes,
+        "goodness": {"r_squared": float(r2),
+                     "adjusted_r_squared": float(1 - (1 - r2) * (n - 1) / df_res),
+                     "sy_x": math.sqrt(ms_res), "df": df_res},
+        "normality_of_residuals": columnstats.normality_tests(resid.tolist()),
+        "predicted": _aligned(d["rows"], d["n_rows"], fitted),
+        "residuals": _aligned(d["rows"], d["n_rows"], resid),
+        "warnings": warnings,
+    }
+
+
 # -------------------------------------------------------- logistic regression
 
 def _loglik(X, y, beta, offset):

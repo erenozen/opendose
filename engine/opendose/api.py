@@ -2361,6 +2361,20 @@ def _multiple_regression(data, options):
         variables, [options["outcome"], *options["predictors"]])
 
 
+def _ancova(data, options):
+    """data: multiple-variables table. options: {outcome (the follow-up),
+    group, baseline, reference_level?, ci_level?}: the follow-up compared
+    between groups adjusted for the baseline (multivar.ancova)."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "ancova",
+         **multivar.ancova(
+             variables, options["outcome"], options["group"], options["baseline"],
+             reference_level=options.get("reference_level"),
+             ci_level=options.get("ci_level", 0.95))},
+        variables, [options["outcome"], options["group"], options["baseline"]])
+
+
 def _logistic_regression(data, options):
     """data: multiple-variables table (or XY-style {"x", "y"} lists for
     simple logistic regression). options: {outcome, predictors,
@@ -3125,6 +3139,7 @@ _HANDLERS = {
     "multivar_descriptive": _multivar_descriptive,
     "correlation_matrix": _correlation_matrix,
     "multiple_regression": _multiple_regression,
+    "ancova": _ancova,
     "logistic_regression": _logistic_regression,
     "poisson_regression": _poisson_regression,
     "pca": _pca,
