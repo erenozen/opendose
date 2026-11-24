@@ -25,8 +25,24 @@ export function compareFitsOptions(model: string, xIsLog: boolean, mode: "models
   return { ...compareFitsOptionsBase(model, xIsLog, mode, usable), ...w };
 }
 
+/** Global models and the general model each is a special case of (P-99;
+ *  engine compare_models.KNOWN_NESTED): a fit of one opens "Compare with
+ *  another model" on the pair, simpler model first. */
+const NESTED_PARTNER: Record<string, [string, string]> = {
+  competitive_inhibition: ["competitive_inhibition", "mixed_model_inhibition"],
+  noncompetitive_inhibition: ["noncompetitive_inhibition", "mixed_model_inhibition"],
+  uncompetitive_inhibition: ["uncompetitive_inhibition", "mixed_model_inhibition"],
+  mixed_model_inhibition: ["competitive_inhibition", "mixed_model_inhibition"],
+  gaddum_schild_log: ["gaddum_schild_slope1_log", "gaddum_schild_log"],
+  gaddum_schild_slope1_log: ["gaddum_schild_slope1_log", "gaddum_schild_log"],
+  gaddum_schild: ["gaddum_schild_slope1", "gaddum_schild"],
+  gaddum_schild_slope1: ["gaddum_schild_slope1", "gaddum_schild"],
+};
+
 function compareFitsOptionsBase(model: string, xIsLog: boolean, mode: "models" | "global" | "parameter",
   usable: (id: string) => boolean): Record<string, unknown> {
+  const pair = mode === "models" ? NESTED_PARTNER[model] : undefined;
+  if (pair) return { mode, xIsLog, model1: pair[0], model2: pair[1] };
   const own = usable(model) ? model : null;
   if (mode === "global") return { mode, xIsLog, ...(own ? { model1: own } : {}) };
   // "parameter": the fitted model's midpoint (logEC50 / logIC50) between

@@ -41,7 +41,7 @@ from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
 from . import logscale, rm_posthoc, twoway_contrasts
-from . import compare_params, flow, qpcr_refs
+from . import compare_models, compare_params, flow, qpcr_refs
 from . import potency
 
 
@@ -1200,17 +1200,26 @@ def _compare_fits(data, options):
     (nested) and AICc (Prism's two comparison methods)."""
     ds_index = options.get("dataset", 0)
     results = {}
-    fits = []
+    fits, idents = [], []
     for key in ("model_1", "model_2"):
         opts = dict(options.get(key) or {})
-        model = opts.pop("model")
+        # a model id, or a user-defined equation (options.user_equation,
+        # fitted to this data set alone as dose_response fits it)
+        model = opts.pop("model", None)
+        if model is not None:
+            opts["model"] = model
         sub = _dose_response(
             {"x": data["x"], "datasets": [data["datasets"][ds_index]]},
-            {"model": model, "x_is_log": options.get("x_is_log", True), **opts})
+            {"x_is_log": options.get("x_is_log", True), **opts})
         entry = sub["datasets"][0]
+        if model is None:
+            model = (sub.get("user_equation") or {}).get("name", "equation")
         if "error" in entry:
             raise ValueError(f"{model}: {entry['error']}")
         fits.append(entry["fit"])
+        idents.append(compare_models.fit_identity(
+            {**entry["fit"], "user_equation": sub.get("user_equation")},
+            opts.get("constraints")))
         results[key] = entry["fit"]
     g1, g2 = fits[0]["goodness"], fits[1]["goodness"]
     # Weighted fits are compared on the sums of squares they minimised
@@ -1239,7 +1248,69 @@ def _compare_fits(data, options):
         results["notes"] = ["Both fits are weighted, so the F test and AICc "
                             "use the weighted sums of squares (the quantity "
                             "each fit minimised)."]
+    # is one model a special case of the other (P-99): the F test is valid
+    # only then (compare_models.nesting)
+    results["nesting"] = compare_models.nesting(
+        idents[0][0], idents[1][0], constraints_1=idents[0][1],
+        constraints_2=idents[1][1], k_1=k1, k_2=k2)
     return {"analysis": "compare_fits", **results}
+
+
+def _compare_global_fits(data, options):
+    """Compare two models each fitted to ALL data sets at once (P-99):
+    global-only models (enzyme inhibition, Gaddum/Schild, ...), a
+    library model with parameters shared, or a user-defined equation.
+
+    data: as global_model_fit. options: model_1 / model_2: {"model": id}
+    or {"user_equation": {...}}, each with optional "constraints" and
+    "shared" (default: the model's documented shared parameters, none
+    for an ordinary model, so it is a separate curve per data set);
+    common options as global_model_fit (x_is_log, column_constants,
+    weighting, summary_format, replicates, error_bars). Both fits must
+    use the same points. Result: {"model_1", "model_2" (global_model_fit
+    results), "f_test" (extra-sum-of-squares, when the df differ and the
+    models are not known to be non-nested), "aicc", "nesting",
+    "sum_of_squares", "warnings", "notes"}."""
+    common = {k: v for k, v in options.items()
+              if k not in ("model_1", "model_2")}
+    fits = []
+    for key in ("model_1", "model_2"):
+        opts = dict(options.get(key) or {})
+        if not opts.get("model") and not opts.get("user_equation"):
+            raise ValueError(f"{key} needs a model or a user equation")
+        try:
+            fits.append(_global_model_fit(data, {**common, **opts}))
+        except (ValueError, RuntimeError) as exc:
+            raise ValueError(f"Model {key[-1]}: {exc}") from exc
+    g1, g2 = fits[0]["goodness"], fits[1]["goodness"]
+    if g1["n_points"] != g2["n_points"]:
+        raise ValueError(
+            f"the two models fit different points ({g1['n_points']} and "
+            f"{g2['n_points']}): a model of log(X) leaves out X = 0. Choose "
+            "two models that read X the same way")
+    w1, w2 = g1.get("ss_res_weighted"), g2.get("ss_res_weighted")
+    weighted = w1 is not None and w2 is not None
+    ss = [float(w1), float(w2)] if weighted else [g1["ss_res"], g2["ss_res"]]
+    n = int(g1["n_points"])
+    df = [int(g1["df"]), int(g2["df"])]
+    k = [n - df[0], n - df[1]]
+    (m1, c1), (m2, c2) = (
+        compare_models.fit_identity(f, (options.get(key) or {}).get("constraints"))
+        for f, key in zip(fits, ("model_1", "model_2")))
+    nest = compare_models.nesting(
+        m1, m2, constraints_1=c1, constraints_2=c2,
+        shared_1=fits[0].get("shared"), shared_2=fits[1].get("shared"),
+        k_1=k[0], k_2=k[1])
+    cmp = compare_models.compare_two(ss, k, df, n, nest)
+    notes = []
+    if weighted:
+        notes.append("Both fits are weighted, so the F test and AICc use the "
+                     "weighted sums of squares (the quantity each fit "
+                     "minimised).")
+    return {"analysis": "compare_global_fits", "model_1": fits[0],
+            "model_2": fits[1], "n_points": n, **cmp,
+            "sum_of_squares": "weighted" if weighted else "unweighted",
+            "notes": notes, "source": compare_models.SOURCE}
 
 
 def _correlation(data, options):
@@ -3446,6 +3517,7 @@ def _list_models(data, options):
 
 _HANDLERS.update({
     "global_model_fit": _global_model_fit,
+    "compare_global_fits": _compare_global_fits,
     "validate_equation": _validate_equation,
     "list_models": _list_models,
 })

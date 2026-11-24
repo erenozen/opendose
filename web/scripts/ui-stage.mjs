@@ -717,6 +717,14 @@ const scenes = [
     await s.page.locator(".fit-summary-table").first().waitFor({ timeout: 120000 });
     await into(s, ".fit-summary");
   } },
+  // nlstools' vmkmki inhibition data (P-99): competitive vs mixed-model
+  // inhibition, each fitted to all six data sets at once (I from the
+  // titles), the nesting sentence, F test and AICc
+  { name: "results-compare-global", setup: async (s) => {
+    await fixture(s, "fit-compare.json", { live: true });
+    await s.page.locator(".pane-results .compare-nesting").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .compare-nesting");
+  } },
   // a BCA standard curve (quadratic) with three unknown rows (P-22): the
   // interpolated X with its CI and prediction interval, and the markers
   { name: "results-interpolation", setup: async (s) => {

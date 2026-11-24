@@ -4603,6 +4603,59 @@ the mean baseline 51.681679 and 46.018321, and the equal-slopes F(1, 16)
 acceptance dishes with a profile-likelihood CI gives odds ratio 3.195907
 (2.127097 to 4.880865) and Pearson dispersion 0.027229 on 2 df. All
 equal the engine.
+
+## Feature validation: comparing global and user-defined models, relative potency (2026-11-24)
+
+### P-99 Compare fits of global-only and user-defined models
+
+`compare_models.py` and the API handler `compare_global_fits`: two
+models, each fitted to all data sets at once (`fit_global_model`: a
+global-only model such as enzyme inhibition or Gaddum/Schild, a model
+with one constant per data set, or a user-defined equation; an ordinary
+model in the pair fits a separate curve per data set in the same pooled
+fit), compared by the extra-sum-of-squares F test and AICc on the pooled
+sums of squares (Motulsky & Christopoulos 2004, ch. 21-23). Whether the
+models are nested comes from `compare_models.nesting`: the mixed model
+contains competitive, uncompetitive and noncompetitive inhibition
+(GraphPad curve-fitting guide, "Comparing models of enzyme inhibition"),
+Gaddum/Schild with SchildSlope = 1 is the general model with it fixed,
+3PL is 4PL with the Hill slope fixed, and the same equation with extra
+parameters held constant or shared is nested. Equal parameter counts are
+never nested (no F test, AICc only); any other pair is "not checked":
+the F test carries the warning that it is valid only for nested models
+and AICc is the comparison to read otherwise. The per-data-set
+`compare_fits` handler now also reports `nesting` and accepts a
+user-defined equation (`user_equation` instead of `model`). A user
+equation's data-set constant sent as `"column"` (what the equation
+editor sends) was refused by the parser; it is now read.
+
+Reference: `engine/tests/reference/compare_global_models.py`, the models
+written as one regression over the stacked data (the inhibitor
+concentration as a covariate, the reproduction of R's `anova(nls_a,
+nls_b)` on an indicator-coded global model), fitted with scipy
+`least_squares` from a grid of starts, F and AICc by hand. Data: the
+vmkmki inhibition data of the R package nlstools (Baty et al. 2015, J
+Stat Softw 66(5); INRA UMR1233), 6 substrate x 6 inhibitor
+concentrations in duplicate. Neither the package nor the paper prints a
+comparison for these data, so no published value is pinned.
+`engine/tests/test_compare_global_models.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| vmkmki, competitive vs mixed (the acceptance test) | SS 177.252935 (69 df) vs 42.105215 (68 df); F(1, 68) = 218.2638, P < 1e-12; AICc 73.46265 vs -27.71851, difference -101.1812 | 1e-4 (the mixed optimum runs to the uncompetitive limit Alpha -> 0; the engine stops within 1e-5 of the SS) |
+| vmkmki, noncompetitive vs mixed | F(1, 68) = 20.7712, P 2.2e-5; AICc difference -16.8798 | 1e-4 |
+| vmkmki, competitive vs noncompetitive; uncompetitive vs noncompetitive | not nested, no F; AICc difference -84.3013 | 1e-6 |
+| Synthetic mixed inhibition (Alpha = 3, seeded), competitive vs mixed | F(1, 52) = 79.69979, P 4.49e-12; AICc 90.56852 vs 40.94445 | 1e-6 |
+
+Also tested: two user equations written as competitive and mixed
+inhibition give the built-in models' numbers ("not checked" nesting,
+with the warning); a user equation with Alpha = 1 typed as its default
+constant is nested in the free one and gives the noncompetitive F; model
+order swapped (F equal, simpler index and AICc difference swapped);
+substrate units x 1e-6 (F and AICc unchanged); the mixed model stuck at
+its limit (F set to 0, with a warning); Gaddum/Schild slope 1 vs free; a
+missing data-set constant, a log-X model against a model of X (X = 0
+rows left out by one: refused), too few points, weighting (weighted SS).
 """
 
 

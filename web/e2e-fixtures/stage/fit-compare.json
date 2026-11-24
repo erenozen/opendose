@@ -1,0 +1,274 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Compare fits",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r202",
+ "sheets": [
+  {
+   "id": "d201",
+   "kind": "data",
+   "name": "Enzyme inhibition (vmkmki)",
+   "table": {
+    "type": "xy",
+    "x": [
+     "200",
+     "100",
+     "50",
+     "25",
+     "12.5",
+     "0"
+    ],
+    "xTitle": "[Substrate]",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Velocity",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "0",
+      "subTitles": [
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "18.1",
+        "18.8"
+       ],
+       [
+        "15.4",
+        "17.6"
+       ],
+       [
+        "14.7",
+        "13.7"
+       ],
+       [
+        "7.2",
+        "10.4"
+       ],
+       [
+        "5.9",
+        "7.7"
+       ],
+       [
+        "0",
+        "0"
+       ]
+      ]
+     },
+     {
+      "name": "6.25",
+      "subTitles": [
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "17.7",
+        "18.1"
+       ],
+       [
+        "15.6",
+        "16.7"
+       ],
+       [
+        "13.5",
+        "13.4"
+       ],
+       [
+        "7.8",
+        "10.3"
+       ],
+       [
+        "7.1",
+        "7.7"
+       ],
+       [
+        "0",
+        "0"
+       ]
+      ]
+     },
+     {
+      "name": "12.5",
+      "subTitles": [
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "16.4",
+        "17.6"
+       ],
+       [
+        "16.2",
+        "15.7"
+       ],
+       [
+        "12.7",
+        "12.9"
+       ],
+       [
+        "8.3",
+        "10.8"
+       ],
+       [
+        "6.7",
+        "6.8"
+       ],
+       [
+        "0",
+        "0"
+       ]
+      ]
+     },
+     {
+      "name": "25",
+      "subTitles": [
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "13.7",
+        "15.5"
+       ],
+       [
+        "12.8",
+        "14.1"
+       ],
+       [
+        "11.2",
+        "10.9"
+       ],
+       [
+        "9.5",
+        "8.7"
+       ],
+       [
+        "6.6",
+        "6.9"
+       ],
+       [
+        "0",
+        "0"
+       ]
+      ]
+     },
+     {
+      "name": "50",
+      "subTitles": [
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "11",
+        "12.7"
+       ],
+       [
+        "11.3",
+        "11.3"
+       ],
+       [
+        "9.9",
+        "9.2"
+       ],
+       [
+        "6",
+        "7.8"
+       ],
+       [
+        "5.6",
+        "4.9"
+       ],
+       [
+        "0",
+        "0"
+       ]
+      ]
+     },
+     {
+      "name": "100",
+      "subTitles": [
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "8.2",
+        "7.7"
+       ],
+       [
+        "7.6",
+        "7.8"
+       ],
+       [
+        "7.8",
+        "7.9"
+       ],
+       [
+        "5.5",
+        "6.6"
+       ],
+       [
+        "4.9",
+        "5.5"
+       ],
+       [
+        "0",
+        "0"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r202",
+   "kind": "results",
+   "parentId": "d201",
+   "analysis": "compare_fits",
+   "options": {
+    "mode": "models",
+    "model1": "competitive_inhibition",
+    "model2": "mixed_model_inhibition",
+    "method": "both",
+    "xIsLog": false
+   },
+   "name": "Comparison of fits of Enzyme inhibition (vmkmki)"
+  },
+  {
+   "id": "g203",
+   "kind": "graph",
+   "parentId": "d201",
+   "resultsId": "r202",
+   "graphType": "compare_fits_xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of the compared fits"
+  }
+ ]
+}
