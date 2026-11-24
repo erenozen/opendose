@@ -1399,8 +1399,10 @@ const analyzeWith = async (re) => {
   await page.getByLabel("Pooled CI").selectOption("z");
   // textContent runs the cells together: the pattern allows no space between them
   const z = await liveResults(new RegExp(`Random effects \\(REML, z\\)\\s*-0\\.7145\\s*0\\.1798\\s*0\\.4894\\s*`
-    + `${ratio(-1.0669).replace(".", "\\.")} to ${ratio(-0.3622).replace(".", "\\.")}`), 120000);
-  expect("P-92 z interval: SE 0.1798, RR CI exp(-1.0669) to exp(-0.3622) (metafor)", z, (await card()).slice(0, 1600));
+    + `${ratio(REF.ci_z[0]).replace(".", "\\.")} to ${ratio(REF.ci_z[1]).replace(".", "\\.")}`), 120000);
+  // REF.ci_z is -1.066898 to -0.362167, metafor's printed -1.0669 to -0.3622
+  expect("P-92 z interval: SE 0.1798, RR CI exp(-1.0669) to exp(-0.3622) (metafor)", z
+    && Math.abs(REF.ci_z[0] + 1.0669) < 5e-5 && Math.abs(REF.ci_z[1] + 0.3622) < 5e-5, (await card()).slice(0, 1600));
   await openChecks();
   const checks = (await page.locator(".pane-answer details.checks").first().innerText().catch(() => "")).replace(/\s+/g, " ");
   expect("P-92 the checks say the experiments disagree (I² 92.2%)", checks.includes("I² 92.2%"), checks.slice(0, 300));
