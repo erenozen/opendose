@@ -562,6 +562,21 @@ const scenes = [
     await headerMenu(s, "File", "Open recent…");
     await dialog(s, "Recent projects").getByText("“before reviewer”").first().waitFor();
   } },
+  // P-73: two versions compared, the log of what moved (engine live)
+  { name: "shell-compare", setup: async (s) => {
+    await example(s);
+    const [a, b] = await seedVersions(s, [
+      { id: "c1", note: "before reviewer", savedAt: Date.UTC(2026, 10, 20, 14, 2, 0) },
+      { id: "c2", note: "after reviewer", excluded: true, savedAt: Date.UTC(2026, 10, 23, 16, 40, 0) },
+    ]);
+    await headerMenu(s, "File", "Compare with…");
+    const d = dialog(s, "Compare two versions");
+    const label = (v) => s.page.evaluate((x) => `Version “${x.note}” of “${x.title}”, ${new Date(x.savedAt).toLocaleString()}`, v);
+    await d.getByLabel("Earlier").selectOption({ label: await label(a) });
+    await d.getByLabel("Later").selectOption({ label: await label(b) });
+    await d.getByRole("button", { name: "Compare", exact: true }).click();
+    await d.getByRole("region", { name: "Differences" }).waitFor({ timeout: 240000 });
+  } },
   { name: "shell-preferences-storage", setup: async (s) => {
     await example(s, { live: false });
     await headerMenu(s, "View", "Preferences…");

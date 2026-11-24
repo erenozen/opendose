@@ -22,6 +22,7 @@ import {
   saveVersion, versionBytes, type VersionRecord,
 } from "../project/versions";
 import { prepareReproduceCheckFor } from "../app/reproduceCheck";
+import CompareDialog from "./CompareDialog";
 import Modal from "./Modal";
 import { Button, Field, Input, notify } from "./ui";
 import "./versions.css";
@@ -30,16 +31,25 @@ const when = (t: number) => new Date(t).toLocaleString();
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const storage = () => (typeof navigator !== "undefined" ? navigator.storage : null);
 
-/** The shell's answer to "save-version" and "recent". */
+/** The shell's answer to "save-version", "recent" and "compare". */
 export default function VersionsHost({ autosave }: { autosave: AutosaveApi }) {
-  const [open, setOpen] = useState<"save" | "recent" | null>(null);
+  const [open, setOpen] = useState<"save" | "recent" | "compare" | null>(null);
+  // Compare… on a version: that version against the open project (P-73).
+  const [compareFrom, setCompareFrom] = useState<VersionRecord | null>(null);
   useEffect(() => onShellRequest((kind) => {
     if (kind === "save-version") setOpen("save");
     else if (kind === "recent") setOpen("recent");
+    else if (kind === "compare") { setCompareFrom(null); setOpen("compare"); }
   }), []);
   const close = () => setOpen(null);
   if (open === "save") return <SaveVersionDialog onClose={close} />;
-  if (open === "recent") return <RecentDialog autosave={autosave} onClose={close} />;
+  if (open === "compare") return <CompareDialog initial={compareFrom} onClose={close} />;
+  if (open === "recent") {
+    return (
+      <RecentDialog autosave={autosave} onClose={close}
+        onCompare={(v) => { setCompareFrom(v); setOpen("compare"); }} />
+    );
+  }
   return null;
 }
 

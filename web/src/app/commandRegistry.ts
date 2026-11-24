@@ -34,8 +34,8 @@ export type ShellRequest =
   | "open" | "new-project" | "about" | "preferences" | "prism-csv" | "help" | "which-test"
   // answered by the shell (App.tsx)
   | "example" | "describe" | "plan"
-  // answered by components/ProjectVersions.tsx (P-72)
-  | "save-version" | "recent";
+  // answered by components/ProjectVersions.tsx (P-72, P-73)
+  | "save-version" | "recent" | "compare";
 
 export function requestShell(kind: ShellRequest): void {
   window.dispatchEvent(new CustomEvent<ShellRequest>(SHELL_EVENT, { detail: kind }));
@@ -114,6 +114,9 @@ export function useCommandRegistry(): Command[] {
       { id: "save-version", label: "Save a version…", group: "file", disabled: readOnly,
         keywords: "version snapshot checkpoint note keep history browser",
         run: () => requestShell("save-version") },
+      { id: "compare", label: "Compare with…", group: "file",
+        keywords: "compare diff versions changes differences what changed exclusions",
+        run: () => requestShell("compare") },
       { id: "print", label: "Print…", group: "file", shortcut: modKey("P"),
         keywords: "paper pdf", disabled: !selected,
         run: () => { if (selected) printSheet(select, selected.id); } },

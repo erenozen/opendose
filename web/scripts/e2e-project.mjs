@@ -1,7 +1,7 @@
 // End-to-end check of the project file and its history in this browser:
 // save in place and Save as… with the File System Access API, the
 // installed app's file handler and the web app manifest (P-71); saved
-// versions and recent projects (P-72).
+// versions and recent projects (P-72); comparing two versions (P-73).
 //
 // Playwright cannot answer the browser's own file pickers, so the
 // Chromium checks stand in a small file system for them (FSA_MOCK: the
@@ -412,6 +412,41 @@ expect("P-72 the palette finds Open recent…",
   await page.getByRole("option", { name: /Open recent…/ }).first().isVisible().catch(() => false));
 await page.keyboard.press("Escape");
 
+// ------------------------------------------------------------ P-73 compare
+await fileMenu(page, "Compare with…");
+const cmp = page.getByRole("dialog", { name: "Compare two versions" });
+await cmp.waitFor();
+const label = (v) => `Version “${v.note}” of “Study”, ${new Date(v.savedAt).toLocaleString()}`;
+await page.evaluate(() => 0);
+const vBefore = stored.find((v) => v.note === "before reviewer");
+await cmp.getByLabel("Earlier").selectOption({ label: label(vBefore) });
+await cmp.getByLabel("Later").selectOption({ label: label(v2) });
+await cmp.getByRole("button", { name: "Compare", exact: true }).click();
+const log = cmp.getByRole("region", { name: "Differences" });
+await log.waitFor({ timeout: 120000 });
+const logText = (await log.innerText()).replace(/\s+/g, " ");
+expect("P-73 the log lists the exclusion with its value and reason",
+  logText.includes("Excluded: Control, row 4: 14.1 (reviewer: pipetting error)"), logText.slice(0, 300));
+const moved = cmp.getByRole("list", { name: /^Numbers that moved in / }).first();
+const first = (await moved.locator("li").first().innerText().catch(() => "")).replace(/\s+/g, " ");
+const [pb, pa] = arrowNumbers(first);
+expect("P-73 the t test's P comes first, before and after (scipy Welch t test)",
+  /\bP\b/.test(first) && near(pb, REF.before.p) && near(pa, REF.after.p),
+  `${first} | reference ${REF.before.p} → ${REF.after.p}`);
+expect("P-73 the summary counts the exclusion and the moved numbers",
+  /1 value excluded/.test(logText) && /result numbers? moved/.test(logText));
+// from the list: Compare… on a version, against the open project
+await cmp.getByRole("button", { name: "Close" }).click();
+await fileMenu(page, "Open recent…");
+await page.getByRole("dialog", { name: "Recent projects" })
+  .getByRole("button", { name: "Compare… the version “after reviewer” of “Study”" }).click();
+const cmp2 = page.getByRole("dialog", { name: "Compare two versions" });
+await cmp2.getByRole("button", { name: "Compare", exact: true }).click();
+const log2 = (await cmp2.getByRole("region", { name: "Differences" }).innerText({ timeout: 120000 })
+  .catch(() => "")).replace(/\s+/g, " ");
+expect("P-73 a version against the open project (the restored first one): the exclusion is put back",
+  log2.includes("Put back: Control, row 4: 14.1"), log2.slice(0, 300));
+await cmp2.getByRole("button", { name: "Close" }).click();
 await ctx.close();
 
 // ------------------------------------------------------------ P-72 quota

@@ -23,3 +23,17 @@
 }
 .recent-storage { margin: 0; color: var(--muted); font-size: var(--text-caption); }
 
+/* File › Compare with… (components/CompareDialog.tsx): the two sides, then
+   the log in the History panel's steps (report/report.css .history-step). */
+.compare-sides { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-12); }
+.compare-sides select { width: 100%; min-width: 0; }
+@media (max-width: 760px) { .compare-sides { grid-template-columns: minmax(0, 1fr); } }
+.compare-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.compare-log .compare-what {
+  margin: 0; color: var(--muted); font-size: var(--text-caption); overflow-wrap: anywhere;
+}
+.compare-log .compare-summary {
+  margin: var(--space-4) 0 var(--space-8); color: var(--ink); font-weight: var(--weight-semibold);
+}
+.compare-log ul { margin: 0; padding-left: var(--space-20); }
+.compare-log li { overflow-wrap: anywhere; }
