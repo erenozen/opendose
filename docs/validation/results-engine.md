@@ -3497,3 +3497,10 @@ and covariance" fold under the same table: corr(HillSlope, Top) 0.6008;
 "Joint confidence region" card, Plot the region (LogIC50, HillSlope):
 the graph's solid line spans LogIC50 -7.021 to -6.944, HillSlope -1.212
 to -1.005.
+
+Independent check (2026-11-24, by the lead): an own scipy curve_fit of the
+example's 27 points (4PL in log10 dose) gives the parameter correlations
+corr(HillSlope, Top) 0.600758, corr(HillSlope, Bottom) -0.605989,
+corr(HillSlope, LogIC50) 0.009506, the engine's 0.6008, -0.6060, 0.009504.
+The coverage caveat of the percentile intervals (91% to 94.5% in the
+simulation above) is shown next to the bootstrap CIs in the app.
