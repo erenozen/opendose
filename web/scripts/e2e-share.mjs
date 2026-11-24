@@ -13,7 +13,8 @@
 // saved as a recipe is applied again after a reload; File › Export tables
 // and results to Excel writes one sheet per table and results sheet equal
 // to the CSV export, read back by openpyxl, python-calamine and LibreOffice
-// (P-64).
+// (P-64); File › Export statistics table (.csv, .xlsx) and Copy statistics
+// table for Word equal the results sheets (P-66).
 // Run with the dev server up: node scripts/e2e-share.mjs http://localhost:5193/
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
@@ -724,6 +725,108 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   await page.getByRole("treeitem", { name: "Confluence per well", exact: true }).first().waitFor({ timeout: 10000 });
   expect("saved recipe applied in one click: XY table named by the recipe, C2 at 2 h = 6",
     await val("C2, row 2") === "6" && await val("X, row 2") === "2", await val("C2, row 2"));
+}
+
+// --- P-66 one statistics table: a t test, a one-way ANOVA with Tukey and a
+// 4PL fit (e2e-fixtures/stage/stats-table.json); every row of the table
+// equals what its results sheet shows
+{
+  await ctx1.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "stats-table.json"));
+  await page.getByRole("treeitem", { name: "t test of Weights", exact: true }).first().waitFor({ timeout: 30000 });
+  // what each results sheet shows: label -> value cells of its tables
+  const sheetCells = async (name, ready) => {
+    await page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+    await page.waitForFunction((t) => [...document.querySelectorAll(".pane-results .results-table")]
+      .some((x) => x.innerText.includes(t)), ready, { timeout: 120000 });
+    return page.evaluate(() => [...document.querySelectorAll(".pane-results .results-table tr")]
+      .map((tr) => [...tr.querySelectorAll("th, td")].map((c) => c.innerText.replace(/\s+/g, " ").trim())));
+  };
+  const tRows = await sheetCells("t test of Weights", "t, df");
+  const tdf = (tRows.find((r) => r[0] === "t, df") ?? [])[1] ?? "";
+  const shownT = /t=(\S+), df=(\S+)/.exec(tdf) ?? [];
+  const shownP = ((tRows.find((r) => /^P value \(two-tailed/.test(r[0])) ?? [])[1] ?? "").replace(/\s*\*+$|\s+ns$/, "");
+  const aRows = await sheetCells("One-way ANOVA of Weights", "Treated A vs. Treated B");
+  const shownTukey = Object.fromEntries(aRows.filter((r) => / vs\. /.test(r[0]) && r.length >= 4).map((r) => [r[0], r[3]]));
+  const fRows = await sheetCells("Nonlin fit of Dose response", "LogIC50");
+  const ic50Row = fRows.find((r) => /^IC50\b/.test(r[0])) ?? [];
+  console.log("fit sheet rows:", fRows.filter((r) => /IC50/.test(r[0] ?? "")).map((r) => r.join(" | ")).join(" / "));
+  const logRow = fRows.find((r) => r[0] === "LogIC50") ?? [];
+
+  await fileMenu.click();
+  const stats = await Promise.all([
+    page.waitForEvent("download", { timeout: 60000 }),
+    page.getByRole("menuitem", { name: "Export statistics table (.csv)" }).click(),
+  ]).then(async ([d]) => ({ name: d.suggestedFilename(), text: readFileSync(await d.path(), "utf8") }));
+  expect("statistics table: named after the project", stats.name === "statistics-table-statistics.csv", stats.name);
+  const rows = parseCsv(stats.text.replace(/^﻿/, ""));
+  const head = rows[0];
+  const col = (name) => head.indexOf(name);
+  const body = rows.slice(1).map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ""])));
+  console.log("statistics table:", body.map((r) => `${r["Results sheet"]} | ${r.Comparison} | ${r["Statistic value"]} | ${r.P}`).join(" / "));
+  expect("statistics table: the documented columns", ["Results sheet", "Figure panel", "Test", "n per group",
+    "Statistic", "df", "P", "P (exact)", "Adjustment", "Family", "Effect size"].every((h) => col(h) >= 0), head.join(", "));
+  const tt = body.filter((r) => r["Results sheet"] === "t test of Weights");
+  expect("statistics table: one row for the t test, equal to its results sheet (t, df, P)",
+    tt.length === 1 && tt[0]["Statistic value"] === shownT[1] && tt[0].df === shownT[2] && tt[0].P === shownP
+    && tt[0]["n per group"] === "Control 6; Treated A 6" && tt[0].Adjustment === "none (one comparison)",
+    JSON.stringify({ row: tt[0], shownT, shownP }));
+  const an = body.filter((r) => r["Results sheet"] === "One-way ANOVA of Weights");
+  const posthoc = an.filter((r) => r.Adjustment === "Tukey");
+  expect("statistics table: the ANOVA's F test and one row per Tukey comparison, P as the sheet shows it",
+    an.length === 4 && an[0].Statistic === "F" && posthoc.length === 3
+    && posthoc.every((r) => shownTukey[r.Comparison] === r.P && r.Family === "3 comparisons (all pairs of 3 groups)"),
+    JSON.stringify({ posthoc: posthoc.map((r) => [r.Comparison, r.P]), shownTukey }));
+  expect("statistics table: figure panels from the layout (ANOVA panel A, fit panel B, t test none)",
+    an.every((r) => r["Figure panel"] === "Figure 1, panel A") && tt[0]["Figure panel"] === ""
+    && body.filter((r) => r["Results sheet"] === "Nonlin fit of Dose response").every((r) => r["Figure panel"] === "Figure 1, panel B"));
+  const fit = body.filter((r) => r["Results sheet"] === "Nonlin fit of Dose response");
+  const ic = fit.find((r) => r.Estimate === "IC50"), lg = fit.find((r) => r.Estimate === "LogIC50");
+  expect("statistics table: the fit's IC50 and LogIC50 as its results sheet shows them",
+    !!ic && ic["Estimate value"] === ic50Row[1] && `${ic["CI lower"]} to ${ic["CI upper"]}` === ic50Row[3]
+    && !!lg && lg["Estimate value"] === logRow[1] && `${lg["CI lower"]} to ${lg["CI upper"]}` === logRow[3],
+    JSON.stringify({ ic, ic50Row, lg, logRow }));
+
+  // the same table as an Excel sheet, numbers as numbers
+  await fileMenu.click();
+  const xs = await Promise.all([
+    page.waitForEvent("download", { timeout: 60000 }),
+    page.getByRole("menuitem", { name: "Export statistics table to Excel (.xlsx)" }).click(),
+  ]).then(async ([d]) => readXlsx(new Uint8Array(readFileSync(await d.path()))));
+  const sheet = xs.sheets.Statistics ?? [];
+  const pExact = col("P (exact)");
+  expect("statistics workbook: Statistics and README sheets; P (exact) stored as a number equal to the CSV",
+    JSON.stringify(xs.names) === JSON.stringify(["Statistics", "README"]) && sheet.length === rows.length
+    && sheet.slice(1).every((r, i) => (rows[i + 1][pExact] === "" ? r[pExact] == null : r[pExact] === Number(rows[i + 1][pExact]))),
+    xs.names.join(", "));
+
+  // Copy statistics table for Word: an HTML table on the clipboard
+  await fileMenu.click();
+  await page.getByRole("menuitem", { name: "Copy statistics table for Word" }).click();
+  await page.getByText(/^Copied the statistics table for Word/).first().waitFor({ timeout: 10000 });
+  const clip = await page.evaluate(async () => {
+    for (const it of await navigator.clipboard.read()) {
+      if (it.types.includes("text/html")) return (await it.getType("text/html")).text();
+    }
+    return "";
+  });
+  expect("Copy statistics table for Word: an HTML table with the t test row",
+    /<table[^>]*>/.test(clip) && clip.includes("<th") && clip.includes(`t = ${shownT[1]} (${shownT[2]})`), clip.slice(0, 200));
+
+  // the bundle: statistics.csv equal to the File menu's
+  await fileMenu.click();
+  const [bd] = await Promise.all([
+    page.waitForEvent("download", { timeout: 180000 }),
+    page.getByRole("menuitem", { name: "Download export bundle (.zip)" }).click(),
+  ]);
+  const zip = unzipSync(new Uint8Array(readFileSync(await bd.path())));
+  const inBundle = strFromU8(zip["statistics.csv"] ?? new Uint8Array());
+  expect("bundle: statistics.csv, .xlsx and .html",
+    ["statistics.csv", "statistics.xlsx", "statistics.html"].every((n) => !!zip[n]),
+    Object.keys(zip).join(", "));
+  expect("bundle: statistics.csv holds the same rows as File › Export statistics table",
+    JSON.stringify(parseCsv(inBundle)) === JSON.stringify(rows));
 }
 
 await page.screenshot({ path: join(tmp, "share.png") });

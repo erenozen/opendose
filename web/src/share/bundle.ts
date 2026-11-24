@@ -7,6 +7,8 @@ import { tableMatrix, toDelimited, DEFAULT_EXPORT } from "../project/exportTable
 import type { DataTableModel } from "../project/types.ts";
 import { longMatrix, tableToLong } from "./tidy.ts";
 import { projectWorkbook } from "../export/workbook.ts";
+import { statsCsv, statsWord, statsWorkbook } from "../export/statsExport.ts";
+import type { StatsRow } from "../report/statsTable.ts";
 
 export interface BundleInput {
   title: string;
@@ -40,6 +42,8 @@ export interface BundleInput {
   replayPlan?: Record<string, unknown>;
   /** The data tables as a .pzfx file (share/pzfx.ts), when any can be. */
   pzfx?: string;
+  /** One statistics table of every analysis (report/statsTable.ts, P-66). */
+  stats?: StatsRow[];
 }
 
 export interface BundleFile { name: string; data: Uint8Array }
@@ -108,6 +112,21 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
         + (wb.renamed.length ? " and which sheet names were changed for Excel" : "") + ")." });
   } catch (e) {
     unmade.push(`workbook.xlsx: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`);
+  }
+
+  // one statistics table of every analysis (P-66)
+  if (b.stats?.length) {
+    files.push({ name: "statistics.csv", text: statsCsv(b.stats),
+      about: "Every comparison of every results sheet in one table: sheet, figure panel, test, n per group,"
+        + " statistic with df, exact P, adjustment and family, estimate and effect size with CIs." });
+    try {
+      files.push({ name: "statistics.xlsx", bytes: statsWorkbook(b.stats, { title: b.title, app: b.app, date: b.date }),
+        about: "The same statistics table as an Excel workbook (numbers stored as numbers)." });
+    } catch (e) {
+      unmade.push(`statistics.xlsx: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`);
+    }
+    files.push({ name: "statistics.html", text: statsWord(b.stats, `${b.title || "OpenDose project"}: statistics`).html,
+      about: "The same statistics table as a formatted table: open it in Word (or paste it) to put it in a manuscript." });
   }
 
   const gStems = uniq(b.graphs.map((g) => stem(g.name, "graph")));

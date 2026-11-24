@@ -4603,6 +4603,50 @@ the mean baseline 51.681679 and 46.018321, and the equal-slopes F(1, 16)
 acceptance dishes with a profile-likelihood CI gives odds ratio 3.195907
 (2.127097 to 4.880865) and Pearson dispersion 0.027229 on 2 df. All
 equal the engine.
+
+## Feature validation: statistics table, analysis scripts, "What this means" for Wave 2 models (2026-11-24)
+
+These three features add no engine computation: every number they show is
+an engine result, written as its results sheet writes it. They are checked
+against native engine results (the fixture scripts run `opendose.api`
+in CPython, the code Pyodide runs) and, for the scripts, against SciPy and
+statsmodels.
+
+### P-66 One statistics table for the whole project
+
+`web/src/report/statsTable.ts`: one row per reported comparison (omnibus
+test, each post hoc comparison, each model term, each fitted midpoint)
+with the results sheet, the figure panel (layout and letter), the test, n
+per group, the statistic with its df, P as the sheet shows it and to four
+significant digits, the adjustment and its family, the estimate and the
+standardized effect size with CIs. A kind without a mapper, a failed or
+pending result gets one row whose Note says why (never dropped). File ›
+Export statistics table (.csv / .xlsx), Copy statistics table for Word,
+and `statistics.csv` / `.xlsx` / `.html` in the export bundle.
+
+Reference: `web/src/report/__tests__/stats-fixtures.py` (native engine
+results of 48 cases); `statsTable.test.ts` checks, per analysis kind
+(t tests and their rank and KS forms, one-way, Welch, RM and mixed-model
+RM ANOVA, Kruskal-Wallis, Friedman, two-way, three-way and RM two-way
+ANOVA, multiple t tests, correlation, contingency, McNemar, kappa, two
+proportions, two rates, survival, Cox, multiple, logistic, Poisson,
+quasi-Poisson, negative binomial and binomial regression, nested t and
+ANOVA, nested two-way, grouping-column and time-course mixed models,
+subject summaries, 4PL fits, linear regression, quantal fits, one-sample
+tests, estimation, Deming, ICC, ROC, Bland-Altman), that each cell equals
+the engine field through the results sheet's formatter (formatSig at the
+results precision, pformat.tableP). Pinned examples: unpaired t test
+t = -5.596, df 10, P 2.290e-4, difference -5.2 (95% CI -7.271 to -3.129),
+d = -3.231 (-4.996 to -1.403); one-way ANOVA F(2, 15) = 84.75, Tukey
+Control vs. Treated A q = 8.288, P 8.779e-5 (shown < 0.0001), family "3
+comparisons (all pairs of 3 groups)"; 4PL IC50 1.040e-7 (9.695e-8 to
+1.115e-7). e2e-share opens `e2e-fixtures/stage/stats-table.json` (a t
+test, a one-way ANOVA with Tukey and a 4PL fit, two of them on a layout)
+and checks every row against the numbers its results sheet shows, the
+figure panels (A, B), the Excel sheet (P exact as numbers), the Word
+table on the clipboard and that the bundle's `statistics.csv` is the
+same table.
+
 """
 
 

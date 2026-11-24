@@ -799,3 +799,28 @@ const longData = (name, names, rows, categorical) => data(name, {
     format: "plain", fontSize: 14, bold: true, font: "sans", position: "inside" } };
   write("source-data.json", project("Source data", [c, t, ct, r, cg, g, lay], { selected: lay.id }));
 }
+
+// stats-table.json: the P-66 / P-67 acceptance project: a t test and a
+// one-way ANOVA with Tukey of one column table, and a 4PL fit; the ANOVA's
+// graph and the fit's graph are panels A and B of "Figure 1". The export
+// bundle's statistics.csv and analysis.py are checked on it (e2e-share).
+{
+  n = 0;
+  const c = data("Weights", table("column", {
+    datasets: [col("Control", [23.1, 25.4, 21.8, 24.9, 22.6, 26.0]),
+      col("Treated A", [28.4, 30.2, 27.1, 31.5, 29.0, 28.8]),
+      col("Treated B", [35.2, 33.9, 37.4, 34.1, 36.6, 35.8])] }));
+  const tt = results(c, "column", { analysis: "ttest" }, "t test of Weights");
+  const an = results(c, "column", { analysis: "anova", comparisons: "tukey" }, "One-way ANOVA of Weights");
+  const cg = graph(c, an, "scatter", "Graph of Weights", { x: "", y: "Weight (g)" });
+  const reps = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const t = data("Dose response", table("xy", { x: doses, xTitle: "[Drug]", xUnit: "M",
+    yTitle: "Response", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: reps }] }));
+  const r = results(t, "nonlin", { model: "log_inhibitor_vs_response_4pl", autoFit: "requested" },
+    "Nonlin fit of Dose response");
+  const g = graph(t, r, "xy", "Graph of Dose response");
+  const lay = layout("Figure 1", [cg.id, g.id], 1, 2);
+  write("stats-table.json", project("Statistics table", [c, t, tt, an, r, cg, g, lay], { selected: tt.id }));
+}

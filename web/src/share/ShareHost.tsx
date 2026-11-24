@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { runEngine } from "../lib/engine";
 import { exportPzfx, pzfxFileName, pzfxSelection } from "./pzfx";
 import { resolveOptions } from "../app/analysis";
@@ -16,6 +16,7 @@ import type { DataSheet, Project } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { hasShareLink, locationHash } from "./boot";
 import { useBundleExport } from "./useBundleExport";
+import { exportStatsTable } from "./statsTableExport";
 import { usePptxExport } from "../export/usePptxExport";
 import type { PptxScope } from "../export/pptx";
 import { SHARE_EVENT, type RecipeImportRequest, type ShareRequest, type ValidationFor } from "./events";
@@ -72,6 +73,9 @@ export default function ShareHost() {
       : locationHash() === "#privacy" ? { kind: "privacy" } : null));
   const bundle = useBundleExport();
   const runBundle = bundle.run;
+  // the statistics table reads the project and results at the moment it is asked for
+  const live = useRef({ api, ui });
+  useEffect(() => { live.current = { api, ui }; });
   const pptx = usePptxExport();
 
   // Data tables as a .pzfx file (all of them, or one table's).
@@ -96,6 +100,10 @@ export default function ShareHost() {
       if (req.kind === "bundle") void runBundle();
       else if (req.kind === "xlsx") void runBundle("xlsx");
       else if (req.kind === "pzfx") void savePzfx(req.dataId);
+      else if (req.kind === "stats") {
+        const { api: a, ui: u } = live.current;
+        void exportStatsTable(req.format, a.store.project, a.results, (text, o) => u.notify(text, o));
+      }
       else setDialog(req);
     };
     // A share link pasted into an open tab only changes the hash: reload
