@@ -19,7 +19,7 @@ type R = Record<string, any>;
 interface EngineBridge { analyze: (payload: unknown) => unknown }
 
 export type PairwiseFamily = "all" | "control";
-export type PairwiseCorrection = "holm_sidak" | "bonferroni" | "none";
+export type PairwiseCorrection = "holm_sidak" | "holm" | "bonferroni" | "none";
 
 /** Options of the survival analysis (results sheet `options`). Older
  *  sheets store `{}`: every key falls back to its default. */
@@ -53,7 +53,7 @@ export function normalizeSurvivalOptions(raw: unknown): SurvivalOptions {
   return {
     pairwiseFamily: o.pairwiseFamily === "control" ? "control" : "all",
     pairwiseControl: typeof o.pairwiseControl === "string" ? o.pairwiseControl : "",
-    pairwiseCorrection: (["holm_sidak", "bonferroni", "none"] as const).includes(o.pairwiseCorrection)
+    pairwiseCorrection: (["holm_sidak", "holm", "bonferroni", "none"] as const).includes(o.pairwiseCorrection)
       ? o.pairwiseCorrection : "holm_sidak",
     trend: o.trend === true,
     survivalAt: typeof o.survivalAt === "number" && Number.isFinite(o.survivalAt) && o.survivalAt >= 0
@@ -63,7 +63,7 @@ export function normalizeSurvivalOptions(raw: unknown): SurvivalOptions {
 }
 
 export const CORRECTION_LABEL: Record<PairwiseCorrection, string> = {
-  holm_sidak: "Holm-Šídák", bonferroni: "Bonferroni", none: "none",
+  holm_sidak: "Holm-Šídák", holm: "Holm", bonferroni: "Bonferroni", none: "none",
 };
 
 /** "adjusted for 6 comparisons (Holm-Šídák)" / "not adjusted for the 6

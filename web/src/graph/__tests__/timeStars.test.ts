@@ -1,9 +1,11 @@
-// Stars at each time point (P-105): which comparisons qualify, the
-// labels, how they stack and where applyFormat puts them. Run: npm run test:unit
+// Stars at each time point (P-105) and log-rank brackets beside a
+// Kaplan-Meier graph (P-111): which comparisons qualify, the labels, how
+// they stack and where applyFormat puts them. Run: npm run test:unit
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { applyFormat, tagTrace, type Trace } from "../apply.ts";
 import { normalizeFormat } from "../format.ts";
+import { laneMarginBrackets } from "../marginBrackets.ts";
 import { setReportPrefs } from "../../report/pformat.ts";
 import { formatPStyle } from "../significance.ts";
 import { DEFAULT_REPORT } from "../../report/prefs.ts";
@@ -12,6 +14,7 @@ import {
 } from "../timeStars.ts";
 import { timePointComparisons } from "../../sheets/grouped/comparisons.ts";
 import { tcComparisons, tcFamilyX } from "../../sheets/assays/timecourse/timeStars.ts";
+import { survivalBracketClause, survivalComparisons } from "../../sheets/survival/brackets.ts";
 import { legendSentence } from "../legend.ts";
 import { normalizeTable } from "../../project/table.ts";
 
@@ -136,3 +139,69 @@ test("applyFormat draws one star per day above the highest mark there", () => {
   assert.equal((br.layout.annotations ?? []).filter((a: { name?: string }) => a.name === "bracket-label").length, 0);
 });
 
+// ------------------------------------------------------------ P-111
+
+test("laneMarginBrackets: shortest first, touching brackets in separate lanes", () => {
+  const b = laneMarginBrackets([
+    { key: "A-C", ya: 80, yb: 20 }, { key: "A-B", ya: 80, yb: 50 }, { key: "B-C", ya: 50, yb: 20 }], 3);
+  const lane = Object.fromEntries(b.map((x) => [x.key, x.lane]));
+  // A-B and B-C share B's end: separate lanes; A-C overlaps both
+  assert.notEqual(lane["A-B"], lane["B-C"]);
+  assert.equal(lane["A-C"], 2);
+  // curves ending at one level: widened to the minimum span
+  const flat = laneMarginBrackets([{ key: "x", ya: 40, yb: 40 }], 4)[0];
+  assert.deepEqual([flat.lo, flat.hi], [38, 42]);
+});
+
+// a 3-group survival result with pairwise log-rank (Holm)
+const km = {
+  curves: { A: { points: [] }, B: { points: [] }, C: { points: [] } },
+  logrank: { p: 0.001 },
+  extras: { pairwise: { correction: "holm", family_size: 3, family: { label: "every pair" },
+    comparisons: [{ a: "A", b: "B", p_adjusted: 0.04, p_unadjusted: 0.02 },
+      { a: "A", b: "C", p_adjusted: 0.0009, p_unadjusted: 0.0003 },
+      { a: "B", b: "C", p_adjusted: 0.3, p_unadjusted: 0.3 }] } },
+};
+
+test("survival: the pairwise log-rank family and its adjusted P", () => {
+  const set = survivalComparisons(km)!;
+  assert.equal(set.margin, true);
+  assert.deepEqual(set.comparisons.map((c) => [c.a, c.b, c.p]), [["A", "B", 0.04], ["A", "C", 0.0009],
+    ["B", "C", 0.3]]);
+  assert.equal(set.label, "Pairwise log-rank tests, every pair of groups, P adjusted for 3 comparisons (Holm)");
+  assert.equal(survivalBracketClause(km), "Brackets at the right join the ends of the curves compared "
+    + "(Pairwise log-rank tests, every pair of groups, P adjusted for 3 comparisons (Holm))");
+  // two groups: the log-rank test itself
+  const two2 = { curves: { A: {}, B: {} }, logrank: { p: 0.012 } };
+  assert.deepEqual(survivalComparisons(two2)!.comparisons, [{ a: "A", b: "B", p: 0.012 }]);
+  assert.equal(survivalComparisons({ curves: { A: {} } }), null);
+  assert.equal(survivalComparisons({ error: "x" }), null);
+});
+
+test("applyFormat: brackets in the right margin join the curves' ends", () => {
+  const ends = [80, 50, 20];
+  const traces: Trace[] = ends.map((e, ds) => tagTrace({ x: [0, 10, 20], y: [100, 90, e], mode: "lines",
+    line: { shape: "hv" } }, { ds, role: "line" }));
+  const out = applyFormat(traces, { xaxis: {}, yaxis: { range: [0, 105] }, margin: { r: 16 } },
+    normalizeFormat({ comparisons: { show: true } }),
+    { dark: false, scheme: "default", datasets: ["A", "B", "C"], comparisons: survivalComparisons(km)!.comparisons,
+      marginBrackets: true });
+  const labels = out.layout.annotations.filter((a: { name?: string }) => a.name === "bracket-label");
+  // A-B (80 to 50) *, B-C (50 to 20) ns, A-C (80 to 20) ***: the long one furthest out
+  const byText = Object.fromEntries(labels.map((a: { text: string; y: number; xshift: number }) =>
+    [a.text, [a.y, a.xshift]]));
+  assert.deepEqual([byText["*"][0], byText.ns[0], byText["***"][0]], [65, 35, 50]);
+  assert.ok(byText["***"][1] > byText["*"][1] && byText["*"][1] !== byText.ns[1]);
+  const vertical = out.layout.shapes.filter((s: { name?: string; x0: number; x1: number }) =>
+    s.name === "bracket" && s.x0 === s.x1);
+  assert.deepEqual(vertical.map((s: { y0: number; y1: number }) => [s.y0, s.y1])
+    .sort((p: number[], q: number[]) => p[0] - q[0] || p[1] - q[1]), [[20, 50], [20, 80], [50, 80]]);
+  assert.ok(vertical.every((s: { xref: string; xanchor: number }) => s.xref === "paper" && s.xanchor === 1));
+  assert.ok(out.layout.margin.r > 16);
+  // off by default: nothing drawn
+  const off = applyFormat(traces, { xaxis: {}, yaxis: {} }, normalizeFormat({}),
+    { dark: false, scheme: "default", datasets: ["A", "B", "C"], comparisons: survivalComparisons(km)!.comparisons,
+      marginBrackets: true });
+  assert.equal((off.layout.annotations ?? []).length, 0);
+  assert.equal((off.layout.shapes ?? []).length, 0);
+});

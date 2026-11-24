@@ -156,6 +156,7 @@ function PairwiseBlock({ result, options, set }: {
             disabled={!set}
             onChange={(e) => set?.({ pairwiseCorrection: e.target.value as PairwiseCorrection })}>
             <option value="holm_sidak">Holm-Šídák (default)</option>
+            <option value="holm">Holm</option>
             <option value="bonferroni">Bonferroni</option>
             <option value="none">None (not adjusted)</option>
           </select>
@@ -180,6 +181,7 @@ function PairwiseBlock({ result, options, set }: {
             overall test above; only those two groups' subjects), then the P values are adjusted
             for the {k} comparisons of the family
             {options.pairwiseCorrection === "holm_sidak" ? " by the Holm-Šídák step-down method"
+              : options.pairwiseCorrection === "holm" ? " by Holm's step-down method"
               : options.pairwiseCorrection === "bonferroni" ? " by Bonferroni (P × " + k + ")" : " (here: not adjusted)"}.
             The hazard ratio (Mantel-Haenszel) is of the first group relative to the second, its CI
             not adjusted. Sources: GraphPad Statistics Guide, “Multiple comparisons of survival

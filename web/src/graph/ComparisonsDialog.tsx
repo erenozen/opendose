@@ -51,8 +51,10 @@ export default function ComparisonsDialog({
   const hideNs = graphHideNs(c);
   const plain = set.comparisons.filter((x) => !x.family);
   const alpha = l.alpha ?? 0.05;
-  // stars at each time point (P-105) replace the bracket placement
+  // stars at each time point (P-105) and brackets in the right margin of a
+  // Kaplan-Meier graph (P-111) replace the bracket placement
   const perTime = !!set.timePoints;
+  const margin = !!set.margin;
   const timeRef = perTime ? timeReference(set.comparisons) : null;
 
   // Ask the engine for the letters; fall back to the in-browser algorithm
@@ -118,8 +120,9 @@ export default function ComparisonsDialog({
               )}
             </>
           ) : (
-            <CheckField label="Show comparison brackets on the graph" checked={c.show}
-              onChange={(v) => setC({ show: v })} />
+            <CheckField label={margin ? "Show log-rank brackets at the right of the graph"
+              : "Show comparison brackets on the graph"} checked={c.show}
+            onChange={(v) => setC({ show: v })} />
           )}
           <fieldset className="fmt-section wide">
             <legend>Comparisons on the graph</legend>

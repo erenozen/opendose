@@ -507,3 +507,21 @@ lines at one X are never drawn).
 `engine/tests/reference/time_stars.py`); `scripts/e2e-assays.mjs` (the
 time-course example: each star equals the results' Summary of its time).
 
+
+## Log-rank brackets on Kaplan-Meier graphs and between panels (P-111, 2026-11-24)
+
+Pairwise comparisons on a Kaplan-Meier graph offers "Show log-rank
+brackets at the right of the graph": each pair of the survival analysis'
+pairwise log-rank tests (or the log-rank test with two groups) is a
+vertical bracket in the right margin from one curve's end to the other's,
+labelled with its adjusted P (stars or exact P), the brackets that share
+an end in separate lanes, the margin widened to hold them. The dialog
+and the legend name the family and its correction. On the three-way
+graph, a pair whose cells sit in different panels is now drawn above
+both panels (before: left out). Graphs without brackets are unchanged.
+
+`src/graph/__tests__/timeStars.test.ts`; `scripts/e2e-figures.mjs` (3
+groups, Holm: ns, *, ns and P = 0.1753, 0.0209, 0.0687,
+`engine/tests/reference/logrank_brackets.py`); `scripts/e2e-check.mjs`
+(the 2 x 2 x 2 three-way graph: its cross-panel pairs carry the labels
+of their rows in the results).

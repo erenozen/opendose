@@ -27,6 +27,8 @@
 //                      break, each Top held at its own wells (P-104)
 //   time-stars.json    tumour volume by day, Sidak stars at each day on its
 //                      lines graph (P-105)
+//   km-brackets.json   pairwise log-rank (Holm) brackets beside Kaplan-Meier
+//                      curves, and brackets between three-way panels (P-111)
 //   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
 //                      outlier, its legend sentence drawn in the figure
 //   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
@@ -1043,3 +1045,29 @@ const longData = (name, names, rows, categorical) => data(name, {
   write("time-stars.json", project("Stars at each time point", [t, r, g], { selected: g.id }));
 }
 
+// km-brackets.json (P-111; engine/tests/reference/logrank_brackets.py):
+// three groups of 10 with pairwise log-rank tests (Holm) as brackets beside
+// the Kaplan-Meier curves; and a 2 x 2 x 2 grouped table whose three-way
+// graph has brackets between its two panels
+{
+  n = 0;
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/logrank_brackets.json"), "utf8"));
+  const surv = data("Mouse survival", { ...table("survival", { xUnit: "days", datasets:
+    Object.entries(ref.groups).map(([name, g]) => ({ name, subTitles: ["Time", "Event"],
+      rows: g.time.map((t, i) => [String(t), String(g.event[i])]) })) }), x: [], rowTitles: [] });
+  const rs = results(surv, "survival", { pairwiseCorrection: "holm" }, "Survival of Mouse survival");
+  const gs = graph(surv, rs, "survival", "Survival curves");
+  gs.settings.format = { comparisons: { show: true } };
+  const cells = [[[10, 12, 11], [14, 15, 13], [20, 22, 21], [30, 33, 31]],
+    [[9, 11, 10], [12, 14, 13], [18, 19, 20], [22, 24, 23]]];
+  const tw = data("Three factors", table("grouped", { rowTitles: ["A1", "A2"], yTitle: "Signal",
+    datasets: ["A", "B", "C", "D"].map((name, d) => ({ name, subTitles: ["", "", ""],
+      rows: cells.map((row) => row[d].map(String)) })) }));
+  const rt = results(tw, "grouped_three_way", { factorNames: ["Factor A", "Factor B", "Factor C"],
+    bLevels: ["B1", "B2"], cLevels: ["C1", "C2"], assign: [[0, 0], [0, 1], [1, 0], [1, 1]],
+    method: "tukey", goal: "one_factor", oneFactor: "c", control: [0, 0, 0], controlRow: 0, alpha: "0.05",
+    q: "5" }, "Three-way ANOVA of Three factors");
+  const gt = graph(tw, rt, "grouped_three_way", "Three-way graph");
+  gt.settings.format = { comparisons: { show: true } };
+  write("km-brackets.json", project("Log-rank and panel brackets", [surv, rs, gs, tw, rt, gt], { selected: gs.id }));
+}

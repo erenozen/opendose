@@ -1080,6 +1080,89 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("time-stars");
 }
 
+// --- P-111: log-rank brackets on a Kaplan-Meier graph. Three groups of
+// 10 with pairwise log-rank tests adjusted by Holm. Reference:
+// engine/tests/reference/logrank_brackets.py (the Peto log-rank written
+// out with numpy and scipy): Control vs. Low dose P 0.1753, Control vs.
+// High dose 0.02088, Low vs. High dose 0.06866 (Holm), so ns, *, ns.
+{
+  const REF_LR = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference",
+    "logrank_brackets.json"), "utf8"));
+  const names = Object.keys(REF_LR.groups);
+  const KM = join(tmp, "km-brackets.json");
+  writeFileSync(KM, JSON.stringify({
+    version: 2, title: "Survival brackets",
+    prefs: { defaultTableType: "survival", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "kd", kind: "data", name: "Mouse survival", table: {
+        type: "survival", x: [], xTitle: "", xFormat: "numbers", xUnit: "days", yTitle: "", rowTitles: [],
+        subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+        datasets: names.map((name) => ({ name, subTitles: ["Time", "Event"],
+          rows: REF_LR.groups[name].time.map((t, i) => [String(t), String(REF_LR.groups[name].event[i])]) })) } },
+      { id: "kr", kind: "results", parentId: "kd", name: "Survival of Mouse survival", analysis: "survival",
+        options: { pairwiseCorrection: "holm" } },
+      { id: "kg", kind: "graph", parentId: "kd", resultsId: "kr", graphType: "survival",
+        name: "Survival curves", settings: { titles: { x: "", y: "" }, scheme: "default" } },
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', KM);
+  await page.getByRole("treeitem", { name: "Survival curves", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "line").length === 3, null, { timeout: 120000 }).catch(() => {});
+  const r0 = await page.evaluate(() => document.querySelector(".plot-card .plot")?.layout?.margin?.r);
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  const cd = page.locator("dialog.fmt-dialog");
+  expect("P-111 the dialog names the family and its correction",
+    (await cd.innerText()).includes("From: Pairwise log-rank tests, every pair of groups, P adjusted for 3 "
+      + "comparisons (Holm)"), await cd.innerText());
+  await cd.getByLabel("Show log-rank brackets at the right of the graph").check();
+  await cd.getByRole("button", { name: "Apply and close" }).click();
+  const km = () => page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const l = gd?.layout ?? {};
+    const ends = (gd?.data ?? []).filter((t) => t.meta?.odTag?.role === "line").map((t) => t.y[t.y.length - 1]);
+    return { ends, r: l.margin?.r,
+      labels: (l.annotations ?? []).filter((a) => a.name === "bracket-label")
+        .map((a) => ({ text: a.text, y: a.y, xref: a.xref, x: a.x, xshift: a.xshift })),
+      lines: (l.shapes ?? []).filter((s) => s.name === "bracket" && s.x0 === s.x1)
+        .map((s) => ({ xref: s.xref, xanchor: s.xanchor, x: s.x0, y0: s.y0, y1: s.y1 })) };
+  });
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .filter((a) => a.name === "bracket-label").length === 3, null, { timeout: 30000 }).catch(() => {});
+  const k1 = await km();
+  const stars = (p) => (p <= 1e-4 ? "****" : p <= 1e-3 ? "***" : p <= 0.01 ? "**" : p <= 0.05 ? "*" : "ns");
+  // each bracket's label sits half-way between the two curves' ends
+  const mid = (a, b) => (k1.ends[names.indexOf(a)] + k1.ends[names.indexOf(b)]) / 2;
+  const wantStars = REF_LR.comparisons.map((c) => [stars(c.p_holm), mid(c.a, c.b)]);
+  const gotStars = k1.labels.map((l) => [l.text, l.y]);
+  const same = (a, b) => a.length === b.length && a.every((x) => b.some((y) => y[0] === x[0] && Math.abs(y[1] - x[1]) < 1e-9));
+  expect("P-111 acceptance: one bracket per pair, labelled with the Holm-adjusted log-rank P (ns, *, ns) between the curves' ends",
+    same(wantStars, gotStars), `${JSON.stringify(gotStars)} / ${JSON.stringify(wantStars)}`);
+  expect("P-111 the brackets keep to the right margin, which widens to hold them",
+    k1.lines.length === 3 && k1.lines.every((s) => s.xref === "paper" && s.xanchor === 1 && s.x > 0)
+      && k1.labels.every((l) => l.xref === "paper" && l.x === 1 && l.xshift > 0) && k1.r > r0,
+    JSON.stringify({ lines: k1.lines, r0, r: k1.r }));
+  // the exact adjusted P, at display precision
+  const pop2 = await graphSettings();
+  await pop2.getByRole("button", { name: "Pairwise comparisons…" }).click();
+  await cd.getByLabel("Label", { exact: true }).selectOption("p");
+  await cd.getByRole("button", { name: "Apply and close" }).click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+    .some((a) => a.name === "bracket-label" && a.text.startsWith("P")), null, { timeout: 30000 }).catch(() => {});
+  const k2 = await km();
+  const wantP = ["P = 0.1753", "P = 0.0209", "P = 0.0687"];
+  expect(`P-111 exact labels equal the engine's Holm-adjusted P (${wantP.join(", ")})`,
+    JSON.stringify(k2.labels.map((l) => l.text).sort()) === JSON.stringify([...wantP].sort()),
+    JSON.stringify(k2.labels.map((l) => l.text)));
+  const leg = await page.locator(".plot-card .figure-legend-text").textContent().catch(() => "") ?? "";
+  expect("P-111 the legend names the family and its correction",
+    leg.includes("Brackets at the right join the ends of the curves compared (Pairwise log-rank tests, every "
+      + "pair of groups, P adjusted for 3 comparisons (Holm))"), leg);
+  await shot("km-brackets");
+}
+
 // --- geometric mean ×/÷ geometric SD on a log axis, and the Checks note
 // for bars on a log axis or an axis cut above zero (P-25). Reference:
 // src/sheets/column/__tests__/reference/geo_summary.py (numpy, scipy

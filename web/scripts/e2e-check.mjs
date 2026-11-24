@@ -539,6 +539,19 @@ await page.waitForTimeout(800);
   const br = (await plotLayoutOf()).brackets;
   expect("three-way graph: brackets on both panels",
     br.some((b) => b.startsWith("x:")) && br.some((b) => b.startsWith("x2:")), br.join(" "));
+  // P-111: pairs whose cells sit in the two panels (factor C differs: data
+  // sets A and C are C1, B and D are C2 in the guide's layout) get brackets
+  // above both panels, each with its P summary from the results
+  const cross = await page.evaluate(() => [...document.querySelectorAll(".comparisons-table tbody tr")]
+    .map((r) => ({ c: r.cells[0].textContent.split(" vs. ")
+      .map((s) => ({ A: 0, B: 1, C: 0, D: 1 })[s.trim().slice(-1)]),
+    star: r.cells[3].textContent.trim().split(/\s+/).pop() }))
+    .filter((x) => x.c.length === 2 && x.c.every((v) => v !== undefined) && x.c[0] !== x.c[1])
+    .map((x) => x.star));
+  const paper = br.filter((b) => b.startsWith("paper:")).map((b) => b.slice(6));
+  expect("P-111 three-way graph: pairs across the panels drawn above both, labelled as the results",
+    cross.length > 0 && JSON.stringify([...paper].sort()) === JSON.stringify([...cross].sort()),
+    `${paper.join(" ")} / ${cross.join(" ")}`);
 }
 
 // --- v1 project file (single-table format) migrates into one family ---

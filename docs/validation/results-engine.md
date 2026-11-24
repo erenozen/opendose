@@ -3335,3 +3335,31 @@ acceptance test (each day's star equals the Sidak P of that day, ns, *,
 are, and that the curves are tested by the two-way ANOVA's interaction).
 e2e-assays: on the GTT time-course example the six stars equal the
 Summary column of the model's comparisons at each time.
+
+### P-111 Log-rank brackets on Kaplan-Meier graphs and panel brackets
+
+No new computation: the brackets draw the survival analysis' pairwise
+log-rank P values, adjusted as its correction says (Holm added to the
+choices; the engine had it). `engine/tests/test_logrank_brackets.py`
+pins them for the 3-group table of the e2e step against
+`engine/tests/reference/logrank_brackets.py` (the Peto log-rank,
+sum (O - E)^2 / E on 1 df, written out with numpy and scipy, and the
+variance form cross-checked by statsmodels' survdiff; Holm 1979; R's
+survival::survdiff is not installed).
+
+| Pair | Peto chi2 | P | P (Holm, 3) | Variance chi2 (survdiff) | Bracket |
+|---|---|---|---|---|---|
+| Control vs. Low dose | 1.83719 | 0.17528 | 0.17528 | 1.97339 | ns, P = 0.1753 |
+| Control vs. High dose | 7.28307 | 0.0069608 | 0.020882 | 8.64844 | *, P = 0.0209 |
+| Low dose vs. High dose | 4.4783 | 0.034328 | 0.068656 | 5.46088 | ns, P = 0.0687 |
+
+The engine equals each value to rel 1e-9. Web:
+`src/graph/__tests__/timeStars.test.ts` (the family and its label from
+the survival result, the two-group log-rank, lanes that keep touching
+brackets apart, the brackets' place in the right margin and the wider
+margin). e2e-figures: the acceptance test (one bracket per pair in the
+right margin, between the ends of its two curves, labelled ns, *, ns and,
+as exact P, 0.1753, 0.0209, 0.0687; the legend names the family and
+Holm). e2e-check: on the 2 x 2 x 2 three-way graph (Tukey, one factor at
+a time) the pairs whose cells sit in different panels are drawn above
+both panels, with the labels of their rows in the results.

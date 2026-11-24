@@ -26,6 +26,9 @@ export interface ComparisonSet {
   /** What compares the curves themselves, for the legend of stars at each
    *  time point ("the two-way ANOVA's interaction ..."). */
   curveTest?: string;
+  /** Kaplan-Meier graphs (P-111): brackets join the curves' ends in the
+   *  right margin instead of spanning groups along X. */
+  margin?: boolean;
 }
 
 const METHOD_LABELS: Record<string, string> = {

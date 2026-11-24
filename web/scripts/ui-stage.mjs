@@ -1756,6 +1756,23 @@ const scenes = [
       .waitFor();
     await settle(s, 500);
   } },
+  // pairwise log-rank brackets beside Kaplan-Meier curves (P-111)
+  { name: "graphs-km-brackets", setup: async (s) => {
+    await fixture(s, "km-brackets.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .filter((a) => a.name === "bracket-label").length === 3, null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  // brackets between the two panels of the three-way graph (P-111)
+  { name: "graphs-panel-brackets", setup: async (s) => {
+    await fixture(s, "km-brackets.json", { live: true });
+    await selectSheet(s, "Three-way graph");
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .some((a) => a.name === "bracket-label" && a.xref === "paper"), null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
   { name: "graphs-fit-drop-lines", setup: async (s) => {
     await fixture(s, "fit-graph.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();
