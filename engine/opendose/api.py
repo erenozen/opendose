@@ -127,15 +127,15 @@ def _drain(gen):
             return stop.value
 
 
-def _relay(gen, offset, total):
-    """Run a fitboot step generator, reporting its resamples as
-    {"done", "total"} of the whole job; returns its summary."""
+def _relay(gen, offset, total, what):
+    """Run a fitboot step generator, reporting its steps as
+    {"done", "total", "what"} of the whole job; returns its summary."""
     while True:
         try:
             done = next(gen)
         except StopIteration as stop:
             return stop.value
-        yield {"done": offset + done, "total": total}
+        yield {"done": offset + done, "total": total, "what": what}
 
 
 def _offset_steps(gen, index, count):
@@ -146,7 +146,7 @@ def _offset_steps(gen, index, count):
         except StopIteration as stop:
             return stop.value
         yield {"done": index * p["total"] + p["done"],
-               "total": count * p["total"]}
+               "total": count * p["total"], "what": p.get("what")}
 
 
 def _dose_response_steps(data, options):
@@ -183,8 +183,10 @@ def _dose_response_steps(data, options):
     params: {name: {value, ci95, se, bias, median, asymptotic_ci95}},
     warnings} or {"error": why} (mean/SD/n data, robust or ROUT fits,
     an ambiguous fit, too many failed refits), and then keeps the
-    asymptotic CIs. Bands and interpolated values stay asymptotic. This
-    generator yields {"done", "total"} resamples between chunks."""
+    asymptotic CIs. Bands and interpolated values stay asymptotic.
+
+    This generator yields {"done", "total", "what": "bootstrap"} between
+    chunks of refits."""
     if options.get("user_equation"):
         return (yield from _user_equation_steps(data, options))
     model = options.get("model", "log_inhibitor_vs_response_4pl")
@@ -202,6 +204,8 @@ def _dose_response_steps(data, options):
     if ci_method == "bootstrap":
         boot_opt = fitboot.read_options(options.get("bootstrap"))
         ci_method = "asymptotic"  # the fit's own CIs, replaced below
+    # steps per data set, for progress: the resamples
+    n_boot = boot_opt["resamples"] if boot_opt is not None else 0
     rout_q = options.get("rout_q")  # e.g. 0.01 turns on ROUT
     # fit_method "robust": nlfit.robust_model_fit, best-fit values only
     fit_method = options.get("fit_method", "least_squares")
@@ -332,20 +336,23 @@ def _dose_response_steps(data, options):
             if abs_level is not None:
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
                     fit, float(abs_level), x_lo, x_hi)
+            per_set = n_boot
+            fit_kw = dict(constraints=constraints, weighting=weighting,
+                          weight_source=options.get("weight_source",
+                                                    "predicted"),
+                          bounds=bounds)
             if boot_opt is not None:
-                B = boot_opt["resamples"]
                 yield from _bootstrap_steps(
-                    fit, xs, ys, spec, boot_opt, offset=i_set * B,
-                    total=n_sets * B, refusal=_bootstrap_refusal(
+                    fit, xs, ys, spec, boot_opt, offset=i_set * per_set,
+                    total=n_sets * per_set, refusal=_bootstrap_refusal(
                         fit, robust=robust, rout=bool(rout_q),
                         summary_fmt=summary_fmt),
-                    fit_kw=dict(constraints=constraints, weighting=weighting,
-                                weight_source=options.get("weight_source",
-                                                          "predicted"),
-                                bounds=bounds),
+                    fit_kw=fit_kw,
                     abs_ic50=(None if abs_level is None else
                               (float(abs_level), x_lo, x_hi)))
-                yield {"done": (i_set + 1) * B, "total": n_sets * B}
+            if per_set:
+                yield {"done": (i_set + 1) * per_set,
+                       "total": n_sets * per_set, "what": "bootstrap"}
             fit.pop("_cov", None)  # internal; keep the JSON payload lean
             entry["residual_check"] = _fit_residual_check(
                 fit.pop("_residuals", None), entry["name"], robust=robust,
@@ -444,7 +451,7 @@ def _bootstrap_steps(fit, xs, ys, spec, boot_opt, *, offset, total,
             method=boot_opt["method"], resamples=boot_opt["resamples"],
             seed=boot_opt["seed"], ci_level=boot_opt["ci_level"],
             extra=extra)
-        summary_ = yield from _relay(boot.steps(), offset, total)
+        summary_ = yield from _relay(boot.steps(), offset, total, "bootstrap")
     except Exception as exc:  # the fit stands with its asymptotic CIs
         fit["bootstrap"] = {"error": f"Bootstrap failed: {exc}"}
         return

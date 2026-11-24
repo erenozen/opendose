@@ -70,7 +70,7 @@ export interface PendingRun {
   cancel: () => void;
   /** A stepped computation's progress (bootstrap resamples), updated in
    *  place; the busy line reads it on its own clock. */
-  progress?: { done: number; total: number };
+  progress?: { done: number; total: number; what?: string };
 }
 
 /** Results keyed by results-sheet id. Not part of the project or its
@@ -182,7 +182,9 @@ export class ResultsCache {
     };
     this.pend.set(id, run);
     this.notify(id);
-    const onProgress = (done: number, total: number) => { run.progress = { done, total }; };
+    const onProgress = (done: number, total: number, what?: string) => {
+      run.progress = { done, total, what };
+    };
     runEngine(fn, { signal: ctl.signal, priority, onProgress }).then(
       (result): CacheEntry | null => ({ key, result, live: true }),
       // The engine did not load: not a result of this input. Whatever was

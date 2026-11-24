@@ -88,7 +88,7 @@ export interface RunOptions {
   coalesce?: string;
   priority?: Priority;
   /** Progress of a request the worker runs in steps (a bootstrap). */
-  onProgress?: (done: number, total: number) => void;
+  onProgress?: (done: number, total: number, what?: string) => void;
 }
 
 const slots = new Map<string, AbortController>();

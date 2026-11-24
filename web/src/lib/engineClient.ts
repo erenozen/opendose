@@ -95,7 +95,7 @@ interface Job {
   startedAt: number | null;
   slot: Slot | null;
   detach: () => void;
-  onProgress?: (done: number, total: number) => void;
+  onProgress?: (done: number, total: number, what?: string) => void;
   /** It has reported progress: the worker can stop it between steps. */
   stepped?: boolean;
 }
@@ -104,7 +104,7 @@ export interface SubmitOptions {
   priority?: Priority;
   signal?: AbortSignal;
   /** Progress of a job the worker runs in steps (a bootstrap). */
-  onProgress?: (done: number, total: number) => void;
+  onProgress?: (done: number, total: number, what?: string) => void;
 }
 
 /** A job running longer than this makes a cancel plausible: warm a spare. */
@@ -309,7 +309,7 @@ export class EngineHost {
           const job = this.running;
           if (job && job.id === m.id && job.slot === slot) {
             job.stepped = true;
-            job.onProgress?.(m.done, m.total);
+            job.onProgress?.(m.done, m.total, m.what);
           }
           break;
         }

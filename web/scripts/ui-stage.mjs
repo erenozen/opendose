@@ -965,6 +965,38 @@ const scenes = [
     await waitLive(s);
     await into(s, ".pane-controls details.initial-values", "start");
   } },
+  // bootstrap CIs of the example 4PL (P-101): the settings under the CI
+  // method, the busy line with its progress bar, the results with the
+  // bootstrap note and its details fold
+  { name: "controls-bootstrap", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator("details.advanced > summary").first());
+    await c.getByLabel("Confidence intervals").selectOption("bootstrap");
+    await c.locator(".bootstrap-fields").waitFor({ timeout: 30000 });
+    await into(s, ".pane-controls .bootstrap-fields", "center");
+  } },
+  { name: "results-bootstrap-progress", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator("details.advanced > summary").first());
+    await c.getByLabel("Confidence intervals").selectOption("bootstrap");
+    await c.getByLabel("Resamples", { exact: true }).fill("10000");
+    await s.page.locator(".analysis-busy progress").waitFor({ timeout: 60000 });
+    await into(s, ".pane-results", "start");
+    await settle(s, 300);
+  } },
+  { name: "results-bootstrap", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator("details.advanced > summary").first());
+    await c.getByLabel("Confidence intervals").selectOption("bootstrap");
+    await s.page.locator('.pane-results[data-live="true"] .fit-bootstrap').first().waitFor({ timeout: 180000 });
+    const fold = s.page.locator(".pane-results details.fit-bootstrap-detail").first();
+    await click(s, fold.locator("summary"));
+    await into(s, ".pane-results .result-card .results-table", "start");
+    await settle(s, 600);
+  } },
   { name: "sim-user-equation", setup: async (s) => {
     await example(s);
     await click(s, s.page.getByRole("button", { name: /^Model:/ }));

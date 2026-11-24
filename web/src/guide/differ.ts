@@ -169,6 +169,8 @@ export function differNotes(ctx: ResultContext): DifferItem[] {
       const ci = String(o.ciMethod ?? "asymptotic");
       items.push({ topic: "Confidence interval of the IC50/EC50",
         used: ci === "profile" ? "Profile likelihood (asymmetric)."
+          : ci === "bootstrap" ? "Bootstrap percentile interval of the refitted IC50s (seeded; "
+            + "asymptotic when the fit refuses the bootstrap)."
           : "Asymptotic on log(IC50), back-transformed: asymmetric in concentration units.",
         elsewhere: "R's drc::ED(interval = \"delta\") gives a symmetric delta-method interval on the "
           + "IC50 scale; profile intervals differ from asymptotic ones when data are sparse." });

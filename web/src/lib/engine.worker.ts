@@ -294,8 +294,8 @@ async function analyze(id: number, payload: string): Promise<string> {
       if (stops.has(id)) throw new Error("stopped");
       const p = job.step();
       if (p == null) return job.result();
-      const { done, total } = JSON.parse(p) as { done: number; total: number };
-      post({ type: "jobProgress", id, done, total });
+      const { done, total, what } = JSON.parse(p) as { done: number; total: number; what?: string };
+      post({ type: "jobProgress", id, done, total, what });
       await new Promise((r) => setTimeout(r, 0));
     }
   } finally {

@@ -3073,3 +3073,58 @@ Independent check values (for the lead): in
 Higgins 1990 Table 5": interaction F(9, 32) = 2.939, P = 0.01168;
 Moisture F(3, 32) = 41.52; Fertilizer F(3, 32) = 69.46; ART-C m1 vs. m2
 difference of mean aligned ranks -23.08, Tukey P 1.191e-7.
+
+## Feature validation: bootstrap CIs, covariance and joint regions of fitted parameters (2026-11-24)
+
+### P-101 Bootstrap CIs for fitted parameters
+
+Choosing "Bootstrap percentile" as a curve fit's CI method refits B
+resamples of each data set (case or residual resampling, 200 to 10,000,
+seeded) and reports the percentile CI of every free parameter and of the
+derived values (IC50, the model's transforms such as ECx, Span, the
+absolute IC50). Engine: `engine/opendose/fitboot.py` (Efron & Tibshirani
+1993, An Introduction to the Bootstrap, sections 9.4 and 9.5 and chapter
+13; Davison & Hinkley 1997, chapters 6 and 7). Each resample is refitted
+with the same model, weighting, constants and range constraints from the
+original estimates; residuals are mean-centred and inflated by
+sqrt(n/(n - p)) (nlstools::nlsBoot only centres them). The worker runs the
+refits 20 at a time, reports the progress after each chunk and stops
+between chunks when cancelled (`opendose.api.StepJob`,
+`web/src/lib/engine.worker.ts`). R's nlstools::nlsBoot and boot::boot
+are not installed: the oracle is a bootstrap written out in
+`engine/tests/reference/fit_bootstrap.py` with scipy curve_fit on a
+hand-written 4PL and the same documented seed stream
+(numpy default_rng(seed).integers(0, n, (B, n))), tested in
+`engine/tests/test_fit_bootstrap.py`.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| the example 4PL (9 doses x 3), case resampling, 2,000 resamples, seed 1 (acceptance) | the reference bootstrap on the same resamples: Top 98.39 to 101.4, Bottom -0.07282 to 2.140, LogIC50 -7.012 to -6.947, HillSlope -1.193 to -1.020, IC50 9.734e-8 to 1.129e-7 M, Span 96.77 to 101.1; 2,000 of 2,000 refitted | 2e-5 of each CI's width (the 4 digits shown); bootstrap SE 1e-4 |
+| the same, residual resampling | LogIC50 -7.011 to -6.954, HillSlope -1.186 to -1.034 | as above |
+| Monte Carlo error | the reference with seeds 2 to 21: SD of each CI limit over seeds (LogIC50: 0.0006 and 0.0017 for case resampling) | the seed-1 limits within 4 SD of the mean over seeds |
+| coverage: 200 data sets simulated by simulate_xy (4PL Top 100, Bottom 0, LogIC50 -7, HillSlope -1, Gaussian SD 5, the example's design), B = 400 | share of 95% CIs holding the true value: case LogIC50 91.0%, HillSlope 93.5%; residual 92.0%, 94.5% (binomial SE 1.5%); asymptotic CIs 93.5%, 96.0% | within 3 binomial SE of 95%; a 40-data-set rerun in the test holds the true LogIC50 in at least 33 |
+
+Percentile intervals run a little narrow at n = 27 with 4 parameters (the
+coverage above), as known for percentile intervals in small samples
+(Efron & Tibshirani 1993, chapters 13 and 14); BCa is not implemented.
+
+Also tested: the same seed gives identical CIs and another seed different
+ones; the stepped run (progress after every 20 refits, over every data
+set) returns exactly the plain run's result; parameters held constant
+get no bootstrap CI and Span with Top and Bottom held has none; a range
+constraint (Bottom >= 0.5) holds in every resample; 1/Y^2 and 1/X^2
+weighting with both methods; the absolute IC50 and the ECanything
+model's ECF are bootstrapped; Y x 1000 scales the Top CI by 1000 and
+leaves LogIC50's unchanged; doses in nM shift the LogIC50 CI by exactly
+9 and scale the IC50 CI by 1e9; out-of-range settings are refused with
+what to enter (200 to 10,000 resamples, a whole-number seed); mean / SD
+/ n data, ROUT and robust fits keep their asymptotic CIs and say why; an
+ambiguous fit is not bootstrapped; 5 points for 4 parameters withholds
+the CIs or counts the refits that failed; a user-defined equation
+reproduces the built-in model's CIs. Web: options, notes, the details
+fold, CI method words (`bootstrap.test.ts`); progress and a stop between
+steps without retiring the worker (`engineWorker.test.ts`). e2e
+(`e2e-results.mjs`): the acceptance test (a progress bar, then the CIs
+above in the table and "(bootstrap)" in the headline), the asymptotic
+CI kept in the details fold, Cancel during 10,000 resamples, the same
+CIs again after it, and no worker restart.

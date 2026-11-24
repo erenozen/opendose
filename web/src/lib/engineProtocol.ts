@@ -67,8 +67,9 @@ export type WorkerResponse =
     marks: Record<string, number>;
   }
   | { type: "bootError"; message: string }
-  /** A stepped analysis's progress: `done` of `total` units (resamples). */
-  | { type: "jobProgress"; id: number; done: number; total: number }
+  /** A stepped analysis's progress: `done` of `total` steps (bootstrap
+   *  resamples); `what` names the work. */
+  | { type: "jobProgress"; id: number; done: number; total: number; what?: string }
   /** ok: json is the result text; not ok: message is why the call threw. */
   | { type: "result"; id: number; ok: true; json: string; ms: number }
   | { type: "result"; id: number; ok: false; message: string; ms: number };

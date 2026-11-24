@@ -53,7 +53,7 @@ DEFAULT_RESAMPLES = 2000
 DEFAULT_SEED = 1
 MAX_SEED = 2 ** 32 - 1
 CHUNK = 20                 # refits between two progress reports
-REFIT_NFEV = 2000          # solver evaluations per refit (nlfit multistart cap)
+REFIT_NFEV = 20000         # solver evaluations per refit (fit_model's single start)
 FAIL_WARN = 0.05           # share of failed refits that earns a caveat
 FAIL_STOP = 0.5            # share of failed refits that withholds the CIs
 

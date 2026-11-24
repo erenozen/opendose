@@ -197,7 +197,7 @@ export function AnalysisBusy({ status, engine }: {
       <span role="status">{text}</span>
       {progress && (
         <>
-          <progress max={progress.total} value={progress.done} aria-label="Bootstrap progress" />
+          <progress max={progress.total} value={progress.done} aria-label="Progress of the refits" />
           {/* the count is seen, not spoken: the status says the phase */}
           <span className="analysis-busy-time" aria-hidden="true">
             {progress.done.toLocaleString("en-US")} of {progress.total.toLocaleString("en-US")}
