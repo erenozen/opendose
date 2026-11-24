@@ -903,7 +903,7 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
   await wizard().getByRole("button", { name: /Precision/ }).click();
   expect("P-94 wizard: the Precision step names the QC samples and previews the report",
     (await wizard().innerText()).includes("Precision samples: QC low, QC mid, QC high.")
-    && await waitText("dialog.assay-wizard .precision-report", "QC mid 4 (2 days)", 60000));
+    && await waitText("dialog.assay-wizard .precision-report", "QC mid4 (2 days)", 60000));
   await wizard().getByLabel("CV at most").fill("3");
   expect("P-94 wizard: a 3% CV limit fails QC high on its CV",
     await waitText("dialog.assay-wizard .precision-report", "Fail (CV)", 60000));
