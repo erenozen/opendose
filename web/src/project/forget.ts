@@ -1,7 +1,8 @@
 // "Forget this computer's data" (Preferences): erase everything OpenDose
 // keeps in this browser, for shared lab computers.
 //
-// Erased: the IndexedDB database (autosaved sessions, saved templates) and
+// Erased: the IndexedDB database (autosaved sessions, saved versions, the
+// files projects save to in place, saved templates) and
 // every localStorage / sessionStorage entry whose key starts with
 // "opendose-" or "opendose." (autosave fallbacks, import recipes, plate
 // layouts, "My equations", settings). Entries of anything else served from

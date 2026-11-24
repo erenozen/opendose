@@ -26,6 +26,7 @@ import Header from "./components/Header";
 import InfoSheetView from "./components/InfoSheetView";
 import Navigator from "./components/Navigator";
 import SessionBanners from "./components/SessionBanners";
+import VersionsHost from "./components/ProjectVersions";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet, makeProject } from "./project/ops";
 import type { Project } from "./project/types";
@@ -238,6 +239,7 @@ function Shell() {
             if (dataId) select(dataId);
           }} />
       )}
+      <VersionsHost autosave={autosave} />
       <SimulateHost />
       <TableFileImport />
       <PowerHost />

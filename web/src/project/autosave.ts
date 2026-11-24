@@ -196,3 +196,28 @@ export async function writeValue(key: string, value: unknown): Promise<boolean> 
     return false;
   }
 }
+
+/** These other keys as a Kv (saved versions, project/versions.ts): the
+ *  autosave switch does not stop them, the Forget control erases them. */
+export const otherKv: Kv = {
+  get: async (key) => (await readValue(key)) ?? undefined,
+  put: writeValue,
+  async delete(key) {
+    try { await idb("readwrite", (s) => s.delete(key)); } catch { /* ignore */ }
+    try { localStorage.removeItem(lsOther(key)); } catch { /* ignore */ }
+  },
+  async keys() {
+    const out = new Set<string>();
+    try {
+      const ks = await idb<IDBValidKey[]>("readonly", (s) => s.getAllKeys());
+      for (const k of ks ?? []) if (typeof k === "string") out.add(k);
+    } catch { /* no database: localStorage only */ }
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k?.startsWith("opendose-")) out.add(k.slice("opendose-".length));
+      }
+    } catch { /* no localStorage */ }
+    return [...out];
+  },
+};

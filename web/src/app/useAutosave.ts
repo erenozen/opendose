@@ -68,7 +68,12 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
       // as for a project file (P-58).
       replace(prepareReproduceCheckFor(savedWithOf(rec.json), p, rec.title, "autosave"),
         savedSelection(rec.json));
-      if (how === "auto") notify(`Reopened your last session, “${rec.title}”.`, { tone: "info" });
+      if (how === "auto") {
+        // The way to the other sessions and the saved versions (P-72).
+        notify(`Reopened your last session, “${rec.title}”.`, {
+          tone: "info", action: { label: "Open recent…", onAction: () => requestShell("recent") },
+        });
+      }
       if (how === "copy") {
         notify(`Opened a copy of “${rec.title}”. Edits here are kept as this tab's own session.`,
           { tone: "success" });
@@ -228,6 +233,9 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
   return {
     checked,
     offers: hidden ? [] : offers,
+    /** Every kept session of a closed tab, hidden from the banner or not
+     *  (File › Open recent…, P-72). */
+    kept: offers,
     heldElsewhere,
     restore, discard, copyHeld,
     hide: () => setHidden(true),

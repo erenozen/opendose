@@ -215,6 +215,38 @@ async function seedSessions(s, sessions) {
     db.close();
   }, [sessions, json]);
 }
+/** Writes saved versions (project/versions.ts records) of the study in
+ *  e2e-fixtures/project-study.json; `excluded` versions leave Control
+ *  row 4 out of the table (the compare scene). */
+async function seedVersions(s, versions) {
+  const study = JSON.parse(readFileSync(join(FIXTURES, "project-study.json"), "utf8"));
+  const out = versions.map((v) => {
+    const p = structuredClone(study);
+    if (v.excluded) {
+      p.sheets[0].table.datasets[0].excluded = ["3:0"];
+      p.sheets[0].table.datasets[0].exclusionReasons = { "3:0": "reviewer: pipetting error" };
+    }
+    if (v.title) p.title = v.title;
+    return { id: v.id, savedAt: v.savedAt, title: p.title, note: v.note, sheets: p.sheets.length,
+      json: JSON.stringify(p, null, 2) };
+  });
+  await s.page.evaluate(async (list) => {
+    const db = await new Promise((res, rej) => {
+      const r = indexedDB.open("opendose", 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore("autosave"); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    await new Promise((res, rej) => {
+      const tx = db.transaction("autosave", "readwrite");
+      for (const x of list) tx.objectStore("autosave").put(x, `version:${x.id}`);
+      tx.oncomplete = res;
+      tx.onerror = () => rej(tx.error);
+    });
+    db.close();
+  }, out);
+  return out;
+}
 /** A new table of `type` from pasted text (first line: column titles),
  *  through the Import dialog, as the e2e suites make one. `subcolumns`:
  *  replicate subcolumns per data set (XY starts with three). */
@@ -505,6 +537,30 @@ const scenes = [
     await s.page.evaluate(() => sessionStorage.setItem("opendose-session", "stage-held"));
     await s.page.goto(url(), { waitUntil: "domcontentloaded" });
     await s.page.locator(".restore-banner", { hasText: "is open in another tab." }).waitFor({ timeout: 30000 });
+  } },
+  // P-72: Save a version… after a submit with no note (the field's error)
+  { name: "shell-save-version", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "File", "Save a version…");
+    const d = dialog(s, "Save a version");
+    await d.getByRole("button", { name: "Save version" }).click();
+    await d.getByText("Enter a note, such as “before reviewer”").waitFor();
+  } },
+  // P-72: Open recent…, a long title, a closed tab's session and versions
+  { name: "shell-recent", setup: async (s) => {
+    await example(s, { live: false });
+    await seedSessions(s, [{ id: "stage-r", title: "Study", sheets: 2, sheet: "Viability",
+      savedAt: Date.UTC(2026, 10, 24, 9, 12, 0) }]);
+    await seedVersions(s, [
+      { id: "v1", note: "before reviewer", savedAt: Date.UTC(2026, 10, 20, 14, 2, 0) },
+      { id: "v2", note: "after reviewer: Control row 4 excluded for a pipetting error noted in the lab book on day 3",
+        excluded: true, savedAt: Date.UTC(2026, 10, 23, 16, 40, 0) },
+      { id: "v3", title: "Dose-response of compound XR-2231 in HepG2, MCF-7 and A549 cells, 72 h, replicate set 3",
+        note: "submitted", savedAt: Date.UTC(2026, 10, 18, 8, 0, 0) },
+    ]);
+    await example(s, { live: false });
+    await headerMenu(s, "File", "Open recent…");
+    await dialog(s, "Recent projects").getByText("“before reviewer”").first().waitFor();
   } },
   { name: "shell-preferences-storage", setup: async (s) => {
     await example(s, { live: false });

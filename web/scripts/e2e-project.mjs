@@ -1,6 +1,7 @@
 // End-to-end check of the project file and its history in this browser:
 // save in place and Save as… with the File System Access API, the
-// installed app's file handler and the web app manifest (P-71).
+// installed app's file handler and the web app manifest (P-71); saved
+// versions and recent projects (P-72).
 //
 // Playwright cannot answer the browser's own file pickers, so the
 // Chromium checks stand in a small file system for them (FSA_MOCK: the
@@ -317,6 +318,119 @@ const browser = await chromium.launch();
     }
     await ff.close();
   }
+}
+
+// ------------------------------------------------------------ P-72 versions
+const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+let page = await ctx.newPage();
+watch(page, "versions");
+await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+await page.locator(".shell").waitFor({ timeout: 60000 });
+await page.setInputFiles(OPEN_INPUT, STUDY_FILE);
+await toast(page, /Opened “project-study\.json”/);
+expect("P-72 the study opens with live results", await live(page));
+
+async function saveVersion(note) {
+  await fileMenu(page, "Save a version…");
+  const d = page.getByRole("dialog", { name: "Save a version" });
+  await d.waitFor();
+  if (!note) {
+    await d.getByRole("button", { name: "Save version" }).click();
+    return d;
+  }
+  await d.getByLabel("Note").fill(note);
+  await d.getByRole("button", { name: "Save version" }).click();
+  return d;
+}
+{
+  const d = await saveVersion("");
+  expect("P-72 a version needs a note (shown after a submit attempt)",
+    await d.getByText("Enter a note, such as “before reviewer”").isVisible());
+  await d.getByLabel("Note").fill("before reviewer");
+  await d.getByRole("button", { name: "Save version" }).click();
+}
+expect("P-72 Save a version… says it saved", await toast(page, /Saved the version “before reviewer” of “Study”/));
+const v1Text = await fileText(page);
+let stored = await storedVersions(page);
+expect("P-72 the version holds the project file as Save project writes it, byte for byte",
+  stored.length === 1 && stored[0].json === v1Text && stored[0].note === "before reviewer");
+checkSchema("a saved version", JSON.parse(stored[0].json));
+
+await excludeCell(page, "Control, row 4", "reviewer: pipetting error");
+await page.waitForFunction(() => /Excluded/.test(document.querySelector(
+  '.data-table input[aria-label="Control, row 4"]')?.getAttribute("title") ?? ""), null, { timeout: 10000 }).catch(() => {});
+await page.waitForTimeout(500);
+await live(page);
+await saveVersion("after reviewer");
+expect("P-72 the second version is saved", await toast(page, /Saved the version “after reviewer”/));
+stored = await storedVersions(page);
+const v2 = stored[0];
+expect("P-72 the second version excludes Control row 4",
+  stored.length === 2 && JSON.parse(v2.json).sheets[0].table.datasets[0].excluded?.includes("3:0"));
+
+// close the tab; the next start reopens the session and leads to the list
+await page.close();
+page = await ctx.newPage();
+watch(page, "versions, next start");
+await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+const reopened = page.locator(".toast", { hasText: /Reopened your last session, “Study”/ }).first();
+expect("P-72 the next start reopens the last session and offers Open recent…",
+  await reopened.waitFor({ timeout: 60000 }).then(() => true, () => false)
+  && await reopened.getByRole("button", { name: "Open recent…" }).count() === 1);
+await reopened.getByRole("button", { name: "Open recent…" }).click();
+const recent = page.getByRole("dialog", { name: "Recent projects" });
+await recent.waitFor();
+const study = recent.getByRole("region", { name: "Study" });
+await study.getByText("“after reviewer”").waitFor({ timeout: 10000 }).catch(() => {});
+const listed = await study.innerText().catch(() => "");
+expect("P-72 the list shows both versions of “Study”, newest first",
+  listed.indexOf("“after reviewer”") >= 0 && listed.indexOf("“after reviewer”") < listed.indexOf("“before reviewer”"),
+  listed.replace(/\s+/g, " ").slice(0, 200));
+expect("P-72 the list states this browser's storage",
+  /OpenDose uses .* of this browser's storage/.test(await recent.innerText()));
+await study.getByRole("button", { name: "Restore the version “before reviewer” of “Study”" }).click();
+expect("P-72 restoring a version says so", await toast(page, /Restored the version “before reviewer” of “Study”/));
+await live(page);
+{
+  // savedWith names the software saving (its library versions are known
+  // only once this page's engine has run), not the project: left aside.
+  const bare = (t) => { const j = JSON.parse(t); delete j.savedWith; return JSON.stringify(j, null, 2); };
+  const now = bare(await fileText(page));
+  const v1Bare = bare(v1Text);
+  let at = 0;
+  while (at < now.length && now[at] === v1Bare[at]) at++;
+  expect("P-72 restoring the first version gives its exact project (Save writes its bytes, savedWith aside)",
+    now === v1Bare, `first difference at ${at}: ${JSON.stringify(v1Bare.slice(at - 80, at + 80))} | now ${JSON.stringify(now.slice(at - 80, at + 80))}`);
+}
+expect("P-72 the restored project has Control row 4 back in the analysis",
+  !/Excluded/.test(await cell(page, "Control, row 4").getAttribute("title") ?? ""));
+
+// the palette finds Open recent…
+await page.keyboard.press("Control+k");
+await page.getByRole("combobox", { name: "Find a command or sheet" }).fill("open recent");
+expect("P-72 the palette finds Open recent…",
+  await page.getByRole("option", { name: /Open recent…/ }).first().isVisible().catch(() => false));
+await page.keyboard.press("Escape");
+
+await ctx.close();
+
+// ------------------------------------------------------------ P-72 quota
+{
+  const c = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await c.addInitScript(() => {
+    navigator.storage.estimate = async () => ({ usage: 999_000, quota: 1_000_000 });
+  });
+  const p = await c.newPage();
+  watch(p, "quota");
+  await p.goto(EXAMPLE, { waitUntil: "domcontentloaded" });
+  await p.locator(".shell").waitFor({ timeout: 60000 });
+  page = p;
+  await saveVersion("too big");
+  const e = p.locator('.toast[data-tone="error"]', { hasText: /Could not save the version “too big”: the version needs .* and this browser allows 1 kB more/ });
+  expect("P-72 a full quota refuses the version and says how much room is left",
+    await e.waitFor({ timeout: 120000 }).then(() => true, () => false));
+  expect("P-72 nothing is stored when the quota is full", (await storedVersions(p)).length === 0);
+  await c.close();
 }
 
 await browser.close();

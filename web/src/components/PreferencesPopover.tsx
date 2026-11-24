@@ -218,7 +218,7 @@ export default function PreferencesPopover({ open, onOpenChange, anchor }: {
             <div className="prefs-confirm" role="group" aria-label="Forget this computer's data">
               <p>
                 <strong>Deleted from this browser:</strong> autosaved sessions, saved
-                templates, import recipes, plate layouts, your equations and all
+                versions, saved templates, import recipes, plate layouts, your equations and all
                 settings. The open project closes: save it as a file first if you
                 need it. Close other OpenDose tabs too.
               </p>
