@@ -27,6 +27,9 @@ import {
   type MixedGroupingOptions,
 } from "./mixedGrouping";
 import { DDF_NEW_SHEET } from "../common/ddf";
+import {
+  ANALYSIS_MV_ANCOVA, defaultAncova, normalizeAncova, runAncova, type AncovaOptions, type AncovaResult,
+} from "./ancova";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
@@ -233,6 +236,29 @@ export const mvMixedGrouping = defineAnalysis<MixedGroupingOptions, Record<strin
   MethodsPanel: MixedUnitMethods,
 });
 
+// Baseline-adjusted comparison (ANCOVA, P-82): follow-up between groups
+// adjusted for the baseline (panels in ./ancovaPanels).
+const ancovaPanels = () => import("./ancovaPanels");
+const AncovaControls = lazyPart(ancovaPanels, "AncovaControls");
+const AncovaResults = lazyPart(ancovaPanels, "AncovaResults");
+const AncovaMethods = lazyPart(ancovaPanels, "AncovaMethods");
+
+export const mvAncova = defineAnalysis<AncovaOptions, AncovaResult>({
+  id: ANALYSIS_MV_ANCOVA,
+  label: "Baseline-adjusted comparison (ANCOVA)",
+  short: "ANCOVA",
+  description: "Groups measured before and after treatment: the follow-up compared between groups "
+    + "adjusted for the baseline, with adjusted means and the equal-slopes check.",
+  sheetName: (t) => `ANCOVA of ${t}`,
+  defaultOptions: ({ table }) => defaultAncova(table),
+  normalizeOptions: (raw, { table }) => normalizeAncova(raw, table),
+  run: runAncova,
+  defaultGraph: null,
+  ControlsPanel: AncovaControls,
+  ResultsPanel: AncovaResults,
+  MethodsPanel: AncovaMethods,
+});
+
 // ------------------------------------------------------------ graphs
 
 const none = () => ({ x: "", y: "" });
@@ -342,7 +368,7 @@ export const multivariableTable: TableTypeDef = {
   entryHint: "Each row is one observation (subject, sample); each column one "
     + "variable. Set a column to categorical for text levels such as "
     + "\"male\" / \"female\". Row titles can hold subject IDs.",
-  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvLogistic, mvPoisson, mvCox.analysis, mvPca,
-    mvRearrange, mvMixedGrouping],
+  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvAncova, mvLogistic, mvPoisson, mvCox.analysis,
+    mvPca, mvRearrange, mvMixedGrouping],
   graphs: [...mvGraphs, ...mvCox.graphs, mixedNestedGraph],
 };

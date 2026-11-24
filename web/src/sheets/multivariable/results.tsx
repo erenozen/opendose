@@ -13,34 +13,20 @@ import type {
   Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult, PoissonResult,
   RearrangeResult, RegressionResult,
 } from "./run";
-import { pLabel, tableP, tableStars } from "../../report/pformat";
+import { pLabel } from "../../report/pformat";
 import { CopyButton } from "../../components/CiteBlock";
 import { Button, Tabs } from "../../components/ui";
+import { TOOL, ci, f, fmtP, list, lvl, summaryStars } from "./resultFormat";
 
 /* ------------------------------------------------------------ formatting */
 
-const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
-
-/** P and asterisks in the project's P-value style (src/report/pformat.ts). */
-function fmtP(p: number | null | undefined): string {
-  return tableP(p);
-}
-
-function summaryStars(p: number | null | undefined): string {
-  // P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***, ≤ 0.0001 ****, as on graph brackets.
-  return tableStars(p);
-}
-
 const pct = (v: number | null | undefined) => (typeof v === "number" ? `${formatSig(v, 3)}%` : "n/a");
-const lvl = (level: number) => `${formatSig(level * 100, 3)}%`;
-const ci = (c: [number | null, number | null] | undefined | null) =>
-  c ? `${c[0] === null ? "n/a" : f(c[0])} to ${c[1] === null ? "n/a" : f(c[1])}` : "n/a";
 
-function Card({ title, children }: { title: string; children: ReactNode }) {
+export function Card({ title, children }: { title: string; children: ReactNode }) {
   return <div className="result-card mv-results"><h3>{title}</h3>{children}</div>;
 }
 
-function KV({ title, rows }: { title?: string; rows: [string, ReactNode][] }) {
+export function KV({ title, rows }: { title?: string; rows: [string, ReactNode][] }) {
   return (
     <div className="mv-kv">
       {title && <h4>{title}</h4>}
@@ -53,7 +39,7 @@ function KV({ title, rows }: { title?: string; rows: [string, ReactNode][] }) {
   );
 }
 
-function Grid({ head, rows, caption }: { head: ReactNode[]; rows: ReactNode[][]; caption?: string }) {
+export function Grid({ head, rows, caption }: { head: ReactNode[]; rows: ReactNode[][]; caption?: string }) {
   return (
     <div className="mv-scroll">
       <table className="results-table mv-grid">
@@ -72,12 +58,12 @@ function Grid({ head, rows, caption }: { head: ReactNode[]; rows: ReactNode[][];
   );
 }
 
-function Problem({ result }: { result: { error?: string } | null }) {
+export function Problem({ result }: { result: { error?: string } | null }) {
   if (!result) return null;
   return result.error ? <div className="results-error" role="alert">{result.error}</div> : null;
 }
 
-function Methods({ text }: { text: string }) {
+export function Methods({ text }: { text: string }) {
   return (
     <div className="result-card methods-text">
       <h3>Methods text</h3>
@@ -87,9 +73,6 @@ function Methods({ text }: { text: string }) {
   );
 }
 
-const TOOL = "OpenDose (open-source, built on SciPy)";
-const list = (xs: string[]) => (xs.length <= 1 ? xs.join("")
-  : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
 /* ------------------------------------------------------------ descriptive */
 

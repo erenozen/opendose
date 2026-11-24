@@ -24,6 +24,9 @@ test("one factor: independent -> column, paired -> one row per subject, nested -
   assert.equal(paired.type, "column");
   assert.match(paired.layout, /each row is one subject/);
   assert.match(paired.analyses, /Paired/);
+  // P-82: before and after in two or more groups goes to ANCOVA, with why
+  assert.match(paired.analyses, /Two or more groups, each subject measured before and after treatment\? .*ANCOVA/);
+  assert.ok(paired.sources.some((s) => s.url === "https://doi.org/10.1136/bmj.323.7321.1123"));
   assert.equal(rec({ repeats: "nested" }).type, "nested");
   assert.equal(rec({ factors: "two" }).type, "grouped");
   assert.equal(rec({ factors: "x" }).type, "xy");

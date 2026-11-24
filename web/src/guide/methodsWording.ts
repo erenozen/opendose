@@ -100,6 +100,9 @@ export const METHODS: Record<string, (p?: MethodsParams) => string> = {
   proportion_per_unit: () => "The proportion was computed for each biological replicate and "
     + "those values compared, because the counts came from several animals, cultures or "
     + "experiments; a test on the pooled counts would treat every event as independent.",
+  ancova: () => "Analysis of covariance (ANCOVA) was chosen because each subject was measured before "
+    + "treatment and after it in two or more groups; the follow-up was compared between groups with the "
+    + "baseline as a covariate (Vickers & Altman 2001).",
   binomial: () => "The exact binomial test was chosen because one group with two outcomes was "
     + "compared with an expected proportion.",
   chisq_gof: () => "The chi-square goodness-of-fit test was chosen because counts in three or "
@@ -161,6 +164,8 @@ export const ALTERNATIVE_METHODS: Record<string, string> = {
   "Time course: mixed model with a covariance choice, AUC per subject": "A time-course mixed "
     + "model was chosen because the repeated factor was time; the analysis compares covariance "
     + "structures by AIC and each subject's area under the curve between groups.",
+  "Two-way repeated-measures ANOVA (group × time)": "Two-way repeated-measures ANOVA with group and "
+    + "time as factors was chosen to analyse the measurements before and after treatment.",
   "Cox regression": "Cox regression was chosen for hazard ratios with confidence intervals "
     + "adjusted for covariates, or for a continuous predictor instead of groups.",
 };
@@ -232,6 +237,7 @@ const LEGACY: Legacy[] = [
   [/^Pick the model from the mechanism /, m0("nonlin_other")],
   [/^A dose-response experiment: fit the (agonist|inhibitor) model /,
     (m) => METHODS.ic50({ agonist: m[1] === "agonist" })],
+  [/^Each subject was measured before treatment \(the baseline\) and after it /, m0("ancova")],
   [/^You are asking whether the treatment effect is different in one group than in another /,
     (_m, test) => METHODS[/repeated-measures/.test(test) ? "two_way_interaction_rm" : "two_way_interaction"]()],
 ];

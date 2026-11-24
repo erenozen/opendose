@@ -186,8 +186,11 @@ function measurement(a: DesignAnswers): TableRecommendation {
         + "values share a row. Leave a cell blank if it is missing: incomplete rows are left out "
         + "of paired tests and named in the results.",
       analyses: "Paired or ratio paired t test, Wilcoxon matched pairs, repeated-measures one-way "
-        + "ANOVA or Friedman test.",
-      sources: [SRC.gpPairedT, SRC.gpRmAnova],
+        + "ANOVA or Friedman test. Two or more groups, each subject measured before and after "
+        + "treatment? Then the question is whether the groups differ after treatment, not whether "
+        + "the two times differ: use a Multiple variables table with Group, Baseline and Follow-up "
+        + "columns and compare the follow-up adjusted for the baseline (ANCOVA).",
+      sources: [SRC.gpPairedT, SRC.gpRmAnova, SRC.vickersAltman2001],
     };
   }
   if (a.repeats === "nested") {

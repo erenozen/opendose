@@ -47,7 +47,7 @@ const GROUPED = new Set(["grouped_two_way", "grouped_three_way", "grouped_column
 const GROUPED_MULTI_T = "grouped_multiple_t";
 /** Models of a multiple-variables table that drop incomplete rows
  *  (listwise): the engine says which (analysed_rows). */
-const ROW_MODELS = new Set(["mv_regression", "mv_logistic", "mv_poisson", "mv_cox"]);
+const ROW_MODELS = new Set(["mv_regression", "mv_logistic", "mv_poisson", "mv_cox", "mv_ancova"]);
 /** Cox on a survival table: the engine counts subjects, not grid rows. */
 const SURVIVAL_COX = "cox";
 

@@ -11,11 +11,11 @@ import {
 
 /* ------------------------------------------------------------ pieces */
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   return <section><h3>{title}</h3>{children}</section>;
 }
 
-function Field({ label, children, note }: { label: string; children: ReactNode; note?: string }) {
+export function Field({ label, children, note }: { label: string; children: ReactNode; note?: string }) {
   return (
     <label className="check-row mv-field">
       <span>{label}</span>
@@ -67,7 +67,7 @@ function VarChecklist({ legend, vars, chosen, onChange, emptyMeansAll, hint }: {
   );
 }
 
-function CiField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function CiField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Field label="Confidence level (%)">
       <NumInput label="Confidence level in percent" value={value} onChange={onChange} />

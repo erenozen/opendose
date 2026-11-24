@@ -294,6 +294,11 @@ export const SRC = {
   // sqrt(phi). DOI resolved to Biometrika 61(3):439-447, read 2026-11-24.
   wedderburn1974: { label: "Wedderburn 1974, Quasi-likelihood functions, generalized linear models, and the Gauss-Newton method, Biometrika 61:439",
     url: "https://doi.org/10.1093/biomet/61.3.439" },
+  // Baseline-adjusted comparison (P-82): with a baseline, ANCOVA of the
+  // follow-up beats follow-up alone and change scores. Crossref: BMJ
+  // 323:1123-1124, read 2026-11-24.
+  vickersAltman2001: { label: "Vickers & Altman 2001, Analysing controlled trials with baseline and follow up measurements, BMJ 323:1123",
+    url: "https://doi.org/10.1136/bmj.323.7321.1123" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

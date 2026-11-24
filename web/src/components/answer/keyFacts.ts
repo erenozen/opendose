@@ -253,6 +253,23 @@ function iccFacts(r: R): KeyFacts {
   } }] };
 }
 
+/** Baseline-adjusted comparison (ANCOVA, P-82): each group's adjusted
+ *  difference against the reference group with its CI, P and n. */
+function ancovaFacts(r: R): KeyFacts {
+  const diffs = (r.differences ?? []) as R[];
+  if (!diffs.length) return null;
+  const pct = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const n = (lev: string) => (r.adjusted_means as R[] | undefined)?.find((m) => m.level === lev)?.n;
+  return { kind: "figures", items: diffs.map((d): KeyItem => ({
+    title: `${d.level} vs. ${d.vs}, adjusted for ${r.baseline}`,
+    figure: {
+      name: "Adjusted difference", value: formatSig(d.estimate),
+      ci: `${pct} CI ${formatSig(d.ci[0])} to ${formatSig(d.ci[1])}`,
+      facts: [pLabel(d.p), `n = ${n(d.level)} and ${n(d.vs)}`],
+    },
+  })) };
+}
+
 /** The headline facts of a result, or null for "show the table first". */
 export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFacts {
   if (!result || typeof result !== "object") return null;
@@ -261,6 +278,7 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (withheldInfo(r)) return withheldFacts(r);
   if (r.analysis === "method_regression") return methodRegFacts(r);
   if (r.analysis === "icc") return iccFacts(r);
+  if (r.analysis === "ancova") return ancovaFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
   if (r.analysis === "ttest" && !r.test?.toString().match(/kolmogorov|ratio_paired/)) return ttestFacts(r);
   if (r.analysis === "anova") return anovaFacts(r);
