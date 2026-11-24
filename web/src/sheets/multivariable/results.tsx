@@ -10,37 +10,23 @@ import {
   type LogisticOptions, type PcaOptions, type PoissonOptions, type RearrangeOptions, type RegressionOptions,
 } from "./model";
 import type {
-  Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult, PoissonResult,
+  Coefficient, CorrelationResult, DescriptiveResult, FirthResult, LogisticResult, PcaResult, PoissonResult,
   RearrangeResult, RegressionResult,
 } from "./run";
-import { pLabel, tableP, tableStars } from "../../report/pformat";
+import { pLabel } from "../../report/pformat";
 import { CopyButton } from "../../components/CiteBlock";
 import { Button, Tabs } from "../../components/ui";
+import { TOOL, ci, f, fmtP, list, lvl, summaryStars } from "./resultFormat";
 
 /* ------------------------------------------------------------ formatting */
 
-const f = (v: number | null | undefined, sig?: number) => formatSig(v ?? null, sig);
-
-/** P and asterisks in the project's P-value style (src/report/pformat.ts). */
-function fmtP(p: number | null | undefined): string {
-  return tableP(p);
-}
-
-function summaryStars(p: number | null | undefined): string {
-  // P ≤ 0.05 *, ≤ 0.01 **, ≤ 0.001 ***, ≤ 0.0001 ****, as on graph brackets.
-  return tableStars(p);
-}
-
 const pct = (v: number | null | undefined) => (typeof v === "number" ? `${formatSig(v, 3)}%` : "n/a");
-const lvl = (level: number) => `${formatSig(level * 100, 3)}%`;
-const ci = (c: [number | null, number | null] | undefined | null) =>
-  c ? `${c[0] === null ? "n/a" : f(c[0])} to ${c[1] === null ? "n/a" : f(c[1])}` : "n/a";
 
-function Card({ title, children }: { title: string; children: ReactNode }) {
+export function Card({ title, children }: { title: string; children: ReactNode }) {
   return <div className="result-card mv-results"><h3>{title}</h3>{children}</div>;
 }
 
-function KV({ title, rows }: { title?: string; rows: [string, ReactNode][] }) {
+export function KV({ title, rows }: { title?: string; rows: [string, ReactNode][] }) {
   return (
     <div className="mv-kv">
       {title && <h4>{title}</h4>}
@@ -53,7 +39,7 @@ function KV({ title, rows }: { title?: string; rows: [string, ReactNode][] }) {
   );
 }
 
-function Grid({ head, rows, caption }: { head: ReactNode[]; rows: ReactNode[][]; caption?: string }) {
+export function Grid({ head, rows, caption }: { head: ReactNode[]; rows: ReactNode[][]; caption?: string }) {
   return (
     <div className="mv-scroll">
       <table className="results-table mv-grid">
@@ -72,12 +58,12 @@ function Grid({ head, rows, caption }: { head: ReactNode[]; rows: ReactNode[][];
   );
 }
 
-function Problem({ result }: { result: { error?: string } | null }) {
+export function Problem({ result }: { result: { error?: string } | null }) {
   if (!result) return null;
   return result.error ? <div className="results-error" role="alert">{result.error}</div> : null;
 }
 
-function Methods({ text }: { text: string }) {
+export function Methods({ text }: { text: string }) {
   return (
     <div className="result-card methods-text">
       <h3>Methods text</h3>
@@ -87,9 +73,6 @@ function Methods({ text }: { text: string }) {
   );
 }
 
-const TOOL = "OpenDose (open-source, built on SciPy)";
-const list = (xs: string[]) => (xs.length <= 1 ? xs.join("")
-  : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
 /* ------------------------------------------------------------ descriptive */
 
@@ -317,9 +300,53 @@ export function RegressionMethods({ result }: ResultsProps<RegressionOptions, Re
 
 /* ------------------------------------------------------------ logistic */
 
+function FirthResults({ result }: { result: FirthResult }) {
+  const L = lvl(result.ci_level);
+  const lr = result.likelihood_ratio_test;
+  const coding = Object.entries(result.outcome_coding)
+    .sort((a, b) => a[1] - b[1]).map(([k, v]) => `${k} → ${v}`).join(", ");
+  return (
+    <Card title={`Firth logistic regression of ${result.outcome}`}>
+      <p className="hint-block">
+        Outcome coding: {coding}. {result.n_ones} rows are 1 and {result.n_zeros} are 0;
+        {" "}{result.n_rows_analyzed} rows analyzed, {result.n_rows_skipped} skipped.
+        {result.separation && ` The predictors ${result.separation === "complete" ? "completely" : "quasi-completely"} `
+          + "separate the outcome, so ordinary maximum likelihood has no finite estimate."}
+      </p>
+      <h4>Parameter estimates</h4>
+      <Grid caption="Parameter estimates"
+        head={["Parameter", "Estimate", "SE", `${L} CI`, "χ²", "P value", "", "Odds ratio", `${L} CI of odds ratio`]}
+        rows={result.coefficients.map((k, i) => [
+          i === 0 ? "β0 (Intercept)" : `β${i}: ${k.name}`, f(k.estimate), f(k.se), ci(k.ci), f(k.chi2),
+          fmtP(k.p), summaryStars(k.p), f(k.odds_ratio), ci(k.odds_ratio_ci ?? null),
+        ])} />
+      <p className="hint-block">
+        Firth&apos;s penalized likelihood (the Jeffreys prior) keeps every estimate finite and pulls it toward no
+        effect (an odds ratio toward 1), so the odds ratios are smaller than the infinite maximum-likelihood ones
+        would suggest. {result.ci_method === "profile" ? "Profile penalized-likelihood" : "Wald"} confidence
+        intervals; P values from penalized likelihood ratio tests (χ², 1 df), as in R&apos;s logistf (Heinze &amp;
+        Schemper 2002).{Object.keys(result.reference_levels).length > 0 && ` Reference levels: ${
+          Object.entries(result.reference_levels).map(([k, v]) => `${k} = ${v}`).join("; ")}.`}
+      </p>
+      <div className="stat-cols">
+        <KV title="Penalized likelihood ratio test (vs intercept only)" rows={[
+          ["χ²", f(lr.chi2)],
+          ["Degrees of freedom", String(lr.df)],
+          ["P value", lr.p === null ? "n/a" : `${fmtP(lr.p)} ${summaryStars(lr.p)}`],
+        ]} />
+        <KV title="Likelihood" rows={[
+          ["Penalized log likelihood", f(result.penalized_log_likelihood)],
+          ["Log likelihood", f(result.log_likelihood)],
+        ]} />
+      </div>
+    </Card>
+  );
+}
+
 export function LogisticResults({ result }: ResultsProps<LogisticOptions, LogisticResult>) {
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
+  if (result.method === "firth") return <FirthResults result={result as unknown as FirthResult} />;
   const lr = result.likelihood_ratio_test;
   const pr = result.pseudo_r_squared;
   const hl = result.hosmer_lemeshow;
@@ -397,6 +424,16 @@ export function LogisticResults({ result }: ResultsProps<LogisticOptions, Logist
 
 export function LogisticMethods({ result }: ResultsProps<LogisticOptions, LogisticResult>) {
   if (!result || result.error) return null;
+  if (result.method === "firth") {
+    const r = result as unknown as FirthResult;
+    const ors = r.coefficients.slice(1).map((k) => `${k.name}: OR ${f(k.odds_ratio)} (${lvl(r.ci_level)} CI `
+      + `${ci(k.odds_ratio_ci ?? null)}; ${pLabel(k.p)})`);
+    return <Methods text={`${r.outcome} was modeled by logistic regression with Firth's penalized likelihood `
+      + `(Firth 1993; Heinze & Schemper 2002)${r.separation ? ", because the predictors separated the outcome" : ""}, `
+      + `on ${list(r.predictors ?? [])}, with ${r.ci_method === "profile" ? "profile penalized-likelihood" : "Wald"} `
+      + `confidence intervals and penalized likelihood ratio tests, using ${TOOL} (${r.n_rows_analyzed} rows; `
+      + `${r.n_ones} events). The estimates are shrunk toward no effect. ${ors.join("; ")}.`} />;
+  }
   const ors = result.coefficients.slice(1).map((k) =>
     `${k.name}: OR ${f(k.odds_ratio)} (${lvl(result.ci_level)} CI ${ci(k.odds_ratio_ci ?? null)})`);
   return <Methods text={`${result.outcome} was modeled by ${result.coefficients.length > 2 ? "multiple" : "simple"} `

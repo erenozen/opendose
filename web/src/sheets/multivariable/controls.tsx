@@ -11,11 +11,11 @@ import {
 
 /* ------------------------------------------------------------ pieces */
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   return <section><h3>{title}</h3>{children}</section>;
 }
 
-function Field({ label, children, note }: { label: string; children: ReactNode; note?: string }) {
+export function Field({ label, children, note }: { label: string; children: ReactNode; note?: string }) {
   return (
     <label className="check-row mv-field">
       <span>{label}</span>
@@ -67,7 +67,7 @@ function VarChecklist({ legend, vars, chosen, onChange, emptyMeansAll, hint }: {
   );
 }
 
-function CiField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function CiField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <Field label="Confidence level (%)">
       <NumInput label="Confidence level in percent" value={value} onChange={onChange} />
@@ -143,13 +143,16 @@ export function CorrelationControls({ table, options, onChange }: ControlsProps<
 
 /* ------------------------------------------------------------ regression */
 
-function ModelSpec<O extends RegressionOptions>({ table, options, onChange, outcomeHint, outcomeFilter }: {
+export function ModelSpec<O extends RegressionOptions>({ table, options, onChange, outcomeHint, outcomeFilter,
+  exclude = [] }: {
   table: DataTableModel; options: O; onChange: (o: O) => void;
   outcomeHint: string; outcomeFilter: (v: VarInfo) => boolean;
+  /** Variables with another role (the totals of a binomial model). */
+  exclude?: string[];
 }) {
   const info = variableInfo(table);
   const set = (p: Partial<O>) => onChange({ ...options, ...p });
-  const candidates = info.filter((v) => v.name !== options.outcome);
+  const candidates = info.filter((v) => v.name !== options.outcome && !exclude.includes(v.name));
   const chosen = options.predictors.filter((p) => candidates.some((v) => v.name === p));
   const [a, setA] = useState("");
   const [b, setB] = useState("");
@@ -283,6 +286,15 @@ export function LogisticControls({ table, options, onChange }: ControlsProps<Log
           </Field>
         </Section>
       )}
+      <Section title="Separation">
+        <label className="check-row">
+          <input type="checkbox" checked={options.firth === true}
+            onChange={(e) => set({ firth: e.target.checked })} />
+          <span>Firth&apos;s penalized likelihood</span>
+        </label>
+        <p className="field-note">For data where a predictor separates the outcome (every treated animal
+          responds): finite odds ratios, shrunk toward no effect.</p>
+      </Section>
       <Section title="Classification">
         <Field label="Cutoff probability"
           note="Rows with a predicted probability above it are classified as 1.">

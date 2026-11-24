@@ -46,6 +46,9 @@
 //   derived-numbers.json quasi-Poisson (P-46), partial and compared correlations
 //                      (P-48), survival difference at a time (P-28), the
 //                      references of a Normalize (P-57)
+//   glm-models.json    ANCOVA (P-82), binomial and negative binomial
+//                      regression (P-86), a separated logistic regression
+//                      and its Firth fit (P-89)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
 import { readFileSync, writeFileSync } from "node:fs";
@@ -730,4 +733,44 @@ const longData = (name, names, rows, categorical) => data(name, {
     hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Viability");
   write("derived-numbers.json", project("Derived numbers", [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn],
     { selected: rp.id }));
+}
+
+// glm-models.json (wave 2 models): two groups of 10 with baseline and
+// follow-up under ANCOVA (P-82; engine/tests/reference/ancova.py); 3
+// experiments x 2 groups x 3 dishes of positives out of counted under
+// binomial regression, overdispersed (P-86; count_glms.py); the Ames TA98
+// counts under negative binomial regression (count_glms.py); a two-group
+// dose study where every treated animal responds, refused by logistic
+// regression for separation and fitted with Firth's correction (P-89;
+// firth_logistic.py)
+{
+  const ref = (f) => JSON.parse(readFileSync(join(here, "../../../engine/tests/reference", f), "utf8"));
+  const an = ref("ancova.json").two_groups.data;
+  const trial = longData("Trial", ["Group", "Baseline", "Follow-up"],
+    an.group.map((g, i) => [g, String(an.pre[i]), String(an.post[i])]), ["Group"]);
+  const ra = results(trial, "mv_ancova", { outcome: "Follow-up", baseline: "Baseline", group: "Group",
+    referenceLevel: "", ciLevel: "95" }, "ANCOVA of Trial");
+  const cg = ref("count_glms.json");
+  const od = cg.dishes_overdispersed.data;
+  const dishes = longData("Dishes", ["Positive", "Counted", "Group", "Experiment"],
+    od.positive.map((p, i) => [String(p), String(od.counted[i]), od.group[i], od.experiment[i]]),
+    ["Group", "Experiment"]);
+  const rb = results(dishes, "mv_binomial", { outcome: "Positive", totals: "Counted",
+    predictors: ["Group", "Experiment"], interactions: [], referenceLevels: {}, ciLevel: "95",
+    ciMethod: "profile", quasi: false }, "Binomial regression of Dishes");
+  const am = cg.ames.data;
+  const ames = longData("Ames TA98", ["Dose", "log(Dose + 10)", "Revertants"],
+    am.dose.map((d, i) => [String(d), String(am.log_dose_plus_10[i]), String(am.revertants[i])]), []);
+  const rn = results(ames, "mv_negbin", { outcome: "Revertants", predictors: ["Dose", "log(Dose + 10)"],
+    interactions: [], referenceLevels: {}, ciLevel: "95", exposure: "", ciMethod: "profile" },
+  "Negative binomial regression of Ames TA98");
+  const ds = ref("firth_logistic.json").dose_study.data;
+  const dose = longData("Dose study", ["Response", "Group"],
+    ds.group.map((g, i) => [String(ds.response[i]), g]), ["Group"]);
+  const logit = { outcome: "Response", predictors: ["Group"], interactions: [], referenceLevels: {},
+    ciLevel: "95", positiveLevel: "", ciMethod: "profile", cutoff: "0.5", hlGroups: "10" };
+  const rl = results(dose, "mv_logistic", { ...logit, firth: false }, "Logistic regression of Dose study");
+  const rf = results(dose, "mv_logistic", { ...logit, firth: true }, "Firth logistic regression of Dose study");
+  write("glm-models.json", project("Count and covariate models",
+    [trial, ra, dishes, rb, ames, rn, dose, rl, rf], { selected: ra.id }));
 }

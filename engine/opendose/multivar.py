@@ -571,6 +571,199 @@ def multiple_regression(variables, outcome: str, predictors, *,
     }
 
 
+# ------------------------------------------- ANCOVA (baseline-adjusted comparison)
+
+def _ols_cov(X, y):
+    """Least squares with the residual SS, df and the coefficient covariance."""
+    beta, resid, rmat = _ols(X, y)
+    ss = float(resid @ resid)
+    df = X.shape[0] - X.shape[1]
+    rinv = np.linalg.inv(rmat)
+    return beta, resid, ss, df, (ss / df) * (rinv @ rinv.T) if df > 0 else None
+
+
+def ancova(variables, outcome: str, group: str, baseline: str, *,
+           reference_level=None, ci_level: float = 0.95) -> dict:
+    """Compare groups on a follow-up measurement adjusted for its baseline
+    (analysis of covariance): outcome = b0 + group effects + b1 * baseline,
+    fitted by least squares, one slope shared by every group.
+
+    Vickers & Altman 2001 (BMJ 323:1123, "Analysing controlled trials with
+    baseline and follow up measurements"): with a baseline measurement,
+    ANCOVA of the follow-up adjusted for baseline is unbiased under
+    randomisation and has more power than comparing follow-up alone or the
+    change from baseline. Reported, as R's lm(outcome ~ group + baseline)
+    with emmeans and car::Anova(type = 3) report them:
+
+    - adjusted means: each group's predicted outcome at the mean baseline
+      of the analysed rows, with SE sqrt(x0' V x0) and a t CI on the
+      residual df;
+    - adjusted differences: each group against the reference level (its
+      coefficient), with SE, t CI, t and P (not corrected for multiple
+      comparisons when there are three or more groups);
+    - the type III ANOVA table (drop-one sums of squares: with no
+      interaction in the model they do not depend on the coding);
+    - the equal-slopes check: the F test of the group x baseline
+      interaction (the model with a separate slope per group against the
+      shared slope), and each group's own slope.
+    Rows missing any of the three variables are left out (complete cases).
+    A numeric group column (1/2, 0/1) is read as levels."""
+    table = parse_table(variables)
+    by = _by_name(table)
+    for name in (outcome, group, baseline):
+        if name not in by:
+            raise ValueError(f"unknown variable: {name}")
+    if len({outcome, group, baseline}) < 3:
+        raise ValueError("the outcome, the baseline and the group must be three "
+                         "different variables")
+    for name, role in ((outcome, "outcome (follow-up)"), (baseline, "baseline")):
+        if by[name]["kind"] != "continuous":
+            raise ValueError(f"the {role} {name} must be a numeric variable")
+    if by[group]["kind"] == "continuous":
+        as_levels = {"name": group, "kind": "categorical",
+                     "values": [None if v is None else _level_text(v)
+                                for v in by[group]["values"]]}
+        table = [as_levels if v["name"] == group else v for v in table]
+        by = _by_name(table)
+    n_all = len(by[outcome]["values"])
+    rows = [i for i in range(n_all)
+            if all(by[v]["values"][i] is not None for v in (outcome, group, baseline))]
+    if not rows:
+        raise ValueError("no rows with an outcome, a baseline and a group")
+    levels = _levels(by[group]["values"], rows)
+    if len(levels) < 2:
+        raise ValueError(f"ANCOVA compares two or more groups: {group} has only one "
+                         "level in the rows with an outcome and a baseline")
+    if max(by[baseline]["values"][i] for i in rows) == min(by[baseline]["values"][i] for i in rows):
+        raise ValueError(f"the baseline {baseline} has the same value in every row, so it "
+                         "cannot adjust the comparison")
+    ref = levels[0] if reference_level in (None, "") else str(reference_level)
+    if ref not in levels:
+        raise ValueError(f"reference level {ref!r} not found in {group}")
+    if len(rows) <= len(levels) + 1:
+        raise ValueError(f"need more rows ({len(rows)}) than parameters "
+                         f"({len(levels) + 1}): ANCOVA needs at least one more row "
+                         "than the number of groups + 1")
+    try:
+        d = _design(table, outcome, [group, baseline], reference_levels={group: ref},
+                    outcome_kind="continuous")
+    except ValueError as e:
+        if "linearly dependent" not in str(e):
+            raise
+        raise ValueError(f"the baseline is the same within each group of {group}, so the "
+                         "baseline and group effects cannot be separated") from None
+    X, y = d["X"], np.array(d["y"], dtype=float)
+    n, k = X.shape
+    beta, resid, ss_res, df_res, cov = _ols_cov(X, y)
+    if ss_res <= 1e-26 * float(y @ y):
+        raise ValueError("the model fits every outcome value exactly (no residual "
+                         "variation), so no standard error or P value can be computed")
+    ms_res = ss_res / df_res
+    se = np.sqrt(np.diag(cov))
+    tcrit = float(stats.t.ppf((1 + ci_level) / 2, df_res))
+    gcols = d["terms"][group]
+    bcol = d["terms"][baseline][0]
+    others = [c.split("[", 1)[1][:-1] for c in (d["columns"][j] for j in gcols)]
+    order = [ref] + others
+    xbar = float(X[:, bcol].mean())
+
+    def _t_row(est, s):
+        t = est / s if s > 0 else math.inf
+        return {"estimate": float(est), "se": float(s),
+                "ci": [float(est - tcrit * s), float(est + tcrit * s)],
+                "t": float(abs(t)), "df": df_res,
+                "p": float(2 * stats.t.sf(abs(t), df_res))}
+
+    gvals = [by[group]["values"][i] for i in d["rows"]]
+    adjusted, raw = [], []
+    for lev in order:
+        x0 = np.zeros(k)
+        x0[0] = 1.0
+        x0[bcol] = xbar
+        if lev != ref:
+            x0[gcols[others.index(lev)]] = 1.0
+        row = _t_row(float(x0 @ beta), float(math.sqrt(x0 @ cov @ x0)))
+        mask = np.array([g == lev for g in gvals])
+        yy, bb = y[mask], X[mask, bcol]
+        adjusted.append({"level": lev, "n": int(mask.sum()), "mean": row["estimate"],
+                         "se": row["se"], "ci": row["ci"]})
+        raw.append({"level": lev, "n": int(mask.sum()),
+                    "baseline_mean": float(bb.mean()),
+                    "baseline_sd": float(bb.std(ddof=1)) if bb.size > 1 else None,
+                    "outcome_mean": float(yy.mean()),
+                    "outcome_sd": float(yy.std(ddof=1)) if yy.size > 1 else None})
+    differences = [{"level": lev, "vs": ref, **_t_row(beta[j], se[j])}
+                   for lev, j in zip(others, gcols)]
+    slope = {"name": baseline, **_t_row(beta[bcol], se[bcol])}
+
+    anova = []
+    for term, idx in ((group, gcols), (baseline, [bcol])):
+        _, _, ss_red, _, _ = _ols_cov(np.delete(X, idx, axis=1), y)
+        ss_t = ss_red - ss_res
+        f_t = (ss_t / len(idx)) / ms_res if ms_res > 0 else math.inf
+        anova.append({"source": term, "ss": ss_t, "df": len(idx), "ms": ss_t / len(idx),
+                      "F": float(f_t), "p": float(stats.f.sf(f_t, len(idx), df_res))})
+    anova.append({"source": "Residual", "ss": ss_res, "df": df_res, "ms": ms_res})
+
+    # equal slopes: a separate baseline slope per group (the interaction)
+    centred = X[:, bcol] - xbar
+    Xi = np.hstack([X, X[:, gcols] * centred[:, None]])
+    equal_slopes: dict
+    g1 = len(gcols)
+    if n - Xi.shape[1] < 1:
+        equal_slopes = {"error": "too few rows to fit a separate slope in each group "
+                                 f"(needs more than {Xi.shape[1]} rows)"}
+    elif np.linalg.matrix_rank(Xi / np.linalg.norm(Xi, axis=0)) < Xi.shape[1]:
+        equal_slopes = {"error": "a group has fewer than two different baseline values, "
+                                 "so its own slope cannot be estimated"}
+    else:
+        bi, _, ss_i, df_i, cov_i = _ols_cov(Xi, y)
+        drop = ss_res - ss_i
+        f_s = (drop / g1) / (ss_i / df_i) if ss_i > 0 else math.inf
+        slopes = []
+        for lev in order:
+            c = np.zeros(Xi.shape[1])
+            c[bcol] = 1.0
+            if lev != ref:
+                c[k + others.index(lev)] = 1.0
+            slopes.append({"level": lev, "slope": float(c @ bi),
+                           "se": float(math.sqrt(c @ cov_i @ c))})
+        equal_slopes = {"F": float(f_s), "df1": g1, "df2": df_i,
+                        "p": float(stats.f.sf(f_s, g1, df_i)) if math.isfinite(f_s) else 0.0,
+                        "slopes": slopes}
+
+    ss_tot = float(np.sum((y - y.mean()) ** 2))
+    r2 = 1 - ss_res / ss_tot if ss_tot > 0 else float("nan")
+    warnings = []
+    if "p" in equal_slopes and equal_slopes["p"] < 0.05:
+        warnings.append(
+            f"The baseline slopes differ between the groups (group × {baseline} "
+            f"interaction P = {equal_slopes['p']:.3g}): the adjusted difference then "
+            "depends on the baseline value, so one adjusted difference does not "
+            "summarise the effect.")
+    fitted = X @ beta
+    return {
+        "outcome": outcome, "group": group, "baseline": baseline,
+        "reference_level": ref, "levels": order,
+        "n_rows_analyzed": n, "n_rows_skipped": d["n_rows"] - n,
+        "rows_used": d["rows"], "n_parameters": k, "ci_level": ci_level,
+        "baseline_mean": xbar,
+        "adjusted_means": adjusted,
+        "differences": differences,
+        "baseline_slope": slope,
+        "unadjusted": raw,
+        "anova": anova,
+        "equal_slopes": equal_slopes,
+        "goodness": {"r_squared": float(r2),
+                     "adjusted_r_squared": float(1 - (1 - r2) * (n - 1) / df_res),
+                     "sy_x": math.sqrt(ms_res), "df": df_res},
+        "normality_of_residuals": columnstats.normality_tests(resid.tolist()),
+        "predicted": _aligned(d["rows"], d["n_rows"], fitted),
+        "residuals": _aligned(d["rows"], d["n_rows"], resid),
+        "warnings": warnings,
+    }
+
+
 # -------------------------------------------------------- logistic regression
 
 def _loglik(X, y, beta, offset):
@@ -726,14 +919,177 @@ def _code_outcome(var, rows, positive=None):
     return y, labels
 
 
+class SeparationError(ValueError):
+    """Logistic regression refused for (quasi-)separation; api.analyze
+    reports error_kind = "separation" so the app can offer Firth's fit."""
+    kind = "separation"
+
+
+def _firth_pll(X, y, beta):
+    """Firth's penalized log-likelihood l(b) + log|I(b)| / 2 (the
+    Jeffreys-prior penalty) and the plain log-likelihood l(b)."""
+    eta = X @ beta
+    p = expit(eta)
+    ll = float(np.sum(y * eta - np.logaddexp(0.0, eta)))
+    sign, logdet = np.linalg.slogdet(X.T @ (X * (p * (1 - p))[:, None]))
+    return (ll + 0.5 * logdet if sign > 0 else -math.inf), ll
+
+
+def _firth_fit(X, y, *, beta0=None, free=None, max_iter: int = 200,
+               tol: float = 1e-10) -> dict:
+    """Maximize Firth's penalized likelihood over the coefficients in
+    `free` (all by default), the others held at beta0. Newton steps on the
+    modified score U*(b) = X'(y - p + h (1/2 - p)), h the diagonal of the
+    hat matrix W^1/2 X (X'WX)^-1 X' W^1/2, with the Fisher information of
+    the free coefficients as the step matrix, steps capped at 5 and halved
+    until the penalized likelihood rises (Heinze & Schemper 2002; R's
+    logistf). The penalty always uses the information of the full model,
+    as logistf's profile CIs and penalized likelihood ratio tests do."""
+    k = X.shape[1]
+    free = list(range(k)) if free is None else list(free)
+    beta = np.zeros(k) if beta0 is None else np.array(beta0, dtype=float)
+    pl, ll = _firth_pll(X, y, beta)
+    converged = not free
+    it = 0
+    for it in range(1, max_iter + 1):
+        if not free:
+            break
+        p = expit(X @ beta)
+        w = p * (1 - p)
+        info = X.T @ (X * w[:, None])
+        inv = np.linalg.inv(info)
+        h = np.einsum("ij,jk,ik->i", X, inv, X) * w
+        score = X.T @ (y - p + h * (0.5 - p))
+        sub = info[np.ix_(free, free)]
+        try:
+            step_f = np.linalg.solve(sub, score[free])
+        except np.linalg.LinAlgError:
+            step_f = np.linalg.lstsq(sub, score[free], rcond=None)[0]
+        big = float(np.max(np.abs(step_f)))
+        if big > 5:
+            step_f *= 5 / big
+        step = np.zeros(k)
+        step[free] = step_f
+        t = 1.0
+        for _ in range(60):
+            cand = beta + t * step
+            pl_new, ll_new = _firth_pll(X, y, cand)
+            if pl_new >= pl - 1e-12 * (1 + abs(pl)):
+                break
+            t /= 2
+        delta = float(np.max(np.abs(cand - beta)))
+        beta, pl, ll = cand, pl_new, ll_new
+        if delta < tol * (1 + float(np.max(np.abs(beta)))):
+            converged = True
+            break
+    p = expit(X @ beta)
+    info = X.T @ (X * (p * (1 - p))[:, None])
+    return {"beta": beta, "pll": pl, "ll": ll, "p": p, "info": info,
+            "converged": converged, "iterations": it}
+
+
+def _firth_profile_ci(X, y, j, fit, se_j, q):
+    """Profile penalized-likelihood interval for coefficient j: the values
+    b where 2 (pl_max - max pl with b_j = b) equals the chi-square(1)
+    critical value q (logistf's default CIs). None for a side that never
+    reaches q."""
+    from scipy.optimize import brentq
+
+    others = [i for i in range(X.shape[1]) if i != j]
+    start = fit["beta"].copy()
+
+    def dev(b):
+        b0 = start.copy()
+        b0[j] = b
+        return 2 * (fit["pll"] - _firth_fit(X, y, beta0=b0, free=others)["pll"]) - q
+
+    out = []
+    for sign in (-1.0, 1.0):
+        step = se_j if se_j > 0 and math.isfinite(se_j) else 1.0
+        inner, outer = fit["beta"][j], None
+        for _ in range(40):
+            cand = fit["beta"][j] + sign * step
+            if dev(cand) > 0:
+                outer = cand
+                break
+            inner = cand
+            step *= 2
+        out.append(None if outer is None else float(
+            brentq(dev, min(inner, outer), max(inner, outer), xtol=1e-10, rtol=1e-12)))
+    return out
+
+
+def _firth_logistic(d, X, y, labels, outcome, sep, ci_level, ci_method):
+    """Firth's logistic regression (Firth 1993, Biometrika 80:27; Heinze &
+    Schemper 2002, Stat Med 21:2409, "A solution to the problem of
+    separation in logistic regression"): maximum penalized likelihood with
+    the Jeffreys prior, which keeps every estimate finite under separation
+    and removes the first-order bias of the ML estimate, shrinking it
+    towards 0. As R's logistf reports it: SEs from the inverse Fisher
+    information at the estimate, profile penalized-likelihood CIs
+    (ci_method='wald' for Wald ones), and for each coefficient the
+    penalized likelihood ratio test of b_j = 0 (chi-square, 1 df); the
+    overall test refits with every coefficient but the intercept at 0."""
+    n, k = X.shape
+    fit = _firth_fit(X, y)
+    if not fit["converged"] or not np.all(np.isfinite(fit["beta"])):
+        raise ValueError("Firth's logistic regression did not converge")
+    beta = fit["beta"]
+    se = np.sqrt(np.diag(np.linalg.inv(fit["info"])))
+    q = float(stats.chi2.ppf(ci_level, 1))
+    zcrit = float(stats.norm.ppf((1 + ci_level) / 2))
+    coefs = []
+    for j, name in enumerate(d["columns"]):
+        if ci_method == "profile":
+            ci = _firth_profile_ci(X, y, j, fit, se[j], q)
+        elif ci_method == "wald":
+            ci = [float(beta[j] - zcrit * se[j]), float(beta[j] + zcrit * se[j])]
+        else:
+            raise ValueError(f"unknown CI method: {ci_method}")
+        b0 = beta.copy()
+        b0[j] = 0.0
+        sub = _firth_fit(X, y, beta0=b0, free=[i for i in range(k) if i != j])
+        chi2 = max(2 * (fit["pll"] - sub["pll"]), 0.0)
+        coefs.append({
+            "name": name, "estimate": float(beta[j]), "se": float(se[j]), "ci": ci,
+            "chi2": float(chi2), "p": float(stats.chi2.sf(chi2, 1)),
+            "odds_ratio": float(math.exp(beta[j])),
+            "odds_ratio_ci": [None if c is None else float(math.exp(c)) for c in ci],
+        })
+    b0 = np.zeros(k)
+    b0[0] = beta[0]
+    null = _firth_fit(X, y, beta0=b0, free=[0])
+    g = max(2 * (fit["pll"] - null["pll"]), 0.0)
+    extra = {}
+    if k == 2 and len(d["terms"]) == 1 and d["columns"][1] in d["terms"]:
+        # one continuous predictor: the fitted curve and X at 50% (-b0 / b1)
+        extra["x_at_50_percent"] = float(-beta[0] / beta[1]) if beta[1] else None
+    return {
+        **extra,
+        "outcome": outcome, "outcome_coding": labels, "method": "firth",
+        "separation": sep,
+        "n_rows_analyzed": n, "n_rows_skipped": d["n_rows"] - n, "rows_used": d["rows"],
+        "n_ones": int(y.sum()), "n_zeros": int(n - y.sum()), "n_parameters": k,
+        "reference_levels": d["reference"], "ci_level": ci_level, "ci_method": ci_method,
+        "coefficients": coefs, "iterations": fit["iterations"],
+        "penalized_log_likelihood": fit["pll"], "log_likelihood": fit["ll"],
+        "likelihood_ratio_test": {"chi2": g, "df": k - 1,
+                                  "p": float(stats.chi2.sf(g, k - 1)) if k > 1 else None},
+        "predicted_probability": _aligned(d["rows"], d["n_rows"], fit["p"]),
+        "observed": _aligned(d["rows"], d["n_rows"], y),
+    }
+
+
 def logistic_regression(variables, outcome: str, predictors, *,
                         interactions=(), reference_levels=None,
                         outcome_positive=None, ci_level: float = 0.95,
                         ci_method: str = "profile", cutoff: float = 0.5,
-                        hl_groups: int = 10) -> dict:
+                        hl_groups: int = 10, firth: bool = False) -> dict:
     """Simple (one predictor) or multiple logistic regression.
 
     ci_method: 'profile' (profile likelihood, default) or 'wald'.
+    firth=True fits Firth's penalized likelihood (_firth_logistic), which
+    gives finite estimates when the data are separated.
     """
     table = parse_table(variables)
     d = _design(table, outcome, predictors, interactions, reference_levels)
@@ -749,16 +1105,18 @@ def logistic_regression(variables, outcome: str, predictors, *,
         lp_checked = True
     except Exception:  # LP solver unavailable: fall back to the fit
         sep, lp_checked = None, False
+    if firth:
+        return _firth_logistic(d, X, y, labels, outcome, sep, ci_level, ci_method)
     if sep:
         kind = "Perfect" if sep == "complete" else "Quasi-perfect"
-        raise ValueError(f"{kind} separation: the predictors classify the "
-                         "outcome (almost) perfectly, so the best-fit "
-                         "coefficients are infinite and cannot be reported")
+        raise SeparationError(f"{kind} separation: the predictors classify the "
+                              "outcome (almost) perfectly, so the best-fit "
+                              "coefficients are infinite and cannot be reported")
     fit = _logit_fit(X, y)
     if not fit["converged"] or (
             not lp_checked and np.max(np.abs(X @ fit["beta"])) > 30):
-        raise ValueError("logistic regression did not converge (the data "
-                         "may be perfectly or quasi-perfectly separated)")
+        raise SeparationError("logistic regression did not converge (the data "
+                              "may be perfectly or quasi-perfectly separated)")
     beta, ll, p = fit["beta"], fit["ll"], fit["p"]
     cov = np.linalg.inv(fit["hess"])
     se = np.sqrt(np.diag(cov))
@@ -907,37 +1265,12 @@ def _poisson_fit(X, y, *, offset=None, beta0=None, max_iter: int = 200,
             "converged": converged, "iterations": it}
 
 
-def poisson_regression(variables, outcome: str, predictors, *,
-                       interactions=(), reference_levels=None,
-                       exposure: str | None = None, ci_level: float = 0.95,
-                       ci_method: str = "profile",
-                       quasi: bool = False) -> dict:
-    """Multiple Poisson regression: log(mean count) = b0 + b1 X1 + ...
-    (+ log(exposure) as an offset when an exposure variable is named).
-
-    Curve-fitting guide, "Choosing a model for multiple regression": every
-    Y must be an actual count, "not normalized in any way"; "Goodness of
-    fit from multiple regression": pseudo R2 = (LLfit - LLo) / (LLmax -
-    LLo), deviance D = 2(LLmax - LLfit), and a dispersion ratio phi (well
-    above 1 = overdispersion); "Parameter values from multiple
-    regression": |z| per coefficient. Not stated there and filled in with
-    the usual GLM choices: phi = Pearson chi2 / (n - k) (the deviance-based
-    ratio is also given), Wald z P values, profile-likelihood CIs (the
-    guide's Poisson CIs are "usually asymmetrical"; ci_method='wald' for
-    symmetric ones), the likelihood-ratio test against the intercept-only
-    model, and the exposure offset (Prism has none: there the counts per
-    unit time must be converted back to counts).
-
-    quasi=True gives quasi-Poisson standard errors for overdispersed
-    counts (Wedderburn 1974, Biometrika 61:439; McCullagh & Nelder 1989,
-    Generalized Linear Models, 2nd ed., sections 4.5 and 9.2): the same
-    estimates, the dispersion phi = Pearson chi2 / (n - k) estimated, every
-    SE multiplied by sqrt(phi), t statistics with n - k df and Wald CIs
-    from t (statsmodels GLM(scale="X2", use_t=True); R's summary.glm for
-    family = quasipoisson reports the same SEs, t and P), and the overall
-    test an F test, F = (null deviance - deviance) / (k - 1) / phi on
-    (k - 1, n - k) df (R's anova(..., test = "F")). There is no likelihood,
-    so the AIC is not given."""
+def _count_data(variables, outcome, predictors, interactions, reference_levels,
+                exposure, model="Poisson regression"):
+    """Design, counts and log-exposure offset of a count regression, with
+    the checks Poisson and negative binomial regression share: whole
+    counts of 0 or more, a positive exposure, and no level of a
+    categorical predictor whose counts are all 0."""
     table = parse_table(variables)
     d = _design(table, outcome, predictors, interactions, reference_levels)
     X = d["X"]
@@ -946,7 +1279,7 @@ def poisson_regression(variables, outcome: str, predictors, *,
         raise ValueError(f"outcome {outcome} must be counts (0, 1, 2, ...)")
     y = np.array([by[outcome]["values"][i] for i in d["rows"]], float)
     if np.any(y < 0) or np.any(y != np.round(y)):
-        raise ValueError("Poisson regression needs actual counts (whole "
+        raise ValueError(f"{model} needs actual counts (whole "
                          "numbers, 0 or more), not normalized values")
     n, k = X.shape
     offset = np.zeros(n)
@@ -981,8 +1314,45 @@ def poisson_regression(variables, outcome: str, predictors, *,
             if rows.any() and y[rows].sum() == 0:
                 raise ValueError(
                     f"every count in {term} = {lvl} is 0, so its "
-                    "coefficient is minus infinity: Poisson regression "
+                    f"coefficient is minus infinity: {model} "
                     "cannot be fitted (leave that group out)")
+    return table, by, d, X, y, offset
+
+
+def poisson_regression(variables, outcome: str, predictors, *,
+                       interactions=(), reference_levels=None,
+                       exposure: str | None = None, ci_level: float = 0.95,
+                       ci_method: str = "profile",
+                       quasi: bool = False) -> dict:
+    """Multiple Poisson regression: log(mean count) = b0 + b1 X1 + ...
+    (+ log(exposure) as an offset when an exposure variable is named).
+
+    Curve-fitting guide, "Choosing a model for multiple regression": every
+    Y must be an actual count, "not normalized in any way"; "Goodness of
+    fit from multiple regression": pseudo R2 = (LLfit - LLo) / (LLmax -
+    LLo), deviance D = 2(LLmax - LLfit), and a dispersion ratio phi (well
+    above 1 = overdispersion); "Parameter values from multiple
+    regression": |z| per coefficient. Not stated there and filled in with
+    the usual GLM choices: phi = Pearson chi2 / (n - k) (the deviance-based
+    ratio is also given), Wald z P values, profile-likelihood CIs (the
+    guide's Poisson CIs are "usually asymmetrical"; ci_method='wald' for
+    symmetric ones), the likelihood-ratio test against the intercept-only
+    model, and the exposure offset (Prism has none: there the counts per
+    unit time must be converted back to counts).
+
+    quasi=True gives quasi-Poisson standard errors for overdispersed
+    counts (Wedderburn 1974, Biometrika 61:439; McCullagh & Nelder 1989,
+    Generalized Linear Models, 2nd ed., sections 4.5 and 9.2): the same
+    estimates, the dispersion phi = Pearson chi2 / (n - k) estimated, every
+    SE multiplied by sqrt(phi), t statistics with n - k df and Wald CIs
+    from t (statsmodels GLM(scale="X2", use_t=True); R's summary.glm for
+    family = quasipoisson reports the same SEs, t and P), and the overall
+    test an F test, F = (null deviance - deviance) / (k - 1) / phi on
+    (k - 1, n - k) df (R's anova(..., test = "F")). There is no likelihood,
+    so the AIC is not given."""
+    table, by, d, X, y, offset = _count_data(variables, outcome, predictors, interactions,
+                                             reference_levels, exposure)
+    n, k = X.shape
     with np.errstate(over="ignore", invalid="ignore"):
         fit = _poisson_fit(X, y, offset=offset)
     beta, ll, mu = fit["beta"], fit["ll"], fit["mu"]
@@ -1110,6 +1480,463 @@ def poisson_regression(variables, outcome: str, predictors, *,
             "Poisson distribution allows (overdispersion), so the standard "
             "errors, confidence intervals and P values are too small.")
     return out
+
+
+# ------------------------------------------------- binomial and negative binomial
+
+def _glm_coefficients(X, columns, beta, se, *, ci_level, ci_method, ratio, profile,
+                      t_df=None):
+    """Coefficient rows of a log- or logit-link GLM: estimate, SE, CI, z (or
+    t on t_df df for the quasi families, with Wald t CIs), P and the
+    exponentiated estimate ("odds_ratio" / "rate_ratio") with its CI.
+    profile(j) gives the profile-likelihood CI of coefficient j."""
+    zcrit = float(stats.norm.ppf((1 + ci_level) / 2))
+    tcrit = float(stats.t.ppf((1 + ci_level) / 2, t_df)) if t_df else None
+    vifs = _vifs(X) if X.shape[1] > 2 else [None, {"r2_with_others": 0.0, "vif": 1.0}]
+    out = []
+    for j, name in enumerate(columns):
+        # an estimate a billionth of its SE is rounding noise around an exact 0
+        b = 0.0 if abs(beta[j]) <= 1e-9 * se[j] else float(beta[j])
+        stat = b / se[j]
+        if t_df:
+            ci = [float(b - tcrit * se[j]), float(b + tcrit * se[j])]
+            row = {"t": float(abs(stat)), "df": t_df,
+                   "p": float(2 * stats.t.sf(abs(stat), t_df))}
+        else:
+            if ci_method == "profile":
+                ci = profile(j)
+            elif ci_method == "wald":
+                ci = [float(b - zcrit * se[j]), float(b + zcrit * se[j])]
+            else:
+                raise ValueError(f"unknown CI method: {ci_method}")
+            row = {"z": float(abs(stat)), "p": float(2 * stats.norm.sf(abs(stat)))}
+        out.append({"name": name, "estimate": b, "se": float(se[j]), "ci": ci, **row,
+                    ratio: float(math.exp(b)),
+                    f"{ratio}_ci": [None if c is None else float(math.exp(c)) for c in ci],
+                    "vif": None if vifs[j] is None else vifs[j]["vif"]})
+    return out
+
+
+def _level_rows(d, X, term):
+    """(level, row mask) of each level of categorical term, reference last."""
+    cols = d["terms"][term]
+    dummies = X[:, cols]
+    groups = [(d["columns"][j].split("[", 1)[1][:-1], dummies[:, i] == 1)
+              for i, j in enumerate(cols)]
+    groups.append((d["reference"].get(term), ~np.any(dummies == 1, axis=1)))
+    return groups
+
+
+def _binom_ll(s, n, eta, lchoose):
+    return float(np.sum(s * eta - n * np.logaddexp(0.0, eta)) + lchoose)
+
+
+def _binom_fit(X, s, n, *, offset=None, beta0=None, max_iter: int = 200,
+               tol: float = 1e-10) -> dict:
+    """Newton-Raphson (= IRLS for the canonical logit link) for successes s
+    out of n, with step halving so the log-likelihood never decreases."""
+    rows, k = X.shape
+    offset = np.zeros(rows) if offset is None else offset
+    lch = 0.0  # the binomial coefficients do not move the fit
+    if beta0 is None:
+        beta = np.zeros(k)
+        if k:
+            p0 = min(max(float(s.sum() / n.sum()), 1e-8), 1 - 1e-8)
+            beta[0] = math.log(p0 / (1 - p0))
+    else:
+        beta = np.array(beta0, dtype=float)
+    ll = _binom_ll(s, n, X @ beta + offset, lch)
+    converged = False
+    it = 0
+    for it in range(1, max_iter + 1):
+        p = expit(X @ beta + offset)
+        grad = X.T @ (s - n * p)
+        hess = X.T @ (X * (n * p * (1 - p))[:, None])
+        try:
+            step = np.linalg.solve(hess, grad)
+        except np.linalg.LinAlgError:
+            step = np.linalg.lstsq(hess, grad, rcond=None)[0]
+        t = 1.0
+        for _ in range(60):
+            cand = beta + t * step
+            ll_new = _binom_ll(s, n, X @ cand + offset, lch)
+            if ll_new >= ll - 1e-12 * (1 + abs(ll)):
+                break
+            t /= 2
+        delta = float(np.max(np.abs(cand - beta))) if k else 0.0
+        beta, ll = cand, ll_new
+        if delta < tol * (1 + float(np.max(np.abs(beta)))):
+            converged = True
+            break
+    p = expit(X @ beta + offset)
+    hess = X.T @ (X * (n * p * (1 - p))[:, None])
+    return {"beta": beta, "ll": ll, "p": p, "hess": hess,
+            "converged": converged, "iterations": it}
+
+
+def binomial_regression(variables, successes: str, totals: str, predictors, *,
+                        interactions=(), reference_levels=None, ci_level: float = 0.95,
+                        ci_method: str = "profile", quasi: bool = False) -> dict:
+    """Binomial regression (logistic GLM for counts out of totals): each row
+    holds s positives out of n counted (cells, embryos, colonies per dish),
+    logit(P(positive)) = b0 + b1 X1 + ...; categorical predictors such as
+    the experiment enter as blocks (dummy coded against a reference level).
+
+    McCullagh & Nelder 1989 (Generalized Linear Models, 2nd ed., chapter 4)
+    and R's glm(cbind(s, n - s) ~ ..., family = binomial): maximum
+    likelihood, Wald z P values, profile-likelihood CIs (ci_method='wald'
+    for symmetric ones), odds ratios exp(b), the deviance and the
+    likelihood ratio test against the intercept-only model, and a
+    likelihood ratio test for each term (each predictor, or the block, as
+    a whole: drop1(test = "LRT")). The dispersion ratio phi = Pearson chi2
+    / (rows - k) checks for extra-binomial variation between dishes (well
+    above 1: the dishes differ more than counting error allows).
+    Analysing the counts this way, instead of a t test on percentages,
+    follows Warton & Hui 2011 (Ecology 92:3).
+
+    quasi=True gives quasi-binomial standard errors (Wedderburn 1974;
+    R's family = quasibinomial): the same estimates, every SE times
+    sqrt(phi), t tests and Wald t CIs on rows - k df, and F tests (drop in
+    deviance / df / phi) for the model and each term. Rows with a total of
+    0 carry no information and are refused, as are positives above the
+    total. A level of a categorical predictor with no positives (or only
+    positives) makes its odds ratio 0 (or infinite): refused with its name."""
+    table = parse_table(variables)
+    by = _by_name(table)
+    for name in (successes, totals):
+        if name not in by:
+            raise ValueError(f"unknown variable: {name}")
+        if by[name]["kind"] != "continuous":
+            raise ValueError(f"{name} must hold counts (0, 1, 2, ...)")
+    if successes == totals:
+        raise ValueError("the positives and the totals must be two different variables")
+    if totals in predictors:
+        raise ValueError(f"the totals {totals} cannot also be a predictor")
+    # a row needs its total too: blank the positives where it is missing
+    tot = by[totals]["values"]
+    masked = {**by[successes], "values": [v if tot[i] is not None else None
+                                          for i, v in enumerate(by[successes]["values"])]}
+    table = [masked if v["name"] == successes else v for v in table]
+    d = _design(table, successes, predictors, interactions, reference_levels)
+    X = d["X"]
+    s = np.array([by[successes]["values"][i] for i in d["rows"]], float)
+    n = np.array([tot[i] for i in d["rows"]], float)
+    for i, si, ni in zip(d["rows"], s, n):
+        if si < 0 or ni < 0 or si != round(si) or ni != round(ni):
+            raise ValueError(f"row {i + 1}: positives and totals must be whole counts "
+                             "(0, 1, 2, ...), not percentages or normalized values")
+        if ni == 0:
+            raise ValueError(f"row {i + 1}: the total is 0, so the row says nothing about "
+                             "the proportion: leave it out")
+        if si > ni:
+            raise ValueError(f"row {i + 1}: {int(si)} positives out of a total of {int(ni)}")
+    rows, k = X.shape
+    if rows <= k:
+        raise ValueError(f"need more rows ({rows}) than parameters ({k})")
+    if s.sum() == 0:
+        raise ValueError("no row has any positives, so there is nothing to compare")
+    if s.sum() == n.sum():
+        raise ValueError("every one counted is positive, so there is nothing to compare")
+    for term in d["terms"]:
+        if term not in by or by[term]["kind"] == "continuous":
+            continue
+        for lvl, mask in _level_rows(d, X, term):
+            if not mask.any():
+                continue
+            if s[mask].sum() == 0 or s[mask].sum() == n[mask].sum():
+                what = "no positives" if s[mask].sum() == 0 else "only positives"
+                raise ValueError(
+                    f"{term} = {lvl} has {what} in every row, so its odds ratio is "
+                    f"{'0' if what == 'no positives' else 'infinite'}: binomial regression "
+                    "cannot estimate it (leave that level out)")
+    # separation of the positives and negatives by the predictors (the
+    # logistic check on the counts expanded to one row per outcome)
+    xe = np.vstack([X[s > 0], X[n - s > 0]])
+    ye = np.r_[np.ones(int((s > 0).sum())), np.zeros(int((n - s > 0).sum()))]
+    try:
+        sep = detect_separation(xe, ye)
+    except Exception:  # LP solver unavailable: the fit checks convergence
+        sep = None
+    if sep:
+        raise ValueError(f"{'Perfect' if sep == 'complete' else 'Quasi-perfect'} separation: "
+                         "the predictors split the rows into some with no positives and some "
+                         "with only positives, so an odds ratio is infinite")
+
+    lch = float(np.sum(gammaln(n + 1) - gammaln(s + 1) - gammaln(n - s + 1)))
+    with np.errstate(over="ignore", invalid="ignore"):
+        fit = _binom_fit(X, s, n)
+    beta = fit["beta"]
+    if not fit["converged"] or not np.all(np.isfinite(beta)) or np.max(np.abs(X @ beta)) > 30:
+        raise ValueError("binomial regression did not converge (a group or range of the "
+                         "predictors with no positives, or only positives, makes a "
+                         "coefficient infinite)")
+    ll = fit["ll"] + lch
+    p = fit["p"]
+    mu = n * p
+    cov = np.linalg.inv(fit["hess"])
+    se = np.sqrt(np.diag(cov))
+    df_res = rows - k
+    pearson = float(np.sum((s - mu) ** 2 / (mu * (1 - p))))
+    phi = pearson / df_res
+    if quasi:
+        if not phi > 1e-10:
+            raise ValueError("every count equals its fitted value (dispersion phi = 0), so "
+                             "quasi-binomial standard errors would be 0: use binomial regression")
+        se = se * math.sqrt(phi)
+    q = float(stats.chi2.ppf(ci_level, 1))
+
+    def fitter(Xs, _ys, *, offset=None, beta0=None):
+        return _binom_fit(Xs, s, n, offset=offset, beta0=beta0)
+
+    coefs = _glm_coefficients(
+        X, d["columns"], beta, se, ci_level=ci_level, ci_method=ci_method, ratio="odds_ratio",
+        profile=lambda j: _profile_ci(X, s, j, fit, se[j], q, fitter=fitter),
+        t_df=df_res if quasi else None)
+
+    def xlogy(a, b):
+        return np.where(a > 0, a * np.log(np.where(a > 0, a, 1.0) / np.where(b > 0, b, 1.0)), 0.0)
+
+    deviance = float(2 * np.sum(xlogy(s, mu) + xlogy(n - s, n - mu)))
+    p0 = float(s.sum() / n.sum())
+    ll0 = _binom_ll(s, n, np.full(rows, math.log(p0 / (1 - p0))), lch)
+    null_deviance = float(2 * np.sum(xlogy(s, n * p0) + xlogy(n - s, n * (1 - p0))))
+    g = 2 * (ll - ll0)
+
+    term_tests = []
+    for term, idx in d["terms"].items():
+        sub = _binom_fit(np.delete(X, idx, axis=1), s, n)
+        drop = 2 * (fit["ll"] - sub["ll"])
+        row = {"term": term, "df": len(idx), "deviance_drop": float(drop)}
+        if quasi:
+            f_t = drop / len(idx) / phi
+            row.update({"F": float(f_t), "df2": df_res,
+                        "p": float(stats.f.sf(f_t, len(idx), df_res))})
+        else:
+            row["p"] = float(stats.chi2.sf(drop, len(idx)))
+        term_tests.append(row)
+
+    aic, aicc = _aicc(ll, k, rows)
+    aic0, aicc0 = _aicc(ll0, 1, rows)
+    out = {
+        "outcome": successes, "totals": totals,
+        "family": "quasibinomial" if quasi else "binomial",
+        "n_rows_analyzed": rows, "n_rows_skipped": d["n_rows"] - rows,
+        "rows_used": d["rows"],
+        "total_positive": float(s.sum()), "total_counted": float(n.sum()),
+        "n_parameters": k, "reference_levels": d["reference"],
+        "ci_level": ci_level, "ci_method": "wald_t" if quasi else ci_method,
+        "coefficients": coefs, "iterations": fit["iterations"],
+        "log_likelihood": ll, "null_log_likelihood": ll0,
+        "deviance": deviance, "deviance_df": df_res,
+        "deviance_p": float(stats.chi2.sf(deviance, df_res)),
+        "null_deviance": null_deviance,
+        "dispersion": {"pearson_chi2": pearson, "df": df_res, "phi": phi,
+                       "phi_deviance": deviance / df_res},
+        "likelihood_ratio_test": {"G": g, "df": k - 1,
+                                  "p": float(stats.chi2.sf(g, k - 1)) if k > 1 else None},
+        "term_tests": term_tests,
+        "model_comparison": {
+            "intercept_only": {"df": rows - 1, "aic": aic0, "aicc": aicc0, "log_likelihood": ll0},
+            "selected": {"df": df_res, "aic": aic, "aicc": aicc, "log_likelihood": ll},
+        },
+        "observed_proportion": _aligned(d["rows"], d["n_rows"], s / n),
+        "predicted_proportion": _aligned(d["rows"], d["n_rows"], p),
+        "warnings": [],
+    }
+    if quasi:
+        out["dispersion"]["se_factor"] = math.sqrt(phi)
+        f_stat = (g / (k - 1)) / phi if k > 1 else None
+        out["f_test"] = {"F": f_stat, "df1": k - 1, "df2": df_res,
+                         "p": float(stats.f.sf(f_stat, k - 1, df_res)) if f_stat is not None else None}
+        del out["model_comparison"]
+    elif phi > 1.5 and df_res >= 5:
+        out["warnings"].append(
+            f"Dispersion ratio phi = {phi:.3g}: the proportions vary between rows more than "
+            "counting alone allows (overdispersion), so the standard errors, confidence "
+            "intervals and P values are too small.")
+    return out
+
+
+def _nb_ll(y, mu, theta):
+    """NB2 log-likelihood (variance mu + mu^2 / theta), with the log y!
+    term so it is on the scale of the Poisson one."""
+    return float(np.sum(gammaln(y + theta) - gammaln(theta) - gammaln(y + 1)
+                        + theta * np.log(theta / (theta + mu))
+                        + np.where(y > 0, y * np.log(mu / (theta + mu)), 0.0)))
+
+
+def _nb_fit_beta(X, y, theta, *, offset=None, beta0=None, max_iter: int = 200,
+                 tol: float = 1e-10) -> dict:
+    """Fisher scoring (IRLS) for the log-link negative binomial at a fixed
+    theta, with step halving so the log-likelihood never decreases."""
+    rows, k = X.shape
+    offset = np.zeros(rows) if offset is None else offset
+    if beta0 is None:
+        beta = np.zeros(k)
+        if k:
+            beta[0] = math.log(max(float(y.sum()) / float(np.exp(offset).sum()), 1e-8))
+    else:
+        beta = np.array(beta0, dtype=float)
+
+    def mu_of(b):
+        return np.exp(np.clip(X @ b + offset, -700, 700))
+
+    ll = _nb_ll(y, mu_of(beta), theta)
+    converged = False
+    it = 0
+    for it in range(1, max_iter + 1):
+        mu = mu_of(beta)
+        w = mu / (1 + mu / theta)
+        grad = X.T @ ((y - mu) / (1 + mu / theta))
+        info = X.T @ (X * w[:, None])
+        try:
+            step = np.linalg.solve(info, grad)
+        except np.linalg.LinAlgError:
+            step = np.linalg.lstsq(info, grad, rcond=None)[0]
+        t = 1.0
+        for _ in range(60):
+            cand = beta + t * step
+            ll_new = _nb_ll(y, mu_of(cand), theta)
+            if ll_new >= ll - 1e-12 * (1 + abs(ll)):
+                break
+            t /= 2
+        delta = float(np.max(np.abs(cand - beta))) if k else 0.0
+        beta, ll = cand, ll_new
+        if delta < tol * (1 + float(np.max(np.abs(beta)))):
+            converged = True
+            break
+    mu = mu_of(beta)
+    info = X.T @ (X * (mu / (1 + mu / theta))[:, None])
+    return {"beta": beta, "ll": ll, "mu": mu, "hess": info,
+            "converged": converged, "iterations": it}
+
+
+THETA_MAX = 1e7
+
+
+def _theta_ml(y, mu) -> float:
+    """Maximum-likelihood theta for fixed means (MASS::theta.ml's score
+    equation, solved on log theta). math.inf when the likelihood still
+    rises at THETA_MAX: the counts are no more variable than Poisson."""
+    from scipy.optimize import brentq
+    from scipy.special import digamma
+
+    def score(log_t):
+        t = math.exp(log_t)
+        return float(np.sum(digamma(y + t) - digamma(t) + math.log(t) + 1
+                            - np.log(t + mu) - (y + t) / (t + mu)))
+
+    lo, hi = math.log(1e-8), math.log(THETA_MAX)
+    if score(hi) > 0:
+        return math.inf
+    if score(lo) < 0:
+        return 1e-8
+    return math.exp(brentq(score, lo, hi, xtol=1e-12, rtol=1e-12))
+
+
+def _nb_fit(X, y, offset, beta0=None) -> dict:
+    """Alternate the coefficients at fixed theta and theta at fixed means
+    (as MASS::glm.nb does) until the log-likelihood settles."""
+    fit = _poisson_fit(X, y, offset=offset, beta0=beta0)
+    theta = _theta_ml(y, fit["mu"])
+    if not math.isfinite(theta):
+        return {"theta": math.inf, **fit}
+    ll_old = -math.inf
+    for _ in range(200):
+        fit = _nb_fit_beta(X, y, theta, offset=offset, beta0=fit["beta"])
+        theta = _theta_ml(y, fit["mu"])
+        if not math.isfinite(theta):
+            return {"theta": math.inf, **fit}
+        ll = _nb_ll(y, fit["mu"], theta)
+        if abs(ll - ll_old) < 1e-12 * (1 + abs(ll)):
+            break
+        ll_old = ll
+    fit = _nb_fit_beta(X, y, theta, offset=offset, beta0=fit["beta"])
+    return {**fit, "theta": theta}
+
+
+def negative_binomial_regression(variables, outcome: str, predictors, *,
+                                 interactions=(), reference_levels=None,
+                                 exposure: str | None = None, ci_level: float = 0.95,
+                                 ci_method: str = "profile") -> dict:
+    """Negative binomial regression for overdispersed counts: log(mean
+    count) = b0 + b1 X1 + ... (+ log(exposure) as an offset), variance
+    mu + mu^2 / theta, theta estimated by maximum likelihood.
+
+    Venables & Ripley 2002 (Modern Applied Statistics with S, 4th ed.,
+    section 7.4; MASS::glm.nb): the coefficients by IRLS at fixed theta
+    and theta by maximum likelihood at fixed means, alternated to
+    convergence; SEs from the expected information at the estimated theta
+    (glm.nb's summary), Wald z P values, profile-likelihood CIs with theta
+    held at its estimate (ci_method='wald' for symmetric ones), rate
+    ratios exp(b), the likelihood ratio test against the intercept-only
+    negative binomial model (its own theta), and the test against Poisson
+    (theta infinite): LR = 2 (LL_NB - LL_Poisson) referred to a 50:50
+    mixture of chi-square(0) and chi-square(1), P = chi2.sf(LR, 1) / 2,
+    because theta = infinity lies on the boundary (Cameron & Trivedi 2013,
+    Regression Analysis of Count Data, 2nd ed., section 3.4). Counts that
+    vary no more than Poisson allows (theta infinite) are refused with
+    that reason: Poisson regression is then the model."""
+    _, _, d, X, y, offset = _count_data(variables, outcome, predictors, interactions,
+                                        reference_levels, exposure,
+                                        model="Negative binomial regression")
+    rows, k = X.shape
+    with np.errstate(over="ignore", invalid="ignore"):
+        pois = _poisson_fit(X, y, offset=offset)
+        fit = _nb_fit(X, y, offset, beta0=pois["beta"])
+    theta = fit["theta"]
+    if not math.isfinite(theta):
+        raise ValueError("the counts vary no more than a Poisson distribution allows (no "
+                         "overdispersion: theta is infinite), so the negative binomial model "
+                         "is the Poisson one: use Poisson regression")
+    beta, mu = fit["beta"], fit["mu"]
+    if (not fit["converged"] or not np.all(np.isfinite(beta))
+            or np.max(np.abs(X @ beta)) > 50):
+        raise ValueError("negative binomial regression did not converge (a group or range of "
+                         "the predictors with only zero counts makes a coefficient infinite)")
+    ll = _nb_ll(y, mu, theta)
+    cov = np.linalg.inv(fit["hess"])
+    se = np.sqrt(np.diag(cov))
+    q = float(stats.chi2.ppf(ci_level, 1))
+    base_offset = offset
+
+    def fitter(Xs, ys, *, offset=None, beta0=None):
+        extra = 0.0 if offset is None else offset
+        return _nb_fit_beta(Xs, ys, theta, offset=extra + base_offset, beta0=beta0)
+
+    nb_fixed = {**fit, "ll": ll}
+    coefs = _glm_coefficients(
+        X, d["columns"], beta, se, ci_level=ci_level, ci_method=ci_method, ratio="rate_ratio",
+        profile=lambda j: _profile_ci(X, y, j, nb_fixed, se[j], q, fitter=fitter))
+
+    null = _nb_fit(X[:, :1], y, offset)
+    ll0 = (_nb_ll(y, null["mu"], null["theta"]) if math.isfinite(null["theta"])
+           else _poisson_ll(y, np.log(null["mu"])))
+    g = max(2 * (ll - ll0), 0.0)
+    lr_pois = max(2 * (ll - pois["ll"]), 0.0)
+    df_res = rows - k
+    pearson = float(np.sum((y - mu) ** 2 / (mu + mu ** 2 / theta)))
+    aic, aicc = _aicc(ll, k + 1, rows)
+    return {
+        "outcome": outcome, "exposure": exposure, "family": "negbin",
+        "n_rows_analyzed": rows, "n_rows_skipped": d["n_rows"] - rows,
+        "rows_used": d["rows"], "total_count": float(y.sum()),
+        "n_parameters": k, "reference_levels": d["reference"],
+        "ci_level": ci_level, "ci_method": ci_method,
+        "coefficients": coefs, "iterations": fit["iterations"],
+        "theta": theta, "alpha": 1 / theta,
+        "log_likelihood": ll, "null_log_likelihood": ll0,
+        "poisson_log_likelihood": pois["ll"],
+        "dispersion": {"pearson_chi2": pearson, "df": df_res, "phi": pearson / df_res},
+        "likelihood_ratio_test": {"G": g, "df": k - 1,
+                                  "p": float(stats.chi2.sf(g, k - 1)) if k > 1 else None},
+        "vs_poisson": {"LR": lr_pois,
+                       "p": float(stats.chi2.sf(lr_pois, 1) / 2) if lr_pois > 0 else 1.0},
+        "aic": aic, "aicc": aicc,
+        "predicted": _aligned(d["rows"], d["n_rows"], mu),
+        "observed": _aligned(d["rows"], d["n_rows"], y),
+        "warnings": [],
+    }
 
 
 # ------------------------------------------------------------------------ PCA

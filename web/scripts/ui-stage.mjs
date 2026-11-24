@@ -1149,6 +1149,58 @@ const scenes = [
     await refs.evaluate((el) => el.scrollIntoView({ block: "center" }));
     await settle(s, 800);
   } },
+  // P-82: the adjusted difference as the answer, the equal-slopes check open
+  { name: "results-ancova", setup: async (s) => {
+    await fixture(s, "glm-models.json", { live: true });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Equal slopes/ }));
+    await into(s, ".pane-answer", "start");
+    await settle(s, 800);
+  } },
+  // P-86: overdispersed dishes, the dispersion chip with its one-click switch
+  { name: "results-binomial", setup: async (s) => {
+    await fixture(s, "glm-models.json", { live: true });
+    await selectSheet(s, "Binomial regression of Dishes");
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Proportions are overdispersed/ }));
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
+  // P-86: the negative binomial results table (θ and the test against Poisson)
+  { name: "results-negbin", setup: async (s) => {
+    await fixture(s, "glm-models.json", { live: true });
+    await selectSheet(s, "Negative binomial regression of Ames TA98");
+    await s.page.getByText("Negative binomial vs Poisson").first().waitFor({ timeout: 240000 });
+    await into(s, ".pane-results .mv-results", "start");
+    await settle(s, 800);
+  } },
+  // P-89: the separation refusal offers Firth's correction
+  { name: "results-firth-offer", setup: async (s) => {
+    await fixture(s, "glm-models.json", { live: true });
+    await selectSheet(s, "Logistic regression of Dose study");
+    await s.page.getByRole("button", { name: "Fit with Firth's correction" }).waitFor({ timeout: 240000 });
+    await settle(s, 800);
+  } },
+  // P-89: Firth's fit from the separation message: its odds ratio as the
+  // answer, the shrinkage note open
+  { name: "results-firth", setup: async (s) => {
+    await fixture(s, "glm-models.json", { live: true });
+    await selectSheet(s, "Logistic regression of Dose study");
+    // at phone width the navigator drawer stays open over the pane: close it
+    if (s.page.viewportSize().width < 600) {
+      await s.page.keyboard.press("Escape");
+      await s.page.waitForTimeout(500);
+    }
+    await click(s, s.page.getByRole("button", { name: "Fit with Firth's correction" }));
+    await s.page.getByText("Firth logistic regression of Response").first().waitFor({ timeout: 240000 });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Firth's correction: estimates shrunk/ }));
+    await into(s, ".pane-answer", "start");
+    await settle(s, 800);
+  } },
   { name: "results-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     const card = s.page.locator(".schild-card");
@@ -1292,6 +1344,19 @@ const scenes = [
     await example(s);
     await analyzeItem(s, /^Help me choose/);
     await dialog(s, "Help me choose a test").waitFor();
+  } },
+  // P-82: Help me choose with a baseline: ANCOVA, the RM route explained
+  { name: "guided-which-test-baseline", setup: async (s) => {
+    await example(s);
+    await analyzeItem(s, /^Help me choose/);
+    const dlg = dialog(s, "Help me choose a test");
+    await dlg.waitFor();
+    await dlg.locator("fieldset", { hasText: "What did you measure?" }).getByLabel(/^A measurement/).check();
+    await dlg.locator("fieldset", { hasText: "How many groups or conditions?" }).getByLabel("Two", { exact: true }).check();
+    await dlg.locator("fieldset", { hasText: "measured in each subject before treatment" })
+      .getByLabel("Yes", { exact: true }).check();
+    await dlg.locator(".wt-test", { hasText: "ANCOVA" }).waitFor();
+    await settle(s, 500);
   } },
   { name: "guided-plan", setup: async (s) => {
     await example(s);

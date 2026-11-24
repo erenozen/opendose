@@ -27,6 +27,13 @@ import {
   type MixedGroupingOptions,
 } from "./mixedGrouping";
 import { DDF_NEW_SHEET } from "../common/ddf";
+import {
+  ANALYSIS_MV_BINOMIAL, ANALYSIS_MV_NEGBIN, defaultBinomial, defaultNegBin, normalizeBinomial, normalizeNegBin,
+  runBinomial, runNegBin, type BinomialOptions, type BinomialResult, type NegBinOptions, type NegBinResult,
+} from "./glm";
+import {
+  ANALYSIS_MV_ANCOVA, defaultAncova, normalizeAncova, runAncova, type AncovaOptions, type AncovaResult,
+} from "./ancova";
 
 // Panels load on first use (sheets/lazy.ts).
 const controlsModule = () => import("./controls");
@@ -233,6 +240,71 @@ export const mvMixedGrouping = defineAnalysis<MixedGroupingOptions, Record<strin
   MethodsPanel: MixedUnitMethods,
 });
 
+// Baseline-adjusted comparison (ANCOVA, P-82): follow-up between groups
+// adjusted for the baseline (panels in ./ancovaPanels).
+const ancovaPanels = () => import("./ancovaPanels");
+const AncovaControls = lazyPart(ancovaPanels, "AncovaControls");
+const AncovaResults = lazyPart(ancovaPanels, "AncovaResults");
+const AncovaMethods = lazyPart(ancovaPanels, "AncovaMethods");
+
+export const mvAncova = defineAnalysis<AncovaOptions, AncovaResult>({
+  id: ANALYSIS_MV_ANCOVA,
+  label: "Baseline-adjusted comparison (ANCOVA)",
+  short: "ANCOVA",
+  description: "Groups measured before and after treatment: the follow-up compared between groups "
+    + "adjusted for the baseline, with adjusted means and the equal-slopes check.",
+  sheetName: (t) => `ANCOVA of ${t}`,
+  defaultOptions: ({ table }) => defaultAncova(table),
+  normalizeOptions: (raw, { table }) => normalizeAncova(raw, table),
+  run: runAncova,
+  defaultGraph: null,
+  ControlsPanel: AncovaControls,
+  ResultsPanel: AncovaResults,
+  MethodsPanel: AncovaMethods,
+});
+
+// Count and proportion models (P-86): positives out of counted, and
+// overdispersed counts (panels in ./glmPanels).
+const glmPanels = () => import("./glmPanels");
+const BinomialControls = lazyPart(glmPanels, "BinomialControls");
+const BinomialResults = lazyPart(glmPanels, "BinomialResults");
+const BinomialMethods = lazyPart(glmPanels, "BinomialMethods");
+const NegBinControls = lazyPart(glmPanels, "NegBinControls");
+const NegBinResults = lazyPart(glmPanels, "NegBinResults");
+const NegBinMethods = lazyPart(glmPanels, "NegBinMethods");
+
+export const mvBinomial = defineAnalysis<BinomialOptions, BinomialResult>({
+  id: ANALYSIS_MV_BINOMIAL,
+  label: "Binomial regression (positives out of counted)",
+  short: "Binomial",
+  description: "Positives out of the number counted per dish, well or animal: odds ratios with the "
+    + "experiment as a block, and the dispersion check (quasi-binomial when the dishes differ).",
+  sheetName: (t) => `Binomial regression of ${t}`,
+  defaultOptions: ({ table }) => defaultBinomial(table),
+  normalizeOptions: (raw, { table }) => normalizeBinomial(raw, table),
+  run: runBinomial,
+  defaultGraph: "mv_binomial_odds",
+  ControlsPanel: BinomialControls,
+  ResultsPanel: BinomialResults,
+  MethodsPanel: BinomialMethods,
+});
+
+export const mvNegBin = defineAnalysis<NegBinOptions, NegBinResult>({
+  id: ANALYSIS_MV_NEGBIN,
+  label: "Negative binomial regression (overdispersed counts)",
+  short: "Neg. binomial",
+  description: "Counts that vary more than Poisson allows (colonies, cells per field): rate ratios, "
+    + "the shape θ and the test against Poisson; an optional exposure as offset.",
+  sheetName: (t) => `Negative binomial regression of ${t}`,
+  defaultOptions: ({ table }) => defaultNegBin(table),
+  normalizeOptions: (raw, { table }) => normalizeNegBin(raw, table),
+  run: runNegBin,
+  defaultGraph: "mv_negbin_rates",
+  ControlsPanel: NegBinControls,
+  ResultsPanel: NegBinResults,
+  MethodsPanel: NegBinMethods,
+});
+
 // ------------------------------------------------------------ graphs
 
 const none = () => ({ x: "", y: "" });
@@ -307,6 +379,19 @@ export const mvGraphs = [
     PlotPanel: PoissonRatePlot, OptionsPanel: ForestOptions,
     formatFeatures: { noDatasets: true },
   }),
+  // the forest plots read only the coefficients and the CI level
+  defineGraph<unknown, LogisticResult>({
+    id: "mv_binomial_odds", label: "Odds ratios with CIs (forest plot)", group: "mv_binomial",
+    analysis: ANALYSIS_MV_BINOMIAL, autoTitles: none, exportName: "odds-ratios",
+    PlotPanel: LogitOddsPlot, OptionsPanel: ForestOptions,
+    formatFeatures: { noDatasets: true },
+  }),
+  defineGraph<unknown, PoissonResult>({
+    id: "mv_negbin_rates", label: "Rate ratios with CIs (forest plot)", group: "mv_negbin",
+    analysis: ANALYSIS_MV_NEGBIN, autoTitles: none, exportName: "rate-ratios",
+    PlotPanel: PoissonRatePlot, OptionsPanel: ForestOptions,
+    formatFeatures: { noDatasets: true },
+  }),
   defineGraph<PcaOptions, PcaResult>({
     id: "mv_pca_scree", label: "Scree plot", group: "mv_pca",
     analysis: ANALYSIS_MV_PCA, autoTitles: none, exportName: "scree-plot",
@@ -342,7 +427,7 @@ export const multivariableTable: TableTypeDef = {
   entryHint: "Each row is one observation (subject, sample); each column one "
     + "variable. Set a column to categorical for text levels such as "
     + "\"male\" / \"female\". Row titles can hold subject IDs.",
-  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvLogistic, mvPoisson, mvCox.analysis, mvPca,
-    mvRearrange, mvMixedGrouping],
+  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvAncova, mvLogistic, mvBinomial, mvPoisson, mvNegBin,
+    mvCox.analysis, mvPca, mvRearrange, mvMixedGrouping],
   graphs: [...mvGraphs, ...mvCox.graphs, mixedNestedGraph],
 };

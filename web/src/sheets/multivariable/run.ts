@@ -12,7 +12,7 @@ import {
 
 // ------------------------------------------------------------ result shapes
 
-interface Failure { error?: string }
+interface Failure { error?: string; error_kind?: string }
 
 export interface Describe {
   n: number; mean?: number; sd?: number; sem?: number; median?: number;
@@ -114,6 +114,22 @@ export interface LogisticResult extends Failure {
   x_at_50_percent?: number | null;
   predictors?: string[];
   interactions?: [string, string][];
+  /** "firth": Firth's penalized likelihood (P-89); see FirthResult. */
+  method?: "firth";
+}
+
+/** Firth's logistic regression (multivar._firth_logistic): no pseudo R²,
+ *  Hosmer-Lemeshow, ROC or classification; P values from penalized
+ *  likelihood ratio tests. */
+export interface FirthResult extends Failure {
+  method: "firth"; outcome: string; outcome_coding: Record<string, number>;
+  separation: "complete" | "quasi-complete" | null;
+  n_rows_analyzed: number; n_rows_skipped: number; n_ones: number; n_zeros: number;
+  reference_levels: Record<string, string>; ci_level: number; ci_method: string;
+  coefficients: (Coefficient & { chi2: number })[];
+  penalized_log_likelihood: number; log_likelihood: number;
+  likelihood_ratio_test: { chi2: number; df: number; p: number | null };
+  predictors?: string[];
 }
 
 export interface PcaResult extends Failure {
@@ -207,6 +223,7 @@ export function runLogistic(engine: EngineBridge, table: DataTableModel,
     ci_method: o.ciMethod,
     cutoff: Math.min(0.999, Math.max(0.001, num(o.cutoff, 0.5))),
     hl_groups: Math.round(Math.min(20, Math.max(3, num(o.hlGroups, 10)))),
+    ...(o.firth ? { firth: true } : {}),
   });
   return r.error ? r : {
     ...r,

@@ -20,6 +20,8 @@ import AcrossExperiments from "./answer/AcrossExperiments";
 import RankLine from "./answer/RankLine";
 import { potencySummaries } from "../sheets/xy/experiments";
 import ResultsChecks from "./ResultsChecks";
+import { FirthAction } from "../guide/FirthAction";
+import { offersFirth } from "../sheets/multivariable/glm";
 import { useChecks } from "./useChecks";
 import { Button, Num, NumText } from "./ui";
 import "./answer/answer.css";
@@ -47,6 +49,13 @@ function expectedShape(analysisId: string, options: unknown, table: DataSheet["t
     const named = kind === "ttest" ? table.datasets.slice(0, 2) : table.datasets;
     const names = named.reduce((n, d) => n + d.name.length + 2, 0);
     return { figure: kind === "ttest" ? "ci" : "plain", reading: [200 + names, 165, 100, 280] };
+  }
+  // the wave 2 models lead with a ratio or difference and its CI line
+  // (keyFacts.ts ancovaFacts, glmFacts); only Firth's logistic fit has a
+  // plain-language reading (the logistic one)
+  if (["mv_ancova", "mv_binomial", "mv_negbin"].includes(analysisId)) return { figure: "ci", reading: null };
+  if (analysisId === "mv_logistic" && (options as { firth?: boolean } | null)?.firth === true) {
+    return { figure: "ci", reading: [250, 160, 80, 160] };
   }
   return { figure: null, reading: [250, 160, 80, 160] };
 }
@@ -166,11 +175,18 @@ export default function ResultsAnswer({ sheet, data, result, options, status, re
         ) : facts?.kind === "error" ? (
           <div className="answer-failed" role="alert">
             <p className="answer-error-text">{facts.message}</p>
-            <p className="answer-next">
-              Check the values in the table and the analysis options, then run it again.
-            </p>
-            {engineReady && !readOnly && (
-              <Button size="sm" onClick={() => results.forget(sheet.id)}>Run again</Button>
+            {offersFirth(sheet.analysis, result) && !readOnly ? (
+              // separated data: Firth's fit in one click (guide/FirthAction, P-89)
+              <FirthAction resultsId={sheet.id} />
+            ) : (
+              <>
+                <p className="answer-next">
+                  Check the values in the table and the analysis options, then run it again.
+                </p>
+                {engineReady && !readOnly && (
+                  <Button size="sm" onClick={() => results.forget(sheet.id)}>Run again</Button>
+                )}
+              </>
             )}
           </div>
         ) : items.length > 0 && (

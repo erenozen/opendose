@@ -70,6 +70,9 @@ export interface Design {
   /** "Are you asking whether the treatment effect differs between
    *  groups?": the interaction is the question (guide/interaction.ts). */
   differential?: boolean;
+  /** "Was the outcome also measured before treatment (a baseline)?":
+   *  the follow-up is compared adjusted for it (ANCOVA, P-82). */
+  baseline?: boolean;
 }
 
 export const DEFAULT_DESIGN: Design = {
@@ -375,6 +378,9 @@ function draft(d: Design, checks: DataChecks | null): Draft {
   if (d.blocked && d.factors === "one" && d.groups !== "one") {
     return blockedRecommendation(recommend({ ...d, paired: true, blocked: false }, checks));
   }
+  // Groups measured before and after treatment: the follow-up adjusted
+  // for the baseline (Vickers & Altman 2001), not a test on the times.
+  if (d.baseline && d.factors === "one" && d.groups !== "one") return ancova(d, base);
 
   // ---------------------------------------------------------- continuous
   const rank = rankTest(d, k, size);
@@ -804,7 +810,80 @@ function draft(d: Design, checks: DataChecks | null): Draft {
 
 type Base = { notes: string[]; tails: string };
 
+/** Two or more groups, each subject measured at baseline and at follow-up
+ *  (P-82): ANCOVA of the follow-up with the baseline as covariate. The
+ *  repeated-measures route (group × time) stays as the alternative, with
+ *  why it is second (Vickers & Altman 2001, BMJ 323:1123). */
+function ancova(d: Design, base: Base): Draft {
+  if (d.replicates !== "independent") {
+    base.notes.push(`Average the ${d.replicates === "cells" ? "cells" : "technical replicates"} within each `
+      + "subject first: one baseline and one follow-up value per subject.");
+  }
+  return { ...base, rule: "ancova",
+    test: "ANCOVA: follow-up compared between groups, adjusted for baseline",
+    reason: "Each subject was measured before treatment (the baseline) and after it (the follow-up), in "
+      + `${d.groups === "two" ? "two" : "three or more"} groups. Compare the follow-up between the groups with the `
+      + "baseline as a covariate (ANCOVA): it corrects for chance differences at baseline and has more power "
+      + "than comparing the follow-up alone or the change from baseline (Vickers & Altman 2001). The results "
+      + "give the adjusted difference with its confidence interval and check that the follow-up rises with "
+      + "the baseline at the same rate in every group.",
+    target: { tableType: "multivariable", analysisId: "mv_ancova", options: {},
+      layout: "Multiple variables table: one row per subject, with its group (a categorical column), its "
+        + "baseline value and its follow-up value." },
+    alternatives: [
+      { test: "Two-way repeated-measures ANOVA (group × time)", when: "for a time course with more than two "
+        + "times; with only a baseline and a follow-up its group × time interaction is the t test on the "
+        + "change from baseline, which has less power than ANCOVA",
+      target: { tableType: "grouped", analysisId: "grouped_two_way",
+        options: { design: "rm_rows", comparisons: "sidak", direction: "columns_within_rows" },
+        layout: LAYOUT.groupedRm } },
+      { test: "t test on the change from baseline", when: "simple to explain, but less precise than "
+        + "ANCOVA whenever baseline and follow-up are correlated" },
+    ],
+    postHoc: d.groups === "two" ? null : { family: "vs control",
+      method: "Each group against the reference group, adjusted for baseline",
+      why: "The ANCOVA results give each group's adjusted difference from the group you choose as the "
+        + "reference, with its confidence interval.",
+      inOpenDose: "These P values are not corrected for multiple comparisons: with several groups, "
+        + "interpret them with that in mind or correct them by hand (Bonferroni or Holm)." },
+    sources: src("vickersAltman2001"), explainers: [] };
+}
+
 function counts(d: Design, base: Base): Draft {
+  // Positives out of counted in each dish, well or animal, compared between
+  // groups (P-86): a binomial GLM on the counts with the experiment as a
+  // block, not a t test on percentages (Warton & Hui 2011).
+  if (d.replicates !== "independent" && d.groups !== "one") {
+    return { ...base, rule: "binomial_glm",
+      test: "Binomial regression of positives out of counted, experiment as a block",
+      reason: "The counts come from several dishes, wells or animals per group (often over several "
+        + "experiments). Model the number positive out of the number counted in each one with a binomial "
+        + "regression (logistic GLM): it weighs each dish by how many were counted, gives the odds ratio "
+        + "between groups with its confidence interval, takes the experiment as a block, and checks whether "
+        + "the dishes differ more than counting error (overdispersion; quasi-binomial then widens the "
+        + "intervals). A t test on percentages ignores how many were counted and can give proportions "
+        + "outside 0 to 100% (Warton & Hui 2011).",
+      target: { tableType: "multivariable", analysisId: "mv_binomial", options: {},
+        layout: "Multiple variables table: one row per dish (or well, animal), with its group, its "
+          + "experiment, the number positive and the number counted." },
+      alternatives: [
+        { test: "Proportion per biological replicate, then a t test or ANOVA", when: "simpler, with one "
+          + "proportion per dish or animal; it ignores how many were counted in each",
+        target: { tableType: COLUMN, analysisId: A_COLUMN,
+          options: { analysis: d.groups === "two" ? "ttest" : "anova",
+            ...(d.groups === "two" ? { ttestKind: d.paired ? "paired" : "welch" } : {}) },
+          layout: "Column table: one column per group, one row per biological replicate holding "
+            + "its proportion." } },
+        { test: "Cochran-Mantel-Haenszel test", when: "for one 2×2 table of pooled counts per experiment, "
+          + "keeping experiments as strata" },
+        { test: "Negative binomial regression", when: "for counts with no total (colonies, cells per "
+          + "field) that vary more than a Poisson distribution allows",
+        target: { tableType: "multivariable", analysisId: "mv_negbin", options: {},
+          layout: "Multiple variables table: one row per dish or field with its group and its count." } },
+      ],
+      postHoc: null, sources: src("wartonHui2011", "wedderburn1974", "lord2020"),
+      explainers: ["replicates"] };
+  }
   if (d.replicates !== "independent") {
     return { ...base, rule: "proportion_per_unit",
       test: "Proportion per biological replicate, then a t test or ANOVA",

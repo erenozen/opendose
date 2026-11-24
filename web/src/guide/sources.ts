@@ -294,6 +294,26 @@ export const SRC = {
   // sqrt(phi). DOI resolved to Biometrika 61(3):439-447, read 2026-11-24.
   wedderburn1974: { label: "Wedderburn 1974, Quasi-likelihood functions, generalized linear models, and the Gauss-Newton method, Biometrika 61:439",
     url: "https://doi.org/10.1093/biomet/61.3.439" },
+  // Baseline-adjusted comparison (P-82): with a baseline, ANCOVA of the
+  // follow-up beats follow-up alone and change scores. Crossref: BMJ
+  // 323:1123-1124, read 2026-11-24.
+  vickersAltman2001: { label: "Vickers & Altman 2001, Analysing controlled trials with baseline and follow up measurements, BMJ 323:1123",
+    url: "https://doi.org/10.1136/bmj.323.7321.1123" },
+  // Count and proportion models (P-86): analyse positives out of counted
+  // with a binomial GLM, not a t test on percentages. Crossref: Ecology
+  // 92(1):3-10, read 2026-11-24.
+  wartonHui2011: { label: "Warton & Hui 2011, The arcsine is asinine: the analysis of proportions in ecology, Ecology 92:3",
+    url: "https://doi.org/10.1890/10-0340.1" },
+  // Negative binomial regression: MASS::glm.nb, the reference method.
+  venablesRipley2002: { label: "Venables & Ripley 2002, Modern Applied Statistics with S, 4th ed., section 7.4",
+    url: "https://doi.org/10.1007/978-0-387-21706-2" },
+  // Firth's logistic regression (P-89): finite, less biased estimates
+  // under separation, shrunk toward no effect. Crossref: Biometrika
+  // 80(1):27-38 and Stat Med 21(16):2409-2419, read 2026-11-24.
+  firth1993: { label: "Firth 1993, Bias reduction of maximum likelihood estimates, Biometrika 80:27",
+    url: "https://doi.org/10.1093/biomet/80.1.27" },
+  heinzeSchemper2002: { label: "Heinze & Schemper 2002, A solution to the problem of separation in logistic regression, Stat Med 21:2409",
+    url: "https://doi.org/10.1002/sim.1047" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

@@ -44,6 +44,11 @@ function* designs(): Generator<[Design, DataChecks | null]> {
                               distribution, equalSD, ratioEffect, normalised, blocked, differential,
                               hypothetical }, checks];
                           }
+  // P-82: groups measured before and after treatment (the baseline question)
+  for (const groups of pick<Design["groups"]>(["one", "two", "three_plus"]))
+    for (const replicates of pick<Design["replicates"]>(["independent", "technical"]))
+      for (const paired of [false, true])
+        yield [{ ...DEFAULT_DESIGN, groups, replicates, paired, baseline: true }, null];
   for (const groups of pick<Design["groups"]>(["one", "two", "three_plus"]))
     for (const twoOutcomes of [false, true])
       for (const ordered of [false, true])

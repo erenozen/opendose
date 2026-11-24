@@ -2361,11 +2361,27 @@ def _multiple_regression(data, options):
         variables, [options["outcome"], *options["predictors"]])
 
 
+def _ancova(data, options):
+    """data: multiple-variables table. options: {outcome (the follow-up),
+    group, baseline, reference_level?, ci_level?}: the follow-up compared
+    between groups adjusted for the baseline (multivar.ancova)."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "ancova",
+         **multivar.ancova(
+             variables, options["outcome"], options["group"], options["baseline"],
+             reference_level=options.get("reference_level"),
+             ci_level=options.get("ci_level", 0.95))},
+        variables, [options["outcome"], options["group"], options["baseline"]])
+
+
 def _logistic_regression(data, options):
     """data: multiple-variables table (or XY-style {"x", "y"} lists for
     simple logistic regression). options: {outcome, predictors,
     interactions?, reference_levels?, outcome_positive?, ci_level?,
-    ci_method?: profile|wald, cutoff?: 0.5, hl_groups?: 10}."""
+    ci_method?: profile|wald, cutoff?: 0.5, hl_groups?: 10, firth?: false
+    (Firth's penalized likelihood, finite under separation)}. A refusal
+    for separation carries error_kind = "separation"."""
     if "variables" in data:
         variables = data["variables"]
         outcome, predictors = options["outcome"], options["predictors"]
@@ -2383,7 +2399,8 @@ def _logistic_regression(data, options):
              ci_level=options.get("ci_level", 0.95),
              ci_method=options.get("ci_method", "profile"),
              cutoff=options.get("cutoff", 0.5),
-             hl_groups=int(options.get("hl_groups", 10)))},
+             hl_groups=int(options.get("hl_groups", 10)),
+             firth=bool(options.get("firth", False)))},
         variables, [outcome, *predictors])
 
 
@@ -2404,6 +2421,41 @@ def _poisson_regression(data, options):
              ci_level=options.get("ci_level", 0.95),
              ci_method=options.get("ci_method", "profile"),
              quasi=bool(options.get("quasi", False)))},
+        variables, [options["outcome"], *options["predictors"]])
+
+
+def _binomial_regression(data, options):
+    """data: multiple-variables table. options: {outcome (the positives),
+    totals (the number counted), predictors, interactions?,
+    reference_levels?, ci_level?, ci_method?: profile|wald, quasi?: false
+    (quasi-binomial: SEs times sqrt(phi), t tests, F tests)}."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "binomial_regression",
+         **multivar.binomial_regression(
+             variables, options["outcome"], options["totals"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"),
+             quasi=bool(options.get("quasi", False)))},
+        variables, [options["outcome"], options["totals"], *options["predictors"]])
+
+
+def _negative_binomial_regression(data, options):
+    """data: multiple-variables table. options: {outcome (counts),
+    predictors, interactions?, reference_levels?, exposure? (its log is an
+    offset), ci_level?, ci_method?: profile|wald}."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "negative_binomial_regression",
+         **multivar.negative_binomial_regression(
+             variables, options["outcome"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             exposure=options.get("exposure") or None,
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"))},
         variables, [options["outcome"], *options["predictors"]])
 
 
@@ -3125,8 +3177,11 @@ _HANDLERS = {
     "multivar_descriptive": _multivar_descriptive,
     "correlation_matrix": _correlation_matrix,
     "multiple_regression": _multiple_regression,
+    "ancova": _ancova,
     "logistic_regression": _logistic_regression,
     "poisson_regression": _poisson_regression,
+    "binomial_regression": _binomial_regression,
+    "negative_binomial_regression": _negative_binomial_regression,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,
@@ -4635,7 +4690,11 @@ def analyze(payload: dict) -> dict:
     try:
         return _HANDLERS[kind](payload["data"], payload.get("options") or {})
     except Exception as exc:
-        return {"error": str(exc), "traceback": traceback.format_exc()}
+        out = {"error": str(exc), "traceback": traceback.format_exc()}
+        # a refusal the app can act on (multivar.SeparationError: offer Firth)
+        if getattr(exc, "kind", None):
+            out["error_kind"] = exc.kind
+        return out
 
 
 def _json_safe(obj):

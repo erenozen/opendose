@@ -100,6 +100,12 @@ export const METHODS: Record<string, (p?: MethodsParams) => string> = {
   proportion_per_unit: () => "The proportion was computed for each biological replicate and "
     + "those values compared, because the counts came from several animals, cultures or "
     + "experiments; a test on the pooled counts would treat every event as independent.",
+  ancova: () => "Analysis of covariance (ANCOVA) was chosen because each subject was measured before "
+    + "treatment and after it in two or more groups; the follow-up was compared between groups with the "
+    + "baseline as a covariate (Vickers & Altman 2001).",
+  binomial_glm: () => "Binomial regression (a logistic GLM) of the number positive out of the number "
+    + "counted in each dish was chosen because the counts came from several dishes or animals per group; "
+    + "the experiment entered as a block and overdispersion was checked (Warton & Hui 2011).",
   binomial: () => "The exact binomial test was chosen because one group with two outcomes was "
     + "compared with an expected proportion.",
   chisq_gof: () => "The chi-square goodness-of-fit test was chosen because counts in three or "
@@ -161,6 +167,12 @@ export const ALTERNATIVE_METHODS: Record<string, string> = {
   "Time course: mixed model with a covariance choice, AUC per subject": "A time-course mixed "
     + "model was chosen because the repeated factor was time; the analysis compares covariance "
     + "structures by AIC and each subject's area under the curve between groups.",
+  "Two-way repeated-measures ANOVA (group × time)": "Two-way repeated-measures ANOVA with group and "
+    + "time as factors was chosen to analyse the measurements before and after treatment.",
+  "Proportion per biological replicate, then a t test or ANOVA": "The proportion was computed for "
+    + "each biological replicate and those values compared.",
+  "Negative binomial regression": "Negative binomial regression was chosen for counts that vary more "
+    + "than a Poisson distribution allows.",
   "Cox regression": "Cox regression was chosen for hazard ratios with confidence intervals "
     + "adjusted for covariates, or for a continuous predictor instead of groups.",
 };
@@ -217,6 +229,7 @@ const LEGACY: Legacy[] = [
   [/^Three or more independent groups whose SDs you expect to differ: /, m0("welch_anova")],
   [/^Three or more independent groups with roughly Gaussian values: /, m0("one_way_anova")],
   [/^The counts were pooled from several animals, cultures or experiments\. /, m0("proportion_per_unit")],
+  [/^The counts come from several dishes, wells or animals per group /, m0("binomial_glm")],
   [/^One group with two outcomes compared with an expected proportion: /, m0("binomial")],
   [/^Counts in three or more categories compared with expected proportions /, m0("chisq_gof")],
   [/^Each subject was classified twice /, m0("mcnemar")],
@@ -232,6 +245,7 @@ const LEGACY: Legacy[] = [
   [/^Pick the model from the mechanism /, m0("nonlin_other")],
   [/^A dose-response experiment: fit the (agonist|inhibitor) model /,
     (m) => METHODS.ic50({ agonist: m[1] === "agonist" })],
+  [/^Each subject was measured before treatment \(the baseline\) and after it /, m0("ancova")],
   [/^You are asking whether the treatment effect is different in one group than in another /,
     (_m, test) => METHODS[/repeated-measures/.test(test) ? "two_way_interaction_rm" : "two_way_interaction"]()],
 ];
