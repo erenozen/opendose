@@ -2362,6 +2362,49 @@ await pwv.getByLabel("Measurement unit").fill("mmol/L");
 expect("power: detectable difference in raw units, 1.19 mmol/L (d = 0.909 × pooled SD 1.3)",
   await powerText(/Detectable difference\s+1\.19 mmol\/L \(d = 0\.909 × pooled SD 1\.3\)/),
   await pwv.locator(".power-summary").innerText().catch(() => ""));
+// P-95 more designs (engine/tests/test_power_designs.py). Faul et al.
+// (2007) p. 182, Berti et al.: 2 groups x 10 measurements, rho .5,
+// f 0.25, within effect at power .95 -> N = 20 (the plan's acceptance
+// test: same total N and power); Figure 4: 3 x 3, N 90, rho .3,
+// f 0.2572 -> power .997, critical F 3.048.
+await pwv.getByLabel("Test", { exact: true }).selectOption("anova_rm");
+await pwv.getByLabel("Solve for").selectOption("n");
+await pwv.getByLabel("Power (1 − β)").fill("0.95");
+await pwv.getByLabel("Groups", { exact: true }).fill("2");
+await pwv.getByLabel("Measurements per subject").fill("10");
+await pwv.getByLabel("Correlation among measurements (ρ)").fill("0.5");
+await pwv.getByLabel("Cohen's f").fill("0.25");
+expect("power, RM ANOVA (Faul et al. 2007, Berti example): 10 per group, 20 in total, 95.14%",
+  await powerText(/Power achieved\s+95\.14% \(target 95%\)[\s\S]*n per group\s+10 and 10[\s\S]*Total N\s+20/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+await pwv.getByLabel("Solve for").selectOption("power");
+await pwv.getByLabel("Subjects in total").fill("90");
+await pwv.getByLabel("Groups", { exact: true }).fill("3");
+await pwv.getByLabel("Measurements per subject").fill("3");
+await pwv.getByLabel("Correlation among measurements (ρ)").fill("0.3");
+await pwv.getByLabel("Cohen's f").fill("0.2572");
+expect("power, RM ANOVA (Faul et al. 2007, Figure 4): 99.66%, critical F 3.048 on 2, 174",
+  await powerText(/Power achieved\s+99\.66%[\s\S]*Degrees of freedom\s+2, 174[\s\S]*Critical F\s+3\.048/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+// Hsieh et al. (1998) Table II, G*Power manual 29.3: OR 1.5 per SD,
+// event rate .5, power .95 -> N = 317 (0.950486).
+await pwv.getByLabel("Test", { exact: true }).selectOption("logistic");
+await pwv.getByLabel("Solve for").selectOption("n");
+await pwv.getByLabel("Odds ratio per SD of the covariate").fill("1.5");
+await pwv.getByLabel("Event rate at the covariate’s mean").fill("0.5");
+expect("power, logistic regression (Hsieh et al. 1998): N 317 at 95.05%",
+  await powerText(/Power achieved\s+95\.05%[\s\S]*Total sample size\s+317/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+// G*Power manual 13.3.1: R² .10, 5 predictors, N 95 -> 0.673586.
+await pwv.getByLabel("Test", { exact: true }).selectOption("regression_r2");
+await pwv.getByLabel("Solve for").selectOption("power");
+await pwv.getByLabel("Total sample size").fill("95");
+await pwv.getByLabel("Predictors in the model").fill("5");
+await pwv.getByLabel("Predictors tested").fill("5");
+await pwv.getByLabel("R² of the model").fill("0.1");
+expect("power, multiple regression (G*Power manual 13.3.1): 67.36%, critical F 2.317",
+  await powerText(/Power achieved\s+67\.36%[\s\S]*Critical F\s+2\.317/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
 await pwv.getByRole("button", { name: "Done" }).click();
 
 // qPCR: Livak & Schmittgen (2001) Table 1 as a QuantStudio-style export

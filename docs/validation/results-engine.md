@@ -2913,3 +2913,75 @@ by bounded minimisation of the restricted likelihood and the
 Hartung-Knapp interval written out: tau^2 0.313243, pooled log RR
 -0.714532 (SE 0.179782), HK 95% CI -1.108444 to -0.320621, RR 0.4894
 (0.3301 to 0.7257): the engine's values.
+
+## Feature validation: power for more designs, nested designs, dose-series planning (2026-11-24)
+
+### P-95 Power for more designs
+
+`opendose.power_designs` adds seven kinds to `power.KINDS`, each solving
+for n (a priori), power at a planned n, or the detectable effect
+(sensitivity); none takes an effect observed in finished data (no post
+hoc power, do-not-build 3): repeated measures ANOVA (univariate approach,
+within, between and interaction effects with rho and the nonsphericity
+correction eps; Faul et al. 2007, Table 3), ANCOVA on one baseline
+(exact unconditional power over a normal covariate, Shieh 2020, by
+Gaussian quadrature; Borm et al.'s design factor 1 - rho^2 reported
+beside it), the Mann-Whitney and Wilcoxon signed-rank tests by the A.R.E.
+method (G*Power 3.1 manual chs. 22-24), equivalence by TOST (exact power
+integrated over the SD, Phillips 1990), multiple regression (omnibus and
+R^2 increase, lambda = f^2 N) and logistic regression (Hsieh, Bloch &
+Larsen 1998, normal or binary covariate, other covariates by 1/(1 -
+R^2)).
+
+References: the printed worked examples of Faul et al. (2007, Behav Res
+Methods 39:175, pp. 182-183), the G*Power 3.1 manual (June 1, 2023:
+13.3, 14.3, 22.3, 29.3), Hsieh et al. (1998, Tables I and II) and Borm
+et al. (2007, J Clin Epidemiol 60:1234, Table 1); G*Power, R and
+PowerTOST are not installed, so the rest comes from
+`engine/tests/reference/power_designs.py` (statsmodels FTestPowerF2,
+adaptive quadrature over F(1, N - 2) for ANCOVA, the TOST power
+integrated in the other order over the estimate, and Monte Carlo of the
+RM ANOVA F test, the ANCOVA, scipy's rank tests, the two one-sided t
+tests and statsmodels' Logit Wald test). `engine/tests/test_power_designs.py`:
+
+| Input | Reference | Engine |
+|---|---|---|
+| RM within, f 0.2572, 3 groups x 3 measurements, N 90, rho 0.3, eps 1 (Faul et al. Fig. 4) | power .997, critical F 3.048 on (2, 174), lambda 25.52 | 0.99655, 3.0479, 25.5157 |
+| Same, interaction f 0.1532; between f 0.1719571 | .653; .488 | 0.6528; 0.4884 |
+| RM 2 groups x 10 measurements, N 20, rho .5, f 0.25 (Berti et al. in Faul et al.) | between .30, within .95, interaction .95 | 0.2976, 0.9514, 0.9514 |
+| Same, a priori within effect at power .95 (the plan's acceptance test) | N 20 | N 20 (10 per group), power 0.9514; N 18 gives less than .95 |
+| RM within, f 0.2572, N 30 (Monte Carlo, 20000 runs) | 0.7176 | 0.7200 |
+| Multiple regression R^2 .10, 5 predictors, N 95 (manual 13.3.1) | lambda 10.555555, critical F 2.316858, df (5, 89), power 0.673586 | same digits |
+| r^2 .25, 1 predictor, N 12 (13.3.3); f^2 0.0714286, 4 of 9, N 90, alpha .01; f^2 .075, 3 of 12, N 200, alpha .01 (14.3.1) | 0.439627; 0.241297; lambda 15, critical F 3.888052, power 0.766990 | same digits; statsmodels FTestPowerF2 agrees to 1e-10 |
+| Logistic, normal covariate, OR 1.5, P .5, power .95 (Hsieh Table II; manual 29.3) | N 317, actual power 0.950486 | 317, 0.950486 |
+| Logistic, binary covariate, p .05 vs .10, pi .5, power .95 (Hsieh Table I) | N 1437, 0.950068 | 1437, 0.950068; Wald test simulated at 1437: 0.956 |
+| Wilcoxon signed-rank, A.R.E., d 0.8, N 11, one-sided, min A.R.E. (manual 22.3) | 0.7319 | 0.73198 |
+| ANCOVA, Borm Table 1 (delta 0.6, SD 1.2, r 0 to .9; alpha .05/.80 and .01/.90) | totals 126, 95, 81, 64, 45, 24 and 240, 180, 154, 122, 86, 46 by the two-step method | the two-step arithmetic reproduces every total; the exact n is within 1 per group of the paper's rule (1 - r^2) n + 1 |
+| ANCOVA d .5, rho .7, 33 per group; d 1.2, rho .6, 8 per group | quadrature 0.793396, 0.761384; simulated 0.7918 (40000), 0.7601 (100000) | 0.793396, 0.761384 (quadrature to 1e-10) |
+| TOST, three two-group cases and a paired case | other-order integration and 200000-run simulations (e.g. 20 per group, margin +/- 0.5, SD 0.5: 0.855805, simulated 0.856065) | to 1e-9 of the integration; within Monte Carlo error |
+| TOST with the upper margin far away | statsmodels TTestIndPower one-sided | to 1e-8 |
+| Mann-Whitney / signed-rank, normal parent (d .6, 30 per group; d .5, n 25) | simulated 0.5986, 0.6435 | 0.6069, 0.6479 (within 0.015) |
+
+Not reproduced: the manual's Laplace value for the signed-rank example
+(22.3: 0.923 with the A.R.E. method). The formula it documents gives
+0.9276 with k = 3/2, while the same formula with the minimum A.R.E.
+gives the printed 0.7319, so the 0.923 is taken as a misprint and not
+pinned. The A.R.E. method is a large-sample approximation and is
+optimistic for heavy tails: for a Laplace parent, d 0.6 and 30 per group
+it gives 0.804 against 0.750 simulated; the tool says so next to the
+method, and the test pins the direction of the gap.
+
+Also tested: invalid rho, eps, groups, margins, true differences
+outside the margins, odds ratio 1, event rates, R^2 bounds and too few
+subjects (each a message); a priori answers are the smallest n (n - 1
+falls short); effect solves round-trip; unit invariance (x 1e-12, x
+1e12) for ANCOVA and TOST; reflection of TOST margins; group-order and
+sign symmetry; A.R.E. 1 equals the t test; the justification sentence
+through the API for every kind.
+
+Web: `src/power/__tests__/power.test.ts` (payloads, validation messages,
+summary rows, unrounded n, curve parameters); e2e-check drives the Power
+tool: RM within effect a priori (Berti example) to 10 per group, 20 in
+total at 95.14% power, Faul et al.'s within effect at N 90 (99.66%,
+critical F 3.048), Hsieh's logistic example (N 317) and the regression
+omnibus example (67.36%).

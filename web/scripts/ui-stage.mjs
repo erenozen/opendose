@@ -1717,6 +1717,23 @@ const scenes = [
     await headerMenu(s, "File", "Power and sample size…");
     await s.page.locator("dialog[open]").first().waitFor();
   } },
+  // P-95: a design added to the power tool (repeated measures ANOVA, the
+  // Berti example of Faul et al. 2007), with its method and source line.
+  { name: "guided-power-designs", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Power and sample size…");
+    const pw = s.page.locator("dialog.power-dialog");
+    await pw.waitFor();
+    await pw.getByLabel("Test", { exact: true }).selectOption("anova_rm");
+    await pw.getByLabel("Power (1 − β)").fill("0.95");
+    await pw.getByLabel("Groups", { exact: true }).fill("2");
+    await pw.getByLabel("Measurements per subject").fill("10");
+    await pw.getByLabel("Cohen's f").fill("0.25");
+    await s.page.waitForFunction(() => /Total N\s+20/.test(
+      document.querySelector("dialog.power-dialog .power-summary")?.innerText ?? ""), null, { timeout: 60000 });
+    await pw.locator(".power-curve .plot").nth(1).waitFor({ timeout: 60000 }).catch(() => {});
+    await settle(s);
+  } },
 ];
 
 // ------------------------------------------------------------ runner

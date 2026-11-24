@@ -1,15 +1,17 @@
-// Tools → Power and sample size: a priori (n), post hoc (power) and
+// Tools → Power and sample size: a priori (n), power at a planned n and
 // sensitivity (detectable effect) calculations for t, F, proportion,
-// correlation, chi-square and log-rank tests, with effect-size helpers,
+// correlation, chi-square and log-rank tests and the designs of
+// MoreDesigns.tsx (repeated measures, ANCOVA, TOST, rank tests,
+// regression), all prospective, with effect-size helpers,
 // power curves and the ARRIVE-style justification sentence (saved to the
 // project as an info sheet); and a randomisation list generator.
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type Plotly from "plotly.js-dist-min";
 import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
 import {
-  Button, Field, Input, notify, SwapLabel, Tabs, useLabelSwap,
+  Button, Field, notify, SwapLabel, Tabs, useLabelSwap,
 } from "../components/ui";
 import { copyText, saveBlob } from "../export/download";
 import { analyzeAsync, isCancelled } from "../lib/engine";
@@ -21,12 +23,14 @@ import { Grid, KV } from "../sheets/common/clinicalKit";
 import { baseLayout, chromeFor, useDark } from "../sheets/multivariable/chart";
 import { PlotlyChart } from "../sheets/multivariable/plotkit";
 import {
-  defaultForm, defaultRandomForm, dFromMeans, effectGrid, FAMILIES, fFromMeans,
-  hFromProportions, hrFromMedians, justificationSheetContent, KIND_LABELS, HAS_TAILS, nForCurve,
-  nGrid, nLabel, powerOptions, powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN,
+  defaultForm, defaultRandomForm, dFromMeans, effectGrid, effectName, FAMILIES, fFromMeans,
+  hFromProportions, hrFromMedians, justificationSheetContent, KIND_LABELS, HAS_TAILS, MORE_KINDS, moreSummaryRows,
+  nForCurve, nGrid, nLabel, powerOptions, powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN,
   type PowerForm,
   type PowerKind, type PowerResult, type RandomForm, type RandomResult,
 } from "./power";
+import { Select, TextNum } from "./fields";
+import { MoreDesignInputs } from "./MoreDesigns";
 import { pilotForm, type PilotData } from "./pilot";
 import PilotCard from "./PilotCard";
 import "./power.css";
@@ -46,40 +50,9 @@ const EFFECT_LABEL: Record<PowerKind, string> = {
   t_one_sample: "Cohen's d", anova_oneway: "Cohen's f", two_proportions: "Proportion 2",
   one_proportion: "Expected proportion", mcnemar: "Odds ratio (discordant pairs)",
   correlation: "ρ", logrank: "Hazard ratio (treated vs control)", chi_square: "Cohen's w",
+  anova_rm: "Cohen's f", ancova: "Cohen's d", tost: "Equivalence margin", mann_whitney: "Cohen's d",
+  wilcoxon_signed_rank: "Cohen's d", regression_r2: "Cohen's f²", logistic: "Odds ratio",
 };
-
-/* Labelled controls on ui/Field (forms.md): the label beside the control
-   in this dense two-column tool (power.css), the note under it. */
-
-function Select<T extends string>({ label, value, options, onChange }: {
-  label: string; value: T; options: readonly (readonly [T, string])[]; onChange: (v: T) => void;
-}) {
-  const id = useId();
-  return (
-    <Field id={id} label={label}>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value as T)}>
-        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-      </select>
-    </Field>
-  );
-}
-
-/** A value typed as text: numbers keep what was typed ("1e-3", "0,05"). */
-function TextNum({ label, value, onChange, placeholder, note, text, wide }: {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; note?: ReactNode;
-  /** Words, not a number (no number pad on phones). */
-  text?: boolean;
-  /** Spans the whole column (a list of values, a sentence). */
-  wide?: boolean;
-}) {
-  return (
-    <Field label={label} description={note} className={wide ? "power-wide" : undefined}>
-      <Input inputMode={text ? undefined : "decimal"} autoComplete="off" spellCheck={false}
-        placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
-    </Field>
-  );
-}
 
 export default function PowerDialog({ initial, pilot, onClose }: {
   initial: Tab; pilot?: PilotData; onClose: () => void;
@@ -176,14 +149,15 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
 
   const k = form.kind;
   const solvingEffect = form.solve === "effect";
-  const two = k === "t_two_sample" || k === "two_proportions" || k === "logrank";
+  const two = k === "t_two_sample" || k === "two_proportions" || k === "logrank" || k === "ancova"
+    || k === "mann_whitney" || (k === "tost" && form.tostDesign === "two_sample");
   const testId = useId();
   // The one spoken line: the answer the calculation solved for,
   // not the whole output with its tables on every keystroke.
   const spoken = error && effectChosen ? ""
     : !result ? ""
       : result.solve === "power" ? `Power achieved: ${pct(result.power)}`
-        : result.solve === "effect" ? `Detectable effect: ${result.effect.name} = ${f(result.effect.value)}`
+        : result.solve === "effect" ? `Detectable effect: ${effectName(result.effect.name)} = ${f(result.effect.value)}`
           : result.n_per_group?.length ? `n per group: ${result.n_per_group.join(" and ")}`
             : result.n_total ? `${nLabel(form)}: ${result.n_total}` : "";
   return (
@@ -204,7 +178,7 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
             </select>
           </Field>
           <Select label="Solve for" value={form.solve}
-            options={[["n", "Sample size (a priori)"], ["power", "Power (post hoc)"],
+            options={[["n", "Sample size (a priori)"], ["power", "Power at a planned n"],
               ["effect", "Detectable effect (sensitivity)"]]}
             onChange={(solve) => set({ solve })} />
           <TextNum label="α (significance level)" value={form.alpha} onChange={(alpha) => set({ alpha })} />
@@ -274,6 +248,7 @@ function EffectInputs({ form, set, solvingEffect }: {
   form: PowerForm; set: (p: Partial<PowerForm>) => void; solvingEffect: boolean;
 }) {
   const k = form.kind;
+  if (MORE_KINDS.includes(k)) return <MoreDesignInputs form={form} set={set} solvingEffect={solvingEffect} />;
   const effectField = (label: string, key: keyof PowerForm) => (solvingEffect
     ? <p className="hint-block">{label}: solved for.</p>
     : <TextNum label={label} value={form[key] as string} onChange={(v) => set({ [key]: v } as Partial<PowerForm>)} />);
@@ -454,14 +429,17 @@ function PowerSummary({ r, form }: { r: PowerResult; form: PowerForm }) {
   if (r.n_total) rows.push([r.n_per_group?.length ? "Total N" : nLabel(form), String(r.n_total)]);
   for (const [label, v] of unroundedN(r)) rows.push([label, f(v)]);
   if (r.justification?.allocate) rows.push(["To allocate (with attrition)", r.justification.allocate.join(" + ")]);
-  rows.push(["Effect size", `${r.effect.name} = ${f(r.effect.value)}${r.solve === "effect" ? " (detectable)" : ""}`]);
+  if (r.effect.value != null) {
+    rows.push(["Effect size", `${effectName(r.effect.name)} = ${f(r.effect.value)}${r.solve === "effect" ? " (detectable)" : ""}`]);
+  }
   for (const raw of rawDetectable(form, r)) rows.push([raw.label, raw.text]);
+  rows.push(...moreSummaryRows(r));
   if (typeof r.effect.cohens_h === "number") rows.push(["Cohen's h", f(Math.abs(r.effect.cohens_h as number))]);
   if (typeof r.effect.eta_squared === "number") rows.push(["η²", f(r.effect.eta_squared as number)]);
   if (r.ncp !== undefined) rows.push(["Noncentrality", f(r.ncp)]);
   if (r.df !== undefined) rows.push(["Degrees of freedom", f(r.df)]);
   if (r.df1 !== undefined) rows.push(["Degrees of freedom", `${r.df1}, ${r.df2}`]);
-  if (r.critical_t !== undefined) rows.push(["Critical t", f(r.critical_t)]);
+  if (r.critical_t !== undefined) rows.push([r.kind === "tost" ? "Critical t (each one-sided test)" : "Critical t", f(r.critical_t)]);
   if (r.critical_f !== undefined) rows.push(["Critical F", f(r.critical_f)]);
   if (r.critical_chi2 !== undefined) rows.push(["Critical χ²", f(r.critical_chi2)]);
   if (r.critical_r) rows.push(["Critical r", r.critical_r.map((x) => f(x)).join(", ")]);
@@ -500,7 +478,8 @@ function PowerCurves({ curves, r }: { curves: { n: Curve; e: Curve; nLabel: stri
     };
     return {
       n: mk(curves.n, curves.nLabel, nForCurve(r), false),
-      e: curves.e.x.length ? mk(curves.e, r.effect.name, r.effect.value, r.kind === "logrank" || r.kind === "mcnemar") : null,
+      e: curves.e.x.length ? mk(curves.e, effectName(r.effect.name), r.effect.value,
+        r.kind === "logrank" || r.kind === "mcnemar" || r.kind === "logistic") : null,
     };
   }, [curves, r, dark]);
   return (

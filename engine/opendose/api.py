@@ -4282,7 +4282,14 @@ def _power(data, options):
     means, sd, k, equal_n, n_total; df1, groups; p1, p2, method; p0, p,
     balance; p12, p21, odds_ratio, p_discordant; rho, rho0; hr, events,
     method, p_event, median_control, hazard_control, accrual, followup;
-    w, df, p0, p1; distribution, ncp, df1, df2). justification (optional
+    w, df, p0, p1; distribution, ncp, df1, df2). More designs
+    (power_designs.py): "anova_rm" (effect within | between |
+    interaction, f, k, m, rho, eps, n_total), "ancova" (d, rho, n1,
+    ratio), "mann_whitney" / "wilcoxon_signed_rank" (d, parent | are,
+    n1 | n), "tost" (design, margin | lower + upper, theta, sd, n1 | n),
+    "regression_r2" (predictors, tested, f2 | r2 | r2_change + r2_full,
+    n_total), "logistic" (covariate, odds_ratio | p1, p0, x_prop,
+    r2_other, n). justification (optional
     {unit, effect_source, attrition}) adds the ARRIVE-style sentence.
     Result: {"analysis": "power", "kind", "solve", "alpha", "tails",
     "power" (achieved at the reported n), "target_power"?, "n_total",

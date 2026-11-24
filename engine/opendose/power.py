@@ -969,6 +969,12 @@ KINDS = {
     "chi_square": chi_square,
 }
 
+# More designs (repeated measures, ANCOVA, rank tests, TOST, regression):
+# power_designs imports the engines above, so it is registered here.
+from . import power_designs as _designs  # noqa: E402
+
+KINDS.update(_designs.KINDS)
+
 
 def power_analysis(kind: str, solve: str = "n", **params) -> dict:
     """Dispatch to one design (see KINDS); "generic" ignores solve."""
@@ -1081,6 +1087,20 @@ _TEST_TEXT = {
                    "({method})",
     "logrank": "a {tails} log-rank test ({method} method)",
     "chi_square": "a chi-square test with {df} degrees of freedom",
+    "anova_rm": "a repeated measures ANOVA ({rm_effect}; {groups_text}, "
+                "{m} measurements, correlation {rho:g}{eps})",
+    "ancova": "a {tails} ANCOVA t test adjusted for one baseline covariate "
+              "(correlation {rho:g})",
+    "mann_whitney": "a {tails} Mann-Whitney test (A.R.E. method, {parent} "
+                    "parent distribution)",
+    "wilcoxon_signed_rank": "a {tails} Wilcoxon signed-rank test (A.R.E. "
+                            "method, {parent} parent distribution)",
+    "tost": "an equivalence test (two one-sided tests at {alpha:g} each, "
+            "{design})",
+    "regression_r2": "an F test of {tested} of {predictors} predictors in a "
+                     "multiple regression",
+    "logistic": "a {tails} Wald test in a logistic regression ({covariate} "
+                "covariate; Hsieh et al. 1998)",
 }
 
 _METHOD_TEXT = {
@@ -1120,6 +1140,24 @@ def _effect_text(res):
         return f"a hazard ratio of {v:.2f}"
     if kind == "chi_square":
         return f"an effect of Cohen's w = {v:.2f}"
+    if kind == "anova_rm":
+        return f"an effect of Cohen's f = {v:.2f}"
+    if kind in ("ancova", "mann_whitney"):
+        return f"a standardized difference between means of d = {v:.2f}"
+    if kind == "wilcoxon_signed_rank":
+        return f"a standardized shift of d = {v:.2f}"
+    if kind == "tost":
+        return (f"equivalence within {e['lower']:.3g} to {e['upper']:.3g} "
+                f"when the true difference is {e['theta']:.3g} (SD "
+                f"{e['sd']:.3g})")
+    if kind == "regression_r2":
+        return f"an effect of Cohen's f² = {v:.3f}"
+    if kind == "logistic":
+        if res.get("covariate") == "binary":
+            return (f"an odds ratio of {v:.3g} (event rate {e['p0']:.3g} "
+                    f"vs {e['p1']:.3g})")
+        return (f"an odds ratio of {v:.3g} per SD of the covariate (event "
+                f"rate {e['p0']:.3g} at its mean)")
     return "the specified effect"
 
 
@@ -1139,7 +1177,26 @@ def justification(result: dict, *, unit: str = "animals",
                    "p0", 0.0) or 0.0,
                rho0=result.get("rho0", 0.0) or 0.0,
                method=_METHOD_TEXT.get(result.get("method"),
-                                       result.get("method")))
+                                       result.get("method")),
+               rm_effect={"within": "within-subject effect",
+                          "between": "between-group effect",
+                          "interaction": "group x time interaction"}.get(
+                              result.get("effect_type"), ""),
+               groups_text=("1 group" if result.get("k") == 1
+                            else f"{result.get('k')} groups"),
+               m=result.get("m"), rho=result.get("rho", 0.0) or 0.0,
+               eps=(f", epsilon {result['eps']:g}" if result.get("eps")
+                    not in (None, 1, 1.0) else ""),
+               parent={"min_are": "minimum-A.R.E.", "manual": "user-set "
+                       "A.R.E."}.get(result.get("parent"),
+                                     result.get("parent")),
+               alpha=result["alpha"],
+               design={"two_sample": "two groups", "paired": "paired",
+                       "one_sample": "one sample"}.get(result.get("design"),
+                                                       ""),
+               tested=result.get("tested"),
+               predictors=result.get("predictors"),
+               covariate=result.get("covariate"))
     test = _TEST_TEXT.get(kind, "the planned test").format(**fmt)
     test = test.replace("  ", " ")
     alpha = result["alpha"]
