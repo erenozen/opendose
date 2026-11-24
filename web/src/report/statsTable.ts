@@ -445,7 +445,8 @@ function coefficientRows(ctx: Ctx, r: R): StatsRow[] {
   const coefs: R[] = Array.isArray(r.coefficients) ? r.coefficients : [];
   const level = r.ci_level;
   const ratio = r.analysis === "cox" ? ["hazard_ratio", "Hazard ratio"]
-    : r.analysis === "logistic_regression" || r.analysis === "binomial_regression" ? ["odds_ratio", "Odds ratio"]
+    : r.analysis === "logistic_regression" || r.analysis === "binomial_regression"
+      || r.analysis === "ordinal_regression" ? ["odds_ratio", "Odds ratio"]
       : r.analysis === "poisson_regression" || r.analysis === "negative_binomial_regression" ? ["rate_ratio", "Rate ratio"]
         : null;
   const n = num(r.n_rows_analyzed) ? `${r.n_rows_analyzed} rows` : num(r.n) ? `${r.n} subjects` : nText(ctx.groups);
@@ -686,6 +687,7 @@ const MAPPERS: Record<string, (ctx: Ctx, r: R) => StatsRow[]> = {
   poisson_regression: coefficientRows,
   negative_binomial_regression: coefficientRows,
   binomial_regression: coefficientRows,
+  ordinal_regression: coefficientRows,
   nested_t_test: nestedRows,
   nested_one_way_anova: nestedRows,
   mixed_nested_two_way: (ctx, r) => termListRows(ctx, r, r.comparisons),
@@ -717,6 +719,7 @@ function modelName(r: R): string | null {
     case "logistic_regression": return r.firth ? "logistic regression (Firth's penalized likelihood)" : "logistic regression";
     case "poisson_regression": return r.family === "quasipoisson" || r.f_test ? "quasi-Poisson regression" : "Poisson regression";
     case "negative_binomial_regression": return "negative binomial regression";
+    case "ordinal_regression": return "ordinal logistic regression (proportional odds)";
     case "binomial_regression": return r.family === "quasibinomial" || r.f_test ? "quasi-binomial regression" : "binomial regression";
     case "kappa": return r.weights && r.weights !== "unweighted" ? `weighted Cohen's kappa (${r.weights})` : "Cohen's kappa";
     case "deming": return "Deming regression";

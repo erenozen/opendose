@@ -24,7 +24,7 @@ from . import (anova, columnstats, contingency, correlation, descriptive,
                methodcomp, nlfit, normalize, outliers, plate, plate_io,
                prism_project, pzfx, repeated, schild, survival, transform,
                ttests, twoway)
-from . import multivar, partsofwhole
+from . import multivar, ordinal, partsofwhole
 from . import formulas, manipulate, simulate
 from . import summary
 from . import mixedmodel, nested
@@ -2827,6 +2827,28 @@ def _negative_binomial_regression(data, options):
         variables, [options["outcome"], *options["predictors"]])
 
 
+def _ordinal_regression(data, options):
+    """data: multiple-variables table. options: {outcome (scores on an
+    ordered scale), predictors, interactions?, reference_levels?,
+    outcome_order? ([levels], lowest first: needed for text levels),
+    ci_level?, ci_method?: profile|wald, proportional_odds_test?: true}.
+    Cumulative logit (proportional-odds) model as ordinal::clm fits it
+    (ordinal.ordinal_regression). A refusal for separation carries
+    error_kind = "separation"."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "ordinal_regression",
+         **ordinal.ordinal_regression(
+             variables, options["outcome"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             outcome_order=options.get("outcome_order") or None,
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"),
+             proportional_odds_test=bool(options.get("proportional_odds_test", True)))},
+        variables, [options["outcome"], *options["predictors"]])
+
+
 def _pca(data, options):
     """data: multiple-variables table. options: {variables?: [names],
     standardize?: true, selection?: parallel_analysis|kaiser|variance|
@@ -3556,6 +3578,7 @@ _HANDLERS = {
     "poisson_regression": _poisson_regression,
     "binomial_regression": _binomial_regression,
     "negative_binomial_regression": _negative_binomial_regression,
+    "ordinal_regression": _ordinal_regression,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,

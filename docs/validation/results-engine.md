@@ -3259,3 +3259,65 @@ Faul et al. 2007 (f 0.2572, N 90, 3 groups x 3 measurements, rho 0.3)
 from scipy's noncentral F: lambda = f^2 N m / (1 - rho) = 25.5157,
 critical F(2, 174) = 3.047906, power 0.996553; the nested design effect
 1 + (10 - 1) x 0.3 = 3.7 and 63.77 x 3.7 / 10 = 23.59 animals by hand.
+
+## Feature validation: ordinal (proportional-odds) regression (2026-11-24)
+
+### P-88 Ordinal (proportional-odds) regression
+
+`ordinal.ordinal_regression` (api `ordinal_regression`, Analyze ›
+Ordinal regression on a multiple-variables table) fits the cumulative
+logit model logit P(Y <= j) = theta_j - x'beta (McCullagh 1980) with the
+parameterisation of R's `ordinal::clm`, by Newton-Raphson on the analytic
+gradient and observed Hessian with step halving. SEs from the inverse
+observed Hessian, profile-likelihood CIs (Wald optional), likelihood
+ratio tests of each term (clm's drop1) and of the model against the
+thresholds-only model, and the proportional-odds check: each term against
+a separate effect at every cut point (partial proportional odds, Peterson
+& Harrell 1990; clm's nominal_test). Separation (a direction in which the
+likelihood rises without bound, found by a linear program), a declared
+level with no rows, text levels without an order, one level and more
+parameters than rows are refused with a sentence.
+
+R is not installed. References: statsmodels `OrderedModel(distr="logit")`
+(thresholds converted from its increments, their SEs by the delta method),
+profile CIs by refitting OrderedModel with the coefficient as an offset
+and brentq, and the partial proportional-odds model as its own
+log-likelihood maximised with scipy.optimize (BFGS then Nelder-Mead), all
+in `engine/tests/reference/ordinal_regression.py`; and the fit `clm`
+prints in the ordinal package's vignette (Christensen, "Cumulative link
+models for ordinal regression with the R package ordinal", sections 4.1
+and 4.2) on the wine data of Randall (1989; `engine/tests/fixtures/wine.csv`,
+the Rdatasets copy of `ordinal::wine`). `engine/tests/test_ordinal_regression.py`:
+
+| Input | Reference | Engine |
+|---|---|---|
+| wine, rating ~ temp + contact (the plan's acceptance test) | clm: tempwarm 2.5031 (SE 0.5287), contactyes 1.5278 (SE 0.4766); thresholds -1.3444, 1.2508, 3.4669, 5.0064 (SEs 0.5171, 0.4379, 0.5978, 0.7309); logLik -86.492, AIC 184.98 | the same to every printed digit; OrderedModel to 1e-7 (estimates) and 1e-5 (SEs) |
+| the same, profile CIs | clm confint: 1.5097627 to 3.595225, 0.6157925 to 2.492404 (spline-interpolated profile); OrderedModel refits: 1.5097483 to 3.5951882 | 1.5097483 to 3.5951882 (to 1e-7 of the refits; to 5e-5 of clm) |
+| the same, drop1 and nominal_test | LRT 26.928 and 11.043; nominal logLik -84.904 (temp, LRT 3.1750, P 0.3654) and -86.209 (contact, LRT 0.5667, P 0.9040) | 26.928, 11.043; -84.904 (3.1750, 0.3654), -86.209 (0.5667, 0.9040); the scipy partial-odds fit to 1e-6 |
+| wine with judge as a block (9 levels) | OrderedModel: tempwarm 3.3202 (SE 0.6133), logLik -70.921 | the same (estimates to 1e-6) |
+| histology example: scores 0 to 4, Vehicle and Drug, 3 experiments x 6 animals | OrderedModel: Drug -4.0036 (SE 0.9624), profile CI -6.1725 to -2.2970 | odds ratio 0.01825 (95% CI 0.002086 to 0.1006) |
+| two levels (wine rating >= 3) | statsmodels Logit: temp 2.1461 (SE 0.6071), intercept -1.0731 | the same; theta = -intercept; profile CIs equal the engine's logistic regression |
+
+Also tested: row order; a continuous predictor scaled by 1e-12, 1e3 and
+1e12 (the slope scales, the P value and log-likelihood do not move);
+scores relabelled (1 to 5 as 10 to 50) give the same fit and reversed
+scores flip every sign; text levels with their order equal the numeric
+fit; Wald intervals; missing values drop the row and are listed;
+skipped scores (no row scored 4) are named in a note; one level, an
+empty declared level, text levels without an order, n = 0, one group,
+too few rows, complete and quasi-complete separation are refusals with a
+sentence, never a NaN; a group spread to both ends of the scale is
+flagged by the proportional-odds check (P < 0.001).
+
+Web: `src/sheets/multivariable/__tests__/ordinal.test.ts` (defaults with
+the block last, the payload refusing text levels without an order, the
+proportional-odds chip, the answer headline, the meaning sentence, the
+statistics table rows), `guide/__tests__/recommend.test.ts` and
+`planning.test.ts` (the wizard's "Scores on an ordered scale" answer:
+ordinal regression for independent groups with the Mann-Whitney or
+Kruskal-Wallis test as the alternative, the rank tests for paired scores
+and one group). e2e-models reads the wine acceptance values (2.503,
+0.5287, 1.528, 0.4766, the four thresholds, drop1 26.93, the
+proportional-odds check P 0.3654 and 0.904), the histology odds ratio
+0.01825 (0.002086 to 0.1006) with the experiment block, and the wizard
+route; ui-stage scenes results-ordinal and results-ordinal-table.

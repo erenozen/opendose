@@ -1353,6 +1353,27 @@ const scenes = [
     await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
     await settle(s, 800);
   } },
+  // P-88: ordinal regression of histology scores: the odds ratio of a
+  // higher score as the answer, the proportional-odds check open
+  { name: "results-ordinal", setup: async (s) => {
+    await fixture(s, "glm-models.json", { live: true });
+    await selectSheet(s, "Ordinal regression of Histology");
+    await s.page.getByText("Ordinal regression (proportional odds) of Score").first().waitFor({ timeout: 240000 });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await click(s, s.page.getByRole("button", { name: /Proportional odds not rejected/ }));
+    await into(s, ".pane-answer", "start");
+    await settle(s, 800);
+  } },
+  // P-88: the results table: thresholds, each term, the proportional-odds check
+  { name: "results-ordinal-table", setup: async (s) => {
+    await fixture(s, "glm-models.json", { live: true });
+    await selectSheet(s, "Ordinal regression of Histology");
+    const cuts = s.page.getByText("Cut points (thresholds)").first();
+    await cuts.waitFor({ timeout: 240000 });
+    await cuts.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   // P-89: the separation refusal offers Firth's correction
   { name: "results-firth-offer", setup: async (s) => {
     await fixture(s, "glm-models.json", { live: true });

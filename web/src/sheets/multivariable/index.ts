@@ -32,6 +32,9 @@ import {
   runBinomial, runNegBin, type BinomialOptions, type BinomialResult, type NegBinOptions, type NegBinResult,
 } from "./glm";
 import {
+  ANALYSIS_MV_ORDINAL, defaultOrdinal, normalizeOrdinal, runOrdinal, type OrdinalOptions, type OrdinalResult,
+} from "./ordinal";
+import {
   ANALYSIS_MV_ANCOVA, defaultAncova, normalizeAncova, runAncova, type AncovaOptions, type AncovaResult,
 } from "./ancova";
 
@@ -305,6 +308,29 @@ export const mvNegBin = defineAnalysis<NegBinOptions, NegBinResult>({
   MethodsPanel: NegBinMethods,
 });
 
+// Ordinal (proportional-odds) regression of scores (P-88; panels in
+// ./ordinalPanels).
+const ordinalPanels = () => import("./ordinalPanels");
+const OrdinalControls = lazyPart(ordinalPanels, "OrdinalControls");
+const OrdinalResults = lazyPart(ordinalPanels, "OrdinalResults");
+const OrdinalMethods = lazyPart(ordinalPanels, "OrdinalMethods");
+
+export const mvOrdinal = defineAnalysis<OrdinalOptions, OrdinalResult>({
+  id: ANALYSIS_MV_ORDINAL,
+  label: "Ordinal regression (scores, proportional odds)",
+  short: "Ordinal",
+  description: "Scores on an ordered scale (histology 0 to 4, clinical EAE score): odds ratios of a higher "
+    + "score with CIs, the experiment as an optional block, and the proportional-odds check.",
+  sheetName: (t) => `Ordinal regression of ${t}`,
+  defaultOptions: ({ table }) => defaultOrdinal(table),
+  normalizeOptions: (raw, { table }) => normalizeOrdinal(raw, table),
+  run: runOrdinal,
+  defaultGraph: "mv_ordinal_odds",
+  ControlsPanel: OrdinalControls,
+  ResultsPanel: OrdinalResults,
+  MethodsPanel: OrdinalMethods,
+});
+
 // ------------------------------------------------------------ graphs
 
 const none = () => ({ x: "", y: "" });
@@ -392,6 +418,12 @@ export const mvGraphs = [
     PlotPanel: PoissonRatePlot, OptionsPanel: ForestOptions,
     formatFeatures: { noDatasets: true },
   }),
+  defineGraph<unknown, LogisticResult>({
+    id: "mv_ordinal_odds", label: "Odds ratios with CIs (forest plot)", group: "mv_ordinal",
+    analysis: ANALYSIS_MV_ORDINAL, autoTitles: none, exportName: "odds-ratios",
+    PlotPanel: LogitOddsPlot, OptionsPanel: ForestOptions,
+    formatFeatures: { noDatasets: true },
+  }),
   defineGraph<PcaOptions, PcaResult>({
     id: "mv_pca_scree", label: "Scree plot", group: "mv_pca",
     analysis: ANALYSIS_MV_PCA, autoTitles: none, exportName: "scree-plot",
@@ -427,7 +459,7 @@ export const multivariableTable: TableTypeDef = {
   entryHint: "Each row is one observation (subject, sample); each column one "
     + "variable. Set a column to categorical for text levels such as "
     + "\"male\" / \"female\". Row titles can hold subject IDs.",
-  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvAncova, mvLogistic, mvBinomial, mvPoisson, mvNegBin,
+  analyses: [mvDescriptive, mvCorrelation, mvRegression, mvAncova, mvLogistic, mvBinomial, mvPoisson, mvNegBin, mvOrdinal,
     mvCox.analysis, mvPca, mvRearrange, mvMixedGrouping],
   graphs: [...mvGraphs, ...mvCox.graphs, mixedNestedGraph],
 };

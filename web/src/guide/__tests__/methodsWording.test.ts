@@ -44,6 +44,11 @@ function* designs(): Generator<[Design, DataChecks | null]> {
                               distribution, equalSD, ratioEffect, normalised, blocked, differential,
                               hypothetical }, checks];
                           }
+  // P-88: scores on an ordered scale
+  for (const groups of pick<Design["groups"]>(["one", "two", "three_plus"]))
+    for (const paired of [false, true])
+      for (const replicates of pick<Design["replicates"]>(["independent", "cells"]))
+        yield [{ ...DEFAULT_DESIGN, outcome: "scores", groups, paired, replicates }, null];
   // P-82: groups measured before and after treatment (the baseline question)
   for (const groups of pick<Design["groups"]>(["one", "two", "three_plus"]))
     for (const replicates of pick<Design["replicates"]>(["independent", "technical"]))
