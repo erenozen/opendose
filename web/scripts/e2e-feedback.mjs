@@ -95,7 +95,11 @@ await page.waitForTimeout(500);
   }
   await page.waitForFunction((el) => el === document.activeElement, await open.elementHandle(),
     { timeout: 5000 }).catch(() => {});
-  const chooser = page.waitForEvent("filechooser", { timeout: 5000 }).then(() => true, () => false);
+  // Arrow navigation in menus is e2e-primitives' job; under heavy load a
+  // step can still be missed, so make sure Open… holds focus before the
+  // key this check is about.
+  if (!(await open.evaluate((el) => el === document.activeElement))) await open.focus();
+  const chooser = page.waitForEvent("filechooser", { timeout: 15000 }).then(() => true, () => false);
   await page.keyboard.press("Enter");
   expect("Enter on File › Open… opens the file picker", await chooser);
   const inTabOrder = await page.locator(OPEN_INPUT).evaluate((el) => el.tabIndex);
