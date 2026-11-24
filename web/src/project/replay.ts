@@ -15,11 +15,16 @@
 //    and recompute.
 // 4. The replay log compares each results sheet's numbers before and
 //    after (project/replayDiff.ts).
+// A table whose import record (project/importRecord.ts, P-76) holds a
+// recipe or import settings that can be re-run gets its new file through
+// them (the caller's `reimport`), then goes into the table's layout as a
+// whole table; each refilled table records its new file.
 import {
   applyImport, datasetTitle, DEFAULT_FILTER, DEFAULT_SOURCE, defaultRoles, detectTitlesRow,
   importWidth, prepareImport,
 } from "./importText.ts";
 import type { IdFactory } from "./ids.ts";
+import { importIntoSheet, type ImportFacts, type ImportRecord, type ImportSource } from "./importRecord.ts";
 import { FILE_MARKER, projectFromJson, serializeProject } from "./persist.ts";
 import { tableShape } from "./table.ts";
 import { clearYValues } from "./templates.ts";
@@ -34,14 +39,20 @@ import {
 
 export const PLAN_KEY = "replay_plan";
 
-export interface PlanTable { id: string; name: string; table: DataTableModel }
+export interface PlanTable {
+  id: string;
+  name: string;
+  table: DataTableModel;
+  /** How the table's values were imported, when that was recorded. */
+  imported?: ImportRecord;
+}
 
 /** Tables new data can go into: data sheets that are not derived (those
  *  follow their source) and not frozen. */
 export function planTables(p: Project): PlanTable[] {
   return p.sheets
     .filter((s): s is DataSheet => s.kind === "data" && !s.derived && !s.frozen)
-    .map((s) => ({ id: s.id, name: s.name, table: s.table }));
+    .map((s) => ({ id: s.id, name: s.name, table: s.table, ...(s.imported ? { imported: s.imported } : {}) }));
 }
 
 /** The plan as written into provenance.json (`replay_plan`): the project
@@ -50,7 +61,13 @@ export function planTables(p: Project): PlanTable[] {
  *  analysis, graph and page layout. */
 export function replayPlanOf(p: Project): Record<string, unknown> {
   const sheets = p.sheets.map((s) => {
-    if (s.kind === "data") return { ...s, table: clearYValues(s.table) };
+    if (s.kind === "data") {
+      // the import's settings stay (Apply to new data re-runs them); the
+      // copy of the values it made does not
+      const imported = s.imported ? { ...s.imported } : undefined;
+      if (imported) { delete imported.snapshot; delete imported.earlier; }
+      return { ...s, table: clearYValues(s.table), ...(imported ? { imported } : {}) };
+    }
     if (s.kind === "results") {
       // values left out of one analysis name cells of these data, not the new
       const { cached: _c, cachedKey: _k, frozen: _f, leftOut: _l, ...rest } = s;
@@ -155,6 +172,8 @@ export interface IncomingTable {
   source?: string | string[][];
   /** A whole table (read from a .pzfx file). */
   table?: DataTableModel;
+  /** The file it came from, with its SHA-256, for the import record. */
+  file?: ImportSource;
 }
 
 /** The new data shaped as the plan's table. */
@@ -167,6 +186,38 @@ export interface Fit {
   /** Data set titles in the file that differ from the table's (the
    *  table's names are kept when the shape matches). */
   renamed: string[];
+  /** Made by re-running the table's recorded import (recipe or settings). */
+  rerun?: boolean;
+}
+
+/** Re-run a plan table's recorded import on a source: its new table, the
+ *  error that stopped it, or null (nothing recorded to re-run: the source
+ *  goes into the table's layout as usual). */
+export type Reimport = (plan: PlanTable, src: IncomingTable) =>
+  { table: DataTableModel } | { error: string } | null;
+
+/** Why a source cannot go into a table of this type, in words. */
+export function fitProblem(plan: DataTableModel, src: IncomingTable): string {
+  if (src.table) return src.table.type !== plan.type ? `it holds a ${src.table.type} table, not ${plan.type}` : "";
+  if (src.source === undefined) return "nothing could be read from it";
+  const titlesRow = detectTitlesRow(src.source, DEFAULT_SOURCE);
+  const preview = prepareImport(src.source, { ...DEFAULT_SOURCE, titlesRow }, DEFAULT_FILTER);
+  if (!preview.rows.length) return "it holds no rows of values";
+  return defaultRoles(plan, preview).includes("y") ? "" : "no column of it holds values for the table";
+}
+
+/** fitIncoming through the table's recorded import when it has one. */
+export function fitPlanned(plan: PlanTable, src: IncomingTable, reimport?: Reimport):
+  { fit: Fit | null; error?: string } {
+  const r = src.table ? null : reimport?.(plan, src) ?? null;
+  if (r && "error" in r) return { fit: null, error: r.error };
+  if (r) {
+    const fit = fitIncoming(plan.table, { name: src.name, origin: src.origin, table: r.table });
+    return fit ? { fit: { ...fit, rerun: true } }
+      : { fit: null, error: `the recorded import made a ${r.table.type} table, not ${plan.table.type}` };
+  }
+  const fit = fitIncoming(plan.table, src);
+  return fit ? { fit } : { fit: null, error: fitProblem(plan.table, src) || "it does not fit the table" };
 }
 
 /** Rows holding any value or title. */
@@ -273,13 +324,17 @@ export interface Matching {
   unused: number[];
   /** fits[plan index][source index] */
   fits: (Fit | null)[][];
+  /** Why a source does not fit a table: errors[plan index][source index]. */
+  errors: (string | undefined)[][];
 }
 
 /** Pair new data with the plan's tables: a single table and a single
  *  source pair up; then by name; then a source whose shape fits exactly
  *  one remaining table (and that table no other source) goes there. */
-export function matchTables(plan: PlanTable[], incoming: IncomingTable[]): Matching {
-  const fits = plan.map((p) => incoming.map((s) => fitIncoming(p.table, s)));
+export function matchTables(plan: PlanTable[], incoming: IncomingTable[], reimport?: Reimport): Matching {
+  const tried = plan.map((p) => incoming.map((s) => fitPlanned(p, s, reimport)));
+  const fits = tried.map((row) => row.map((t) => t.fit));
+  const errors = tried.map((row) => row.map((t) => t.error));
   const assign = new Map<string, { source: number; how: MatchHow }>();
   const used = new Set<number>();
   const take = (j: number, i: number, how: MatchHow) => {
@@ -312,7 +367,7 @@ export function matchTables(plan: PlanTable[], incoming: IncomingTable[]): Match
   }
   const unused = incoming.map((_, i) => i).filter((i) => !used.has(i));
   const ambiguous = unused.some((i) => plan.some((p, j) => !assign.has(p.id) && fits[j][i]));
-  return { assign, ambiguous, unused, fits };
+  return { assign, ambiguous, unused, fits, errors };
 }
 
 /** The plan with the matched tables refilled; every other sheet as it
@@ -323,6 +378,37 @@ export function replaceTables(p: Project, tables: ReadonlyMap<string, DataTableM
     sheets: p.sheets.map((s) => (s.kind === "data" && tables.has(s.id)
       ? { ...s, table: tables.get(s.id)! } : s)),
   };
+}
+
+/** What a table refilled by a replay records about its new data: the
+ *  file and, when the table's import was re-run, the same settings. */
+export function replayFacts(plan: PlanTable, src: IncomingTable, fit: Fit, at: string): ImportFacts {
+  const sources: ImportSource[] = src.file ? [src.file] : [];
+  const rec = plan.imported;
+  if (fit.rerun && rec) {
+    return {
+      at, how: rec.how, mode: "replace", sources, basis: rec.basis,
+      ...(rec.recipeName ? { recipeName: rec.recipeName } : {}),
+      ...(rec.spec ? { spec: rec.spec } : {}), ...(rec.read ? { read: rec.read } : {}),
+      replayable: true,
+    };
+  }
+  return { at, how: "apply", mode: "replace", sources, basis: "Apply to new data, in the table's own layout",
+    replayable: true };
+}
+
+/** replaceTables, with each refilled table's import record: its new
+ *  file, and the record it had kept as an earlier import. Tables whose
+ *  source carries no file (pasted data has its text's hash) keep their
+ *  record as it was. */
+export function replaceTablesRecorded(p: Project, tables: ReadonlyMap<string, DataTableModel>,
+  facts: ReadonlyMap<string, ImportFacts>): Project {
+  let next = p;
+  for (const [id, table] of tables) {
+    const f = facts.get(id);
+    next = f?.sources.length ? importIntoSheet(next, id, () => table, f) : replaceTables(next, new Map([[id, table]]));
+  }
+  return next;
 }
 
 // ------------------------------------------------------------ the log
@@ -399,8 +485,11 @@ export function buildReplayLog(o: LogInput): ReplayLog {
       + `in a different layout from the table's`);
     if (r.fit.renamed.length) warnings.push(`titles in the file (${r.fit.renamed.join(", ")}) differ `
       + "from the data set names, which were kept");
+    // the table's recorded import re-run on the new file (P-76)
+    const rerun = r.fit.rerun && s.imported
+      ? `; ${s.imported.recipeName ? `the recipe “${s.imported.recipeName}”` : `“${s.imported.basis}”`} re-run on it` : "";
     tables.push({ name: s.name, type: s.table.type, status: "replaced", origin: r.origin, warnings,
-      detail: `${plural(r.fit.rows, "row")}, ${plural(r.fit.datasets, "data set")}` });
+      detail: `${plural(r.fit.rows, "row")}, ${plural(r.fit.datasets, "data set")}${rerun}` });
   }
   const results: LogResult[] = [];
   for (const s of p.sheets) {

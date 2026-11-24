@@ -20,7 +20,7 @@ import { REGISTRY } from "../sheets/registry";
 import SheetIcon, { FolderIcon, NoteIcon, SnowflakeIcon } from "./SheetIcon";
 import SheetMenu, { type MenuAction } from "./SheetMenu";
 import { printSheet } from "../app/usePrint";
-import { exportPzfxFile, openPptxExport, openReplay, openShareLink } from "../share/events";
+import { exportPzfxFile, openBatch, openPptxExport, openReplay, openShareLink } from "../share/events";
 import { PZFX_TYPES } from "../share/pzfx";
 import { IconButton } from "./ui/IconButton";
 import Tooltip from "./ui/Tooltip";
@@ -379,6 +379,7 @@ export default function Navigator() {
         list.push({ label: "Export this table as .pzfx", run: () => exportPzfxFile(data.id) });
       }
       if (s.kind === "data" && !s.derived) list.push({ label: "Apply new data to this table…", run: () => openReplay(s.id) });
+      if (s.kind === "data" && !s.derived) list.push({ label: "Run this family on many files…", run: () => openBatch(s.id) });
     }
     if (s.kind === "graph" || s.kind === "layout" || graphs.length) {
       list.push({ label: "Export to PowerPoint (.pptx)…", run: () => openPptxExport(s.id) });

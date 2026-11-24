@@ -29,6 +29,10 @@ import {
 } from "./recipes/presets";
 import { readTableFiles } from "./recipes/readFiles";
 import { configFromSpec, specFromConfig } from "./recipes/saved";
+import { recipeMatrix, runRecipe, sameValues } from "./recipes/reimport";
+import { sha256Hex } from "../lib/sha256";
+import { withImportRecord, type ImportSource } from "../project/importRecord";
+import type { DataSheet } from "../project/types";
 import { SaveRecipeForm } from "./recipes/SavedRecipes";
 import { recipeLabel, useSavedRecipes } from "./recipes/useSavedRecipes";
 import {
@@ -81,6 +85,9 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
   const [sheets, setSheets] = useState<(XlsxSheet & { format: WorkbookFormat })[] | null>(null);
   const [sheetIx, setSheetIx] = useState(0);
   const [multi, setMulti] = useState<MultiSource | null>(null);
+  // The files read, with their SHA-256, for the new table's import
+  // record (P-76); a paste is hashed when the table is made.
+  const [fileInfo, setFileInfo] = useState<ImportSource[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [choice, setChoice] = useState<string>(savedId ? `saved:${savedId}` : "auto");
@@ -148,10 +155,12 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     setSheetIx(0);
     setFileText("");
     setMulti(null);
+    setFileInfo([]);
     if (!f) return;
     const refused = unreadableSheet(f.name);
     if (refused) { setError(refused); return; }
     const bytes = new Uint8Array(await f.arrayBuffer());
+    setFileInfo([{ name: f.name, bytes: bytes.length, sha256: await sha256Hex(bytes) }]);
     const format = workbookFormat(f.name);
     if (format) {
       setBusy(true);
@@ -177,6 +186,10 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     setFileText("");
     setBusy(true);
     try {
+      setFileInfo(await Promise.all(list.map(async (f) => {
+        const bytes = new Uint8Array(await f.arrayBuffer());
+        return { name: f.name, bytes: bytes.length, sha256: await sha256Hex(bytes) };
+      })));
       const r = await readTableFiles(list);
       if (!r.files.length) {
         setMulti(null);
@@ -194,15 +207,50 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const create = () => {
+  /** What the new table records about this import (P-76): the file and
+   *  its hash, the recipe with its settings, and whether re-running them
+   *  on the file gives this table back exactly. A table made from another
+   *  table of the project (Reshape) records nothing. */
+  const importFacts = async (table: DataTableModel) => {
+    if (given || !staged || !cfg) return null;
+    const sources: ImportSource[] = srcKind === "paste"
+      ? [{ name: "pasted text", pasted: true, bytes: new TextEncoder().encode(pasted).length,
+        sha256: await sha256Hex(pasted) }]
+      : sheet ? fileInfo.map((f) => ({ ...f, worksheet: sheet.name })) : fileInfo;
+    if (!sources.length) return null;
+    const spec = specFromConfig(staged, { ...cfg, params }, isMulti);
+    let replayable = !isMulti;
+    let why = isMulti ? "it was made from several files at once" : "";
+    if (replayable) {
+      try {
+        replayable = sameValues(runRecipe(recipeMatrix(matrix), spec), table);
+      } catch { replayable = false; }
+      if (!replayable) why = "re-running the recipe on the file gave a different table";
+    }
+    return {
+      at: new Date().toISOString(), how: "recipe" as const, mode: "new" as const, sources,
+      basis: recipeLabel(staged.recipe),
+      ...(savedEntry ? { recipeName: savedEntry.recipe.name } : {}),
+      spec: spec as unknown as Record<string, unknown>,
+      ...(sheet ? { read: { keepFiltered, skipHidden } } : {}),
+      replayable, ...(why ? { why } : {}),
+    };
+  };
+
+  const create = async () => {
     if (!out?.result || !cfg) return;
     const name = cfg.name.trim() || "Imported data";
     const lower = out.lower;
     const lowerName = out.subject >= 0
       ? `${name} (every value by ${out.records.columns[out.subject].name})` : `${name} (all values)`;
     const mapped = !!out.replicates;
+    const facts = await importFacts(out.result.table);
     const build = (p: Project): { project: Project; dataId: string } => {
       const r = addFamily(p, out.result!.table, name, newId);
+      if (facts) {
+        r.project = { ...r.project, sheets: r.project.sheets.map((s) => (s.id === r.dataId
+          ? withImportRecord(s as DataSheet, facts) : s)) };
+      }
       let q = mapped ? superplotFamily(r.project, r.dataId) : r.project;
       if (lower) q = addFamily(q, lower.table, lowerName, newId).project;
       return { project: q, dataId: r.dataId };
@@ -240,7 +288,7 @@ export default function RecipeDialog({ initialText, initialFiles, savedId, stage
 
   return (
     <Modal title={title ?? "Import with a recipe"} className="modal-wide recipe-dialog"
-      onClose={guardedClose} onSubmit={create}
+      onClose={guardedClose} onSubmit={() => { void create(); }}
       actions={
         <>
           {onBack && <Button className="spacer" onClick={onBack}>Back to plain import</Button>}

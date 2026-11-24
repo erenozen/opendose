@@ -14,6 +14,8 @@ import "./report.css";
 import "./integrity.css";
 import { changedLines, headline, openedHow, type ReproductionReport } from "../project/reproduce";
 import { whyLines } from "../share/engineChanges";
+import ImportHistory from "./ImportHistory";
+import { codesText } from "../project/blinding";
 
 const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
 
@@ -62,6 +64,40 @@ function Step({ s }: { s: ProvenanceStep }) {
   );
 }
 
+/** Blinding of the table (P-124): now, and each stretch ended by
+ *  unblinding with the values excluded in it. */
+function BlindingHistory({ sheet }: { sheet: DataSheet }) {
+  const when = (iso: string) => new Date(iso).toLocaleString();
+  return (
+    <div className="history-step history-blinding">
+      <h3>Blinding</h3>
+      {sheet.blindLog?.map((x, i) => (
+        <div key={i}>
+          <p className="hs-line">
+            Blinded {when(x.blindedAt)} (groups coded {codesText(x.codes)}), unblinded {when(x.unblindedAt)}:
+            {" "}{x.exclusions.length ? `${x.exclusions.length} value${x.exclusions.length === 1 ? "" : "s"} excluded while blind.`
+              : "no value excluded while blind."}
+          </p>
+          {x.exclusions.length > 0 && (
+            <ul className="hs-list" aria-label="Excluded while blind">
+              {x.exclusions.map((e, j) => (
+                <li key={j}>{e.dataset}, row {e.row + 1}{e.sub ? `, value ${e.sub + 1}` : ""}: {e.value}
+                  {e.reason ? ` (${e.reason})` : " (no reason recorded)"}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+      {sheet.blinding && (
+        <p className="hs-line">
+          Blinded {when(sheet.blinding.at)}: the groups are coded {codesText(sheet.blinding.codes)}. The key
+          is kept outside the project (in the browser that blinded it, and its key file); unblinding needs it.
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** One reopen-and-recompute check: the headline, every changed number
  *  with both values, the engine change log entries that may explain them. */
 function Reproduction({ r }: { r: ReproductionReport }) {
@@ -97,6 +133,7 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
     id ? [id] : undefined), [project, results, id]);
   const copied = useLabelSwap();
   const fam = doc.families[0];
+  const dataSheet = datas.find((d) => d.id === id);
   // Each time this project was opened (file, autosave or share link) in a
   // build other than the one that saved it: every saved result recomputed
   // and compared (app/reproduceCheck.ts), kept with the project.
@@ -148,6 +185,8 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
               </ul>
             )}
           </div>
+          {dataSheet?.imported && <ImportHistory rec={dataSheet.imported} table={dataSheet.table} />}
+          {dataSheet && (dataSheet.blinding || dataSheet.blindLog?.length) ? <BlindingHistory sheet={dataSheet} /> : null}
           {fam.steps.map((s) => <Step key={s.sheet_id} s={s} />)}
         </>
       )}

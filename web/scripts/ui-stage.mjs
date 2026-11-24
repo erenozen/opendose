@@ -1286,6 +1286,59 @@ const scenes = [
     const d = dialog(s, "History");
     await d.locator(".history-reproduction").scrollIntoViewIfNeeded();
   } },
+  // P-76: where a table's values came from (file, SHA-256, recipe, the
+  // cell edited by hand, the import before), in History
+  { name: "shell-history-import", setup: async (s) => {
+    await fixture(s, "import-history.json", { live: true });
+    await click(s, button(s, "History").first());
+    const d = dialog(s, "History");
+    await d.locator(".history-import").scrollIntoViewIfNeeded();
+  } },
+  // P-78: Run on many files, set up (a template, five files) and done
+  // (one file named with its error, the numbers for the summary table)
+  { name: "shell-batch-setup", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Run on many files…");
+    const d = dialog(s, "Run on many files");
+    await d.getByLabel("Family to run").selectOption({ label: "96-well SRB plate: IC50" });
+    await d.getByLabel("Files to run").setInputFiles([1, 2, 3, 4, 5].map((i) => join(FIXTURES, "batch", `plate${i}.csv`)));
+  } },
+  { name: "shell-batch-done", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Run on many files…");
+    const d = dialog(s, "Run on many files");
+    await d.getByLabel("Family to run").selectOption({ label: "96-well SRB plate: IC50" });
+    await d.getByLabel("Files to run").setInputFiles([1, 2, 3, 4, 5].map((i) => join(FIXTURES, "batch", `plate${i}.csv`)));
+    await d.getByRole("button", { name: "Run on 5 files" }).click();
+    await d.getByText("4 families made from 5 files; 1 not run.").waitFor({ timeout: 240000 });
+  } },
+  // P-124: a blinded table (banner, codes on the grid, graph and
+  // results), the dialogs that blind and unblind it, and the methods
+  // of a table unblinded after a value was excluded blind
+  { name: "grid-blinded", setup: async (s) => {
+    await fixture(s, "blinded.json", { live: true });
+    await s.page.locator(".blind-banner").waitFor();
+  } },
+  { name: "grid-blind-dialog", setup: async (s) => {
+    await fixture(s, join(FIXTURES, "blind-4groups.json"));
+    await selectSheet(s, "Body weight");
+    await click(s, s.page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }));
+    await s.page.getByRole("menuitem", { name: "Blind this table…" }).click();
+    await dialog(s, "Blind “Body weight”").waitFor();
+  } },
+  { name: "grid-unblind-dialog", setup: async (s) => {
+    await fixture(s, "blinded.json");
+    await click(s, s.page.locator(".grid-toolbar").getByRole("button", { name: "More", exact: true }));
+    await s.page.getByRole("menuitem", { name: "Unblind…" }).click();
+    await dialog(s, "Unblind “Body weight”").waitFor();
+  } },
+  { name: "results-methods-blind", setup: async (s) => {
+    await fixture(s, "blinded.json");
+    await selectSheet(s, "One-way ANOVA of Food intake");
+    await waitLive(s);
+    await s.page.locator(".stats-methods p").filter({ hasText: "excluded blind" }).waitFor({ timeout: 60000 });
+    await into(s, ".stats-methods", "center");
+  } },
   // P-68: leave a value out of one analysis (the dialog, filled in), and
   // the Exclusions block of the sensitivity results with them put back
   { name: "results-leave-out-dialog", setup: async (s) => {

@@ -32,6 +32,7 @@ import "./share.css";
 const ValidationPage = lazy(() => import("./ValidationPage"));
 const PrivacyPage = lazy(() => import("./PrivacyPage"));
 const ReplayDialog = lazy(() => import("./ReplayDialog"));
+const BatchDialog = lazy(() => import("./BatchDialog"));
 const PptxDialog = lazy(() => import("../export/PptxDialog"));
 /** The PowerPoint export's progress toast, resolved in place. */
 const PPTX_TOAST = "pptx-export";
@@ -59,6 +60,7 @@ type Dialog =
   | { kind: "privacy" }
   | { kind: "pptx"; from?: string | null; scope?: PptxScope }
   | { kind: "replay"; dataId?: string }
+  | { kind: "batch"; dataId?: string }
   | RecipeImportRequest;
 
 /**
@@ -202,6 +204,11 @@ export default function ShareHost() {
       {dialog?.kind === "replay" && (
         <Suspense fallback={null}>
           <ReplayDialog dataId={dialog.dataId} onClose={() => setDialog(null)} />
+        </Suspense>
+      )}
+      {dialog?.kind === "batch" && (
+        <Suspense fallback={null}>
+          <BatchDialog dataId={dialog.dataId} onClose={() => setDialog(null)} />
         </Suspense>
       )}
       {pptx.host}

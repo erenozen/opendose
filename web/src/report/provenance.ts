@@ -7,6 +7,8 @@ import type { DataSheet, DataTableModel, Project, ProjectPrefs, TableType } from
 import { excludedValues } from "../project/exclusions.ts";
 import { leftOutRows, sheetTable } from "../project/leftOut.ts";
 
+import { handEdits, type ImportRecord } from "../project/importRecord.ts";
+
 /** FNV-1a 64-bit hash of a string's UTF-8 bytes, as 16 hex digits. */
 export function fnv1a64(text: string): string {
   let h = 0xcbf29ce484222325n;
@@ -16,6 +18,26 @@ export function fnv1a64(text: string): string {
     h = (h * prime) & 0xffffffffffffffffn;
   }
   return h.toString(16).padStart(16, "0");
+}
+
+/** The table's import record as provenance.json writes it (P-76): the
+ *  files with their SHA-256, the settings, and the cells edited by hand
+ *  since. The copy of the values it keeps is left out. */
+export function importProvenance(rec: ImportRecord, t: DataTableModel): Record<string, unknown> {
+  const e = handEdits(rec, t, 0);
+  return {
+    at: rec.at, how: rec.how, mode: rec.mode, basis: rec.basis,
+    ...(rec.recipeName ? { saved_recipe: rec.recipeName } : {}),
+    files: rec.sources.map((s) => ({ name: s.name, sha256: s.sha256, bytes: s.bytes,
+      ...(s.worksheet ? { worksheet: s.worksheet } : {}), ...(s.pasted ? { pasted: true } : {}) })),
+    ...(rec.spec ? { settings: rec.spec } : {}),
+    replayable: rec.replayable, ...(rec.why ? { not_replayable_because: rec.why } : {}),
+    cells_as_imported: rec.cells,
+    edited_by_hand: e.count, values_changed_since: e.changed,
+    ...(rec.earlier?.length ? { earlier_imports: rec.earlier.map((x) => ({ at: x.at, how: x.how,
+      mode: x.mode, basis: x.basis, files: x.sources.map((s) => ({ name: s.name, sha256: s.sha256 })),
+      edited_by_hand_after: x.editedCells })) } : {}),
+  };
 }
 
 /** Fingerprint of what an analysis reads from a table: the values as
@@ -74,6 +96,8 @@ export interface FamilyProvenance {
     /** Each excluded value with where it sits and why (null: no reason). */
     exclusions: { data_set: string; where: string; value: string; reason: string | null }[];
     derived_from?: { table: string; analysis: string } | null;
+    /** Where the values came from (importProvenance, P-76). */
+    imported_from?: Record<string, unknown>;
   };
   steps: ProvenanceStep[];
 }
@@ -150,6 +174,7 @@ export function familyProvenance(p: Project, data: DataSheet, deps: ProvenanceDe
         table: src?.name ?? "(missing)",
         analysis: producer?.kind === "results" ? producer.analysis : "(missing)",
       } : null,
+      ...(data.imported ? { imported_from: importProvenance(data.imported, t) } : {}),
     },
     steps,
   };

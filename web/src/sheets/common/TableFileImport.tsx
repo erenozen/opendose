@@ -9,6 +9,8 @@ import { notify } from "../../components/ui";
 import { projectWithTable } from "../../guide/actions";
 import { isExampleProject } from "../../guide/firstRun";
 import { newId } from "../../project/ids";
+import { withImportRecord } from "../../project/importRecord";
+import type { DataSheet } from "../../project/types";
 import ImportDialog from "./ImportDialog";
 
 /** The table's name: the file name without its extension. */
@@ -31,12 +33,14 @@ export default function TableFileImport() {
     // a new file is a new dialog: nothing carries over from the last one
     <ImportDialog key={`${file.name}:${file.lastModified}:${file.size}`} file={file}
       onClose={() => setFile(null)}
-      onCreate={(table, report) => {
+      onCreate={(table, report, facts) => {
         let dataId = "";
         apply((p) => {
           const r = projectWithTable(p, table, tableNameOf(file.name), newId, isExampleProject(p));
           dataId = r.dataId;
-          return r.project;
+          // the file it came from (P-76)
+          return facts ? { ...r.project, sheets: r.project.sheets.map((s) => (s.id === r.dataId
+            ? withImportRecord(s as DataSheet, facts) : s)) } : r.project;
         });
         setFile(null);
         if (dataId) {

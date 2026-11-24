@@ -286,7 +286,11 @@ export function duplicateFamily(p: Project, id: string,
     ...cloneJson(root), id: ids(), name: newName, frozen: false,
   };
   delete dataCopy.derived; // a copy is plain data
-  if (!opts.withData) dataCopy.table = clearValues(dataCopy.table);
+  if (!opts.withData) {
+    dataCopy.table = clearValues(dataCopy.table);
+    // an import record (P-76) describes values the copy does not have
+    delete dataCopy.imported;
+  }
   const idMap = new Map<string, string>([[root.id, dataCopy.id]]);
   const children = familyChildren(p, root.id);
   for (const c of children) idMap.set(c.id, ids());

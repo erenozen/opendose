@@ -28,7 +28,10 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
     design?: string | null;
     /** The test chooser's reason for this analysis, while it applies
      *  (guide/choice.ts currentChoice). */
-    chosen?: { test: string; reason: string } | null; } = {}): string {
+    chosen?: { test: string; reason: string } | null;
+    /** Blinding of the table, now or before, and the exclusions made
+     *  blind (project/blinding.ts blindingMethodsSentence), ARRIVE 2.0 item 5. */
+    blinding?: string | null; } = {}): string {
   const cmp = result as { analysis?: string; mode?: string; compare?: Record<string, unknown>; labels?: string[] } | null;
   if (cmp?.analysis === "compare_fits" && cmp.mode === "parameter" && cmp.compare) {
     return compareParameterMethods(cmp.compare, cmp.labels?.[0] ?? "nonlinear regression");
@@ -78,6 +81,7 @@ export function statsMethodsParagraph(result: unknown, prefs: ReportPrefs,
   } else if (meta?.exclusions || counted) {
     parts.push(`Exclusions: ${(meta?.exclusions ?? counted!).replace(/\.$/, "")}.`);
   }
+  if (opts.blinding?.trim()) parts.push(opts.blinding.trim());
   const ss = opts.powerJustification ?? meta?.sampleSize;
   if (ss) parts.push(`Sample size: ${ss.replace(/\.$/, "")}.`);
   if (opts.design?.trim()) parts.push(opts.design.trim());

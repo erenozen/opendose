@@ -3745,3 +3745,60 @@ table "Equivalent degrees of freedom" 2.636, "λ (X scaled to 0 to 1)"
 lowess(dist, speed, frac=2/3, it=3, delta=0.21)). "Standard curve of
 ELISA kit": S1 interpolated 47.6, x dilution 95.2, 95% CI column "no
 model CI".
+
+## Feature validation: import provenance, many files, blinding (2026-11-24)
+
+### P-76 Import provenance and replayed imports
+
+No new computation. A table made or refilled by an import records the
+file's name, size and SHA-256 (Web Crypto, `crypto.subtle.digest`), the
+recipe or Import dialog settings, and a copy of the values as imported.
+Unit tests (`project/__tests__/importRecord.test.ts`): the SHA-256 of
+`e2e-fixtures/plate-reader.csv` from Web Crypto equals node's
+`crypto.createHash("sha256")` of the same bytes (and of pasted text, as
+UTF-8); the plate-reader recipe re-run on its own file gives the table
+back byte for byte (`JSON.stringify` equal), directly and through Apply
+to new data's matching and write-back; one cell edited by hand is
+counted as 1 and named; next week's file goes through the same recipe
+and the earlier import is kept with its 1 hand edit; a file the recipe
+cannot read is refused with the recipe's reason; the plain Import
+dialog's settings re-run to the same table; an append is recorded and
+not replayable; a project saved before records existed opens and saves
+unchanged. e2e (`e2e-share.mjs`): the plan's acceptance test, with the
+hash History shows equal to node's SHA-256 of the fixture.
+
+### P-78 Run a family on many files
+
+No new computation: each file's family runs the engine's ordinary
+dose-response fit, one file after another. Reference
+(`engine/tests/reference/batch_ic50.py`, which also writes the five
+files in `web/e2e-fixtures/batch/`): scipy `curve_fit` of log(inhibitor)
+vs. response, variable slope, every replicate a point, sharing no code
+with the engine. IC50 (M): plate1 1.018e-07, plate2 2.853e-07, plate3
+3.817e-08, plate4 6.44e-07; plate5.csv holds no numbers.
+`engine/tests/test_batch_reference.py` pins the engine to these at 4
+significant digits (LogIC50 within 1e-5). e2e (`e2e-share.mjs`): the
+built-in IC50 template on the five files makes 4 families and names
+plate5.csv with its error; the summary table's four IC50s equal the
+reference at 4 significant digits; plate2's family, given plate2.csv
+again by a one-file Apply to new data, changes no number. Unit tests
+(`share/__tests__/batch.test.ts`): an IC50 the results withhold
+(not reached in the range tested, an ambiguous fit, a failed analysis)
+is an empty cell with its reason, never the raw fitted value.
+
+### P-124 Blind a table
+
+No new computation: blinding renames the groups. Reference
+(`engine/tests/reference/blind_anova.py`): scipy `f_oneway` on the four
+groups of `web/e2e-fixtures/blind-4groups.json`, F 7.809, P 0.00121 on
+3 and 20 df. `engine/tests/test_blind_reference.py`: the engine's
+one-way ANOVA equals it (relative 1e-9), and its ANOVA table and Tukey
+adjusted P values are identical with the real names and with the codes
+A to D. e2e (`e2e-import.mjs`): the P shown before blinding equals
+scipy's at the shown precision and is unchanged while blind; after one
+value is excluded blind and the table unblinded, the P is the one
+computed blind and the methods say the value was excluded blind. Unit
+tests (`project/__tests__/blinding.test.ts`): no group name in the
+project file, a share link, the replay plan, provenance.json or the
+.pzfx selection while blind; blind then unblind gives every value back
+unchanged.

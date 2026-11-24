@@ -26,6 +26,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 import { projectSchemaErrors } from "./validate-project.mjs";
 import { parseCsv, readXlsx } from "./xlsx-read.mjs";
@@ -730,6 +731,145 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   await page.getByRole("treeitem", { name: "Confluence per well", exact: true }).first().waitFor({ timeout: 10000 });
   expect("saved recipe applied in one click: XY table named by the recipe, C2 at 2 h = 6",
     await val("C2, row 2") === "6" && await val("X, row 2") === "2", await val("C2, row 2"));
+}
+
+// --- P-76 import provenance. The plan's acceptance test: a plate-reader
+// file imported through a recipe, one cell edited; History shows the file
+// name, its SHA-256 (node's, of the same bytes), the recipe and "1 cell
+// edited by hand"; Apply to new data with next week's file re-runs the
+// recipe, and the table holds the new file's readings.
+{
+  const PLATE = join(here, "..", "e2e-fixtures", "plate-reader.csv");
+  const plateBytes = readFileSync(PLATE);
+  const plateSha = createHash("sha256").update(plateBytes).digest("hex");
+  const week2Text = plateBytes.toString("utf8").replace("1.612,1.558,1.488", "1.702,1.611,1.527");
+  const WEEK2 = join(tmp, "plate-week2.csv");
+  writeFileSync(WEEK2, week2Text);
+  const week2Sha = createHash("sha256").update(week2Text).digest("hex");
+  const cell = (label) => page.locator(`.data-table input[aria-label="${label}"]`);
+  await page.getByRole("button", { name: "Import…" }).click();
+  await page.getByRole("tab", { name: "Recipes" }).click();
+  const d = page.getByRole("dialog", { name: "Import with a recipe" });
+  await d.waitFor({ timeout: 10000 });
+  await d.getByLabel("Export file to import").setInputFiles(PLATE);
+  await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  expect("P-76: the plate-reader file is recognised as a plate grid",
+    await d.locator(".recipe-option", { hasText: "Plate reader grid" }).locator(".recipe-detected").count() === 1);
+  await d.getByRole("tab", { name: "Table" }).click();
+  await d.getByLabel("Table name").fill("Plate week 1");
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Plate week 1", exact: true }).first().waitFor({ timeout: 10000 });
+  // well C3 of the file (plate column 3, row C) is 1.488
+  expect("P-76: the recipe's table holds well C3 = 1.488", await cell("3, row 3").inputValue() === "1.488",
+    await cell("3, row 3").inputValue());
+  await cell("3, row 3").fill("1.5");
+  await cell("3, row 3").press("Tab");
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await page.locator(".pane-results").getByRole("button", { name: "History", exact: true }).click();
+  const hist = page.getByRole("dialog", { name: "History" });
+  await hist.waitFor({ timeout: 15000 });
+  const imp = (await hist.locator(".history-import").innerText()).replace(/\s+/g, " ");
+  expect("P-76: History names the file, its SHA-256 and the recipe",
+    imp.includes("Imported from “plate-reader.csv”") && imp.includes(plateSha)
+    && imp.includes("Plate reader grid (8 × 12 or 16 × 24)") && imp.includes(`${plateBytes.length.toLocaleString("en")} bytes`),
+    imp.slice(0, 300));
+  expect("P-76: History says 1 cell edited by hand, which one and both values",
+    imp.includes("1 cell edited by hand since the import") && imp.includes("3, row 3: 1.488 → 1.5"), imp);
+  expect("P-76: History says Apply to new data re-runs the recipe",
+    imp.includes("Apply to new data re-runs these settings on the next file"), imp);
+  await hist.getByRole("button", { name: "Close" }).click();
+
+  await page.getByRole("treeitem", { name: "Plate week 1", exact: true }).first()
+    .locator(":scope > .nav-row").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Apply new data to this table…" }).click();
+  const rp = page.getByRole("dialog", { name: "Apply to new data" });
+  await rp.waitFor({ timeout: 10000 });
+  await rp.getByLabel("New data file").setInputFiles(WEEK2);
+  await rp.getByLabel("Table for plate-week2.csv").waitFor({ timeout: 10000 });
+  await rp.getByRole("button", { name: "Apply and re-run" }).click();
+  const rlog = page.getByRole("dialog", { name: "Replay log" });
+  await rlog.waitFor({ timeout: 180000 });
+  const logText = (await rlog.innerText()).replace(/\s+/g, " ");
+  expect("P-76: the replay log says the recipe was re-run on next week's file",
+    logText.includes("Plate week 1: new data from plate-week2.csv (8 rows, 12 data sets; “Plate reader grid (8 × 12 or 16 × 24)” re-run on it)"),
+    logText.slice(0, 300));
+  await rlog.getByRole("button", { name: "Done" }).click();
+  expect("P-76: the table holds next week's readings (C1..C3 = 1.702, 1.611, 1.527)",
+    await cell("1, row 3").inputValue() === "1.702" && await cell("3, row 3").inputValue() === "1.527",
+    `${await cell("1, row 3").inputValue()} ${await cell("3, row 3").inputValue()}`);
+  await page.locator(".pane-results").getByRole("button", { name: "History", exact: true }).click();
+  await hist.waitFor({ timeout: 15000 });
+  const imp2 = (await hist.locator(".history-import").innerText()).replace(/\s+/g, " ");
+  expect("P-76: History now names next week's file and keeps the first import with its hand edit",
+    imp2.includes("Imported from “plate-week2.csv”") && imp2.includes(week2Sha)
+    && imp2.includes("No cell edited by hand since the import")
+    && imp2.includes("plate-reader.csv") && imp2.includes("1 cell edited by hand after it"), imp2);
+  await hist.getByRole("button", { name: "Close" }).click();
+}
+
+// --- P-78 run a family on many files. The plan's acceptance test: the
+// IC50 template on 5 plate files, one malformed: 4 families and a summary
+// table of 4 IC50s, the failed file named with its error. The IC50s
+// against scipy's curve_fit of the same files (engine/tests/reference/
+// batch_ic50.py; engine/tests/test_batch_reference.py pins the engine to
+// it), and one file's family against a one-file Apply to new data.
+{
+  const BATCH = join(here, "..", "e2e-fixtures", "batch");
+  const ref = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference", "batch_ic50.json"), "utf8"));
+  await fileMenu.click();
+  await page.getByRole("menuitem", { name: "Run on many files…" }).click();
+  const bd = page.getByRole("dialog", { name: "Run on many files" });
+  await bd.waitFor({ timeout: 10000 });
+  await bd.getByLabel("Family to run").selectOption({ label: "96-well SRB plate: IC50" });
+  await bd.getByLabel("Files to run").setInputFiles([1, 2, 3, 4, 5].map((i) => join(BATCH, `plate${i}.csv`)));
+  const axeSetup = await axeDialog();
+  expect("P-78: axe-core finds no WCAG A/AA violations in Run on many files", axeSetup.length === 0, axeSetup.join(" | "));
+  await bd.getByRole("button", { name: "Run on 5 files" }).click();
+  await bd.getByText("4 families made from 5 files; 1 not run.").waitFor({ timeout: 300000 });
+  const runText = (await bd.innerText()).replace(/\s+/g, " ");
+  expect("P-78: the malformed file is named with its error, the others make families",
+    /plate5\.csv: not run\. (It holds no numbers for the table|No column of it holds values for the table)\./.test(runText)
+    && [1, 2, 3, 4].every((i) => runText.includes(`plate${i}.csv: family “plate${i}”`)), runText.slice(0, 400));
+  const ic50Box = bd.getByRole("checkbox", { name: "Cell line 1 · IC50" });
+  expect("P-78: the IC50 is offered for the summary, ticked", await ic50Box.isChecked());
+  const axeDone = await axeDialog();
+  expect("P-78: axe-core finds no WCAG A/AA violations in the run's log", axeDone.length === 0, axeDone.join(" | "));
+  await bd.getByRole("button", { name: "Make the summary table" }).click();
+  await bd.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("treeitem", { name: "Summary of SRB plate", exact: true }).first().waitFor({ timeout: 10000 });
+  const cellOf = (label) => page.locator(`.data-table input[aria-label="${label}"]`).inputValue();
+  const shown = [];
+  for (let r = 1; r <= 4; r++) shown.push([await cellOf(`Row ${r} title`).catch(() => ""), await cellOf(`Cell line 1 · IC50, row ${r}`)]);
+  console.log("summary:", JSON.stringify(shown));
+  expect("P-78: the summary table holds 4 IC50s, one row per good file, equal to scipy at 4 significant digits",
+    shown.every(([name, v], i) => name === `plate${i + 1}` && Number(v).toPrecision(4) === Number(ref[`plate${i + 1}`].IC50_4sig).toPrecision(4))
+    && await page.locator('.data-table input[aria-label="Cell line 1 · IC50, row 5"]').inputValue().catch(() => "") === "",
+    JSON.stringify(shown));
+  // plate2's family against a one-file Apply to new data of the same file
+  await page.getByRole("treeitem", { name: "plate2", exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const ic50Row = async () => (await page.locator(".pane-results .results-table tbody tr")
+    .filter({ hasText: /^\s*IC50\b/ }).first().innerText()).replace(/\s+/g, " ");
+  const before = await ic50Row();
+  const shownIc50 = /IC50 \(M\) (\S+)/.exec(before)?.[1] ?? "";
+  expect("P-78: plate2's results show the reference IC50 (4 significant digits)",
+    shownIc50 !== "" && Number(shownIc50).toPrecision(4) === Number(ref.plate2.IC50_4sig).toPrecision(4),
+    `${before} vs ${ref.plate2.IC50_4sig}`);
+  await page.getByRole("treeitem", { name: "plate2", exact: true }).first().locator(":scope > .nav-row").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Apply new data to this table…" }).click();
+  const rp = page.getByRole("dialog", { name: "Apply to new data" });
+  await rp.waitFor({ timeout: 10000 });
+  await rp.getByLabel("New data file").setInputFiles(join(BATCH, "plate2.csv"));
+  await rp.getByLabel("Table for plate2.csv").waitFor({ timeout: 10000 });
+  await rp.getByRole("button", { name: "Apply and re-run" }).click();
+  const rlog = page.getByRole("dialog", { name: "Replay log" });
+  await rlog.waitFor({ timeout: 180000 });
+  const logText = (await rlog.innerText()).replace(/\s+/g, " ");
+  await rlog.getByRole("button", { name: "Done" }).click();
+  expect("P-78: a one-file Apply to new data of plate2.csv changes no number of its family",
+    logText.includes("plate2: new data from plate2.csv") && logText.includes("no number changed")
+    && !/\d+ numbers? changed/.test(logText), logText.slice(0, 400));
+  expect("P-78: and its IC50 row reads the same", await ic50Row() === before, `${before} / ${await ic50Row()}`);
 }
 
 // --- P-66 one statistics table, P-67 analysis.py and analysis.R: a t test,

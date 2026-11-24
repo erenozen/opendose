@@ -17,6 +17,8 @@ import { parseReportMeta } from "../report/meta.ts";
 import { reportPrefsOf } from "../report/prefs.ts";
 import { repairGroups } from "./groups.ts";
 import { withLoadedRecipes } from "./recipes.ts";
+import { parseImportRecord } from "./importRecord.ts";
+import { parseBlindLog, parseBlinding } from "./blinding.ts";
 import { parseGroupColors } from "../graph/nameColors.ts";
 import type { IdFactory } from "./ids.ts";
 import { sanitizeLayoutFields } from "./layout.ts";
@@ -209,10 +211,18 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
         const derived = parseDerivedLink(s.derived);
         const simulation = parseSimulationSpec(s.simulation);
         const report = parseReportMeta(s.report);
+        // Files from before import records (P-76) have none.
+        const imported = parseImportRecord(s.imported);
+        // ... nor blinding (P-124): the record and the earlier stretches.
+        const blinding = parseBlinding(s.blinding);
+        const blindLog = parseBlindLog(s.blindLog);
         sheets.push({
           ...common, kind: "data", table: normalizeTable(s.table),
           ...(derived ? { derived } : {}), ...(simulation ? { simulation } : {}),
           ...(report ? { report } : {}),
+          ...(imported ? { imported } : {}),
+          ...(blinding ? { blinding } : {}),
+          ...(blindLog.length ? { blindLog } : {}),
         });
         break;
       }

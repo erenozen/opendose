@@ -10,6 +10,8 @@ import type { CIMethod, ErrorBarKind } from "../types.ts";
 import type { ReportMeta } from "../report/meta.ts";
 import type { ReportPrefs } from "../report/prefs.ts";
 import type { AnalysisPlan } from "./plan.ts";
+import type { ImportRecord } from "./importRecord.ts";
+import type { BlindingRecord, BlindSession } from "./blinding.ts";
 import type { ProjectRecipe } from "./recipes.ts";
 import type { ReproductionReport } from "./reproduce.ts";
 import type { StudyDesign } from "./studyDesign.ts";
@@ -243,6 +245,18 @@ export interface DataSheet extends SheetBase {
    *  sample-size reasoning) for legends, methods and journal checklists
    *  (src/report). */
   report?: ReportMeta;
+  /** Where the values came from: the file (name, SHA-256), the recipe or
+   *  import settings, and the values as imported, so hand edits since can
+   *  be counted (project/importRecord.ts, P-76). Absent in files saved
+   *  before it existed, and on tables typed or pasted in. */
+  imported?: ImportRecord;
+  /** The group names are shown as codes until unblinded with the key,
+   *  which is kept outside the project (project/blinding.ts, P-124).
+   *  Absent when the table is not blinded. */
+  blinding?: BlindingRecord;
+  /** Earlier blinded stretches, with the values excluded while blind
+   *  (reported in the methods). Absent in files saved before it existed. */
+  blindLog?: BlindSession[];
 }
 
 /** A derived table's provenance: the data sheet it is computed from and

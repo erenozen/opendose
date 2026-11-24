@@ -64,6 +64,11 @@
 //                      collapsed), highlights, info sheets and layouts
 //   source-data.json   a layout of a column scatter (mean ± SD, t test) and
 //                      a 4PL fit, letters a and b: its source data (P-65)
+//   import-history.json a plate imported through a recipe, replaced by next
+//                      week's file, one cell edited by hand (P-76)
+//   blinded.json       a four-group table blinded as A to D, and a table
+//                      unblinded after a value was excluded blind (P-124)
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1138,4 +1143,54 @@ const longData = (name, names, rows, categorical) => data(name, {
   const rk = results(kit, "assay_stdcurve", { unit: "pg/mL", model: "spline", excludeLevels: [7.81] },
     "Standard curve of ELISA kit");
   write("smoothing.json", project("Smoothing", [cars, ss, lw, gs, trace, ops, out, kit, rk], { selected: ss.id }));
+}
+
+// import-history.json (P-76): a plate read through the plate-reader recipe
+// (its import record: the file's name and SHA-256, the recipe and its
+// settings, the values as imported) after next week's file replaced it,
+// with one cell edited by hand since; History shows all of it
+{
+  n = 0;
+  const groups = ["1", "2", "3"];
+  const imported = [[1.623, 1.584, 1.5], [1.627, 1.579, 1.486], [1.612, 1.558, 1.488], [1.64, 1.585, 1.512]];
+  const t = table("column", { yTitle: "Value", datasets: groups.map((g, k) => col(g, imported.map((r) => r[k]))) });
+  const snapshot = { x: [...t.x], rowTitles: [...t.rowTitles], y: t.datasets.map((d) => d.rows.map((r) => [...r])) };
+  t.datasets[2].rows[2] = ["1.5"];
+  const sha = (s) => createHash("sha256").update(s).digest("hex");
+  const spec = { kind: "recipe", recipe: "plate", roles: { Well: "meta", Row: "subject", Column: "group", Value: "value" },
+    pattern: null, aggregate: false, steps: [], keepLower: false, output: "column", tableName: "Plate week 2", replicateMap: false };
+  const d = data("Plate week 2", t, { imported: {
+    at: "2026-12-01T09:12:00.000Z", how: "recipe", mode: "replace", basis: "Plate reader grid (8 × 12 or 16 × 24)",
+    recipeName: "SRB plate, 570 nm",
+    sources: [{ name: "plate-week2.csv", bytes: 1066, sha256: sha("plate-week2.csv") }], spec, replayable: true,
+    cells: "fnv1a32x2:0000000000000000", snapshot,
+    earlier: [{ at: "2026-11-24T10:00:00.000Z", how: "recipe", mode: "new", basis: "Plate reader grid (8 × 12 or 16 × 24)",
+      recipeName: "SRB plate, 570 nm", sources: [{ name: "plate-reader.csv", bytes: 1062, sha256: sha("plate-reader.csv") }],
+      editedCells: 1 }],
+  } });
+  const r = results(d, "column", {}, "Column stats of Plate week 2");
+  write("import-history.json", project("Plates", [d, r], { selected: r.id }));
+}
+
+// blinded.json (P-124): a four-group table blinded (groups coded A to D;
+// its key is not in this browser) under a one-way ANOVA with its graph,
+// and a second table unblinded after a value was excluded blind (the
+// methods paragraph and History say so)
+{
+  n = 0;
+  const vals = [[21.4, 23.9, 22.7, 25.1, 20.8, 24.2], [23.8, 26.1, 22.9, 25.7, 24.4, 27.0],
+    [26.3, 24.8, 28.9, 27.4, 25.6, 29.1], [22.0, 25.3, 23.1, 21.9, 24.6, 23.5]];
+  const blind = data("Body weight", table("column", { yTitle: "Body weight (g)",
+    datasets: ["A", "B", "C", "D"].map((c, k) => col(c, vals[k])) }), { blinding: {
+    id: "blind-stage", at: "2026-11-24T09:00:00.000Z", codes: ["A", "B", "C", "D"], excludedAtStart: [], paths: [] } });
+  const br = results(blind, "column", { analysis: "anova", comparisons: "tukey" }, "One-way ANOVA of Body weight");
+  const bg = graph(blind, br, "scatter", "Graph of Body weight", { x: "", y: "Body weight (g)" });
+  const after = data("Food intake", table("column", { yTitle: "Food intake (g/day)",
+    datasets: ["Vehicle", "Low dose", "High dose"].map((g, k) => col(g, vals[k].map((v) => (v / 5).toFixed(2)))) }));
+  after.table.datasets[1].excluded = ["2:0"];
+  after.table.datasets[1].exclusionReasons = { "2:0": "pipetting error" };
+  after.blindLog = [{ blindedAt: "2026-11-20T09:00:00.000Z", unblindedAt: "2026-11-23T16:30:00.000Z",
+    codes: ["A", "B", "C"], exclusions: [{ dataset: "Low dose", row: 2, sub: 0, value: "4.58", reason: "pipetting error" }] }];
+  const ar = results(after, "column", { analysis: "anova", comparisons: "tukey" }, "One-way ANOVA of Food intake");
+  write("blinded.json", project("Blinding study", [blind, br, bg, after, ar], { selected: blind.id }));
 }

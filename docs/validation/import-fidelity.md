@@ -138,3 +138,24 @@ cells; the existing fixtures below pass as before).
   sheet "Plate 2" refills the table with openpyxl's cells of the .xlsx
   (workbook.expected.json: X 1, 2; Y 2.5, 4.75), and the other sheet's
   row 7, hidden by hand, is reported.
+
+## Import provenance and replayed imports (P-76), 2026-11-24
+
+- Each table made or refilled by the Import dialog, a recipe or Apply to
+  new data records the file's name, size and SHA-256 (Web Crypto), the
+  settings (the recipe with its plate map, or the delimiter, lines
+  skipped, filters and column roles) and the values as imported (up to
+  50,000 cells; above that a fingerprint only). The record is checked at
+  import time: re-running the settings on the same file must give the
+  table back exactly, or the record says why Apply to new data will put
+  the next file into the table's layout instead (rows appended to a
+  table, a text encoding chosen by hand, several files at once).
+- Unit (`project/__tests__/importRecord.test.ts`): Web Crypto's SHA-256
+  of `e2e-fixtures/plate-reader.csv` equals node's; the plate-reader
+  recipe re-run on its own file gives the table byte for byte; one hand
+  edit is counted; next week's file is read through the same recipe.
+- e2e-share: plate-reader.csv through the recipe, one cell edited;
+  History shows the file, its SHA-256 (equal to node's), the recipe and
+  "1 cell edited by hand since the import" (3, row 3: 1.488 → 1.5);
+  Apply to new data with plate-week2.csv re-runs the recipe and the
+  table holds its readings (C1, C3 = 1.702, 1.527).
