@@ -277,22 +277,30 @@ class BlockDdf(_DdfBase):
         Sigma = np.asarray(Sigma, float)
         nth = len(dSigma)
         d2Sigma = d2Sigma or {}
+        D = [np.asarray(d, float) for d in dSigma]
+        pairs = {}
+        for (i, j), M in d2Sigma.items():
+            pairs[(i, j)] = pairs[(j, i)] = np.asarray(M, float)
         blocks = []
         for s in np.unique(subjects):
             idx = np.flatnonzero(subjects == s)
             pos = positions[idx]
             V = Sigma[np.ix_(pos, pos)]
             Vi = np.linalg.inv(V)
-            blocks.append((idx, pos, (Vi + Vi.T) / 2.0))
-        XtVX = sum(X[i].T @ Vi @ X[i] for i, _, Vi in blocks)
+            blocks.append((idx, (Vi + Vi.T) / 2.0,
+                           [d[np.ix_(pos, pos)] for d in D],
+                           {k: M[np.ix_(pos, pos)] for k, M in pairs.items()}))
+        self._from_blocks(y, X, blocks, nth, set(pairs))
+
+    def _from_blocks(self, y, X, blocks, nth, pairs):
+        """blocks: (row indices, V_s^-1, [dV_s/dtheta_i], {(i, j):
+        d2V_s/dtheta_i dtheta_j}) per independent block of V; pairs: the
+        (i, j) with a non-zero second derivative (empty: V linear)."""
+        XtVX = sum(X[i].T @ Vi @ X[i] for i, Vi, _, _ in blocks)
         Phi = np.linalg.inv(XtVX)
         self.Phi = (Phi + Phi.T) / 2.0
-        self.beta = self.Phi @ sum(X[i].T @ Vi @ y[i] for i, _, Vi in blocks)
+        self.beta = self.Phi @ sum(X[i].T @ Vi @ y[i] for i, Vi, _, _ in blocks)
         self.theta = None
-        D = [np.asarray(d, float) for d in dSigma]
-        pairs = {}
-        for (i, j), M in d2Sigma.items():
-            pairs[(i, j)] = pairs[(j, i)] = np.asarray(M, float)
         P = [np.zeros_like(self.Phi) for _ in range(nth)]
         Q = [[np.zeros_like(self.Phi) for _ in range(nth)] for _ in range(nth)]
         R = ([[np.zeros_like(self.Phi) for _ in range(nth)] for _ in range(nth)]
@@ -303,10 +311,9 @@ class BlockDdf(_DdfBase):
         r = y - X @ self.beta
         u_all = [[] for _ in range(nth)]   # (idx, D_i e_s) per subject
         g = [np.zeros(X.shape[1]) for _ in range(nth)]
-        for idx, pos, Vi in blocks:
+        for idx, Vi, Ds, M2b in blocks:
             A = Vi @ X[idx]                              # V_s^-1 X_s
             e = Vi @ r[idx]                              # (P y)_s
-            Ds = [d[np.ix_(pos, pos)] for d in D]
             ViD = [Vi @ d for d in Ds]
             for a in range(nth):
                 P[a] += A.T @ Ds[a] @ A
@@ -316,9 +323,8 @@ class BlockDdf(_DdfBase):
                 for b in range(nth):
                     Q[a][b] += A.T @ Ds[a] @ Vi @ Ds[b] @ A
                     T1[a, b] += float(np.sum(ViD[a] * ViD[b].T))
-                    M2 = pairs.get((a, b))
-                    if M2 is not None:
-                        M2s = M2[np.ix_(pos, pos)]
+                    M2s = M2b.get((a, b))
+                    if M2s is not None:
                         R[a][b] += A.T @ M2s @ A
                         TV2[a, b] += float(np.sum(Vi * M2s.T))
                         ev[a, b] += float(e @ M2s @ e)
@@ -346,6 +352,25 @@ class BlockDdf(_DdfBase):
         except np.linalg.LinAlgError:
             self.A_observed = 2.0 * np.linalg.pinv(self.H_observed)
         self._phi_a = None
+
+
+class GeneralBlockDdf(BlockDdf):
+    """Kenward-Roger / Satterthwaite for any block-diagonal V that is
+    linear in its parameters (opendose.lmm: random intercepts and slopes
+    of groups nested in one top-level grouping factor): blocks are
+    (row indices, V_s, [dV_s/dtheta_i]) with V_s dense for that block."""
+
+    def __init__(self, y, X, blocks):
+        y = np.asarray(y, float)
+        X = np.asarray(X, float)
+        prepared = []
+        nth = None
+        for idx, V, Ds in blocks:
+            Vi = np.linalg.inv(np.asarray(V, float))
+            prepared.append((np.asarray(idx, int), (Vi + Vi.T) / 2.0,
+                             [np.asarray(d, float) for d in Ds], {}))
+            nth = len(Ds)
+        self._from_blocks(y, X, prepared, nth, set())
 
 
 def structure_derivatives(kind, T, Sigma_params, *, level_times=None,

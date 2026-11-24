@@ -494,6 +494,9 @@ export interface ColumnOptionsState {
   comparisonsFamily?: "all" | "control" | "pairs";
   /** The planned pairs [i, j] of data set indices (comparisonsFamily "pairs"). */
   plannedPairs?: [number, number][];
+  /** Custom contrasts after one-way ANOVA (P-83, sheets/common/customContrasts.ts):
+   *  coefficients over the groups, planned or post hoc (Scheffé). */
+  customContrasts?: { name: string; coefficients: number[]; planned: boolean }[];
   /** t tests and the one-sample t test: two one-sided tests against an
    *  equivalence margin, or one for non-inferiority (report/equivalence.ts;
    *  absent = off). The margin is typed: data units, or a ratio for tests

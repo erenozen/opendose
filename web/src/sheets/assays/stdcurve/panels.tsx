@@ -17,6 +17,7 @@ import {
   STD_ROLES, type StdModel, type StdOptions, type StdRow, type StdRun, type Weighting,
 } from "./model";
 import { Button, NumberField } from "../../../components/ui";
+import { PrecisionReport } from "./precisionPanel";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -285,6 +286,10 @@ function StdWizard({ start, table, options, tableName, hasOutputs, onClose, onFi
           render: () => <LimitsStep table={table} o={o} set={set} rows={rows} />,
         },
         {
+          id: "precision", title: "Precision",
+          render: () => <PrecisionStep table={table} o={o} set={set} rows={rows} />,
+        },
+        {
           id: "out", title: "Outputs",
           render: () => (
             <p className="wizard-explain">
@@ -322,6 +327,65 @@ const EP17_NOTE = "CLSI EP17-A2 (2012), parametric, as Armbruster & Pry (2008) w
   + "sample whose back-calculated concentrations meet the CV goal at or above the LoD (functional "
   + "sensitivity). EP17-A2 asks for at least 60 blank and 60 low-sample replicates per reagent lot to "
   + "establish the LoB and LoD, and 20 of each to verify a stated value.";
+
+/** The wizard's Precision step (P-94): which samples make the report and
+ *  the ICH M10 acceptance limits for them, with the report itself. */
+function PrecisionStep({ table, o, set, rows }: {
+  table: DataTableModel; o: StdOptions; set: (p: Partial<StdOptions>) => void; rows: StdRow[];
+}) {
+  const plates = new Map<string, Set<string>>();
+  for (const r of rows) {
+    if (r.kind !== "unknown" || !r.plate) continue;
+    plates.set(r.name, (plates.get(r.name) ?? new Set()).add(r.plate));
+  }
+  const qc = [...plates.entries()].filter(([, p]) => p.size > 1).map(([n]) => n);
+  const run = usePreviewRun(table, o);
+  const num_ = (v: string, key: "qcAccuracy" | "qcCv") => {
+    const x = Number(v.replace(",", "."));
+    if (v.trim() && Number.isFinite(x) && x > 0) set({ [key]: x });
+  };
+  return (
+    <>
+      <p className="wizard-explain">
+        A sample measured on two or more plates (a QC typed <strong>QC</strong> or <strong>Unknown</strong>,
+        the same name on every plate) gets a precision report: each plate is a run and its replicates
+        the within-run scatter, so the report gives the repeatability (within-run), between-run and
+        total CV with their confidence intervals (CLSI EP05-A3), and a <strong>Day</strong> column
+        separates between-day from between-run. Type the nominal concentration in the Concentration
+        column of its rows to get its recovery. ICH M10 accepts a QC whose mean is within ±15% of
+        nominal with within-run and between-run CV at most 15% (±20% and 20% at the LLOQ).
+      </p>
+      <p className="hint-block">
+        {qc.length ? `Precision samples: ${qc.join(", ")}.`
+          : "No sample is on two or more plates yet: give each run its own Plate and repeat the QC rows on every plate."}
+      </p>
+      <div className="wizard-row">
+        <NumberField label="Recovery within" unit="±%" min={0} defaultValue={String(o.qcAccuracy)}
+          onValueChange={(v) => num_(v, "qcAccuracy")} />
+        <NumberField label="CV at most" unit="%" min={0} defaultValue={String(o.qcCv)}
+          onValueChange={(v) => num_(v, "qcCv")} />
+      </div>
+      {run && !run.error && run.precision && (
+        <>
+          <h4>With these settings</h4>
+          <PrecisionReport p={run.precision} unit={o.unit} />
+        </>
+      )}
+    </>
+  );
+}
+
+function precisionMethods(p: any, o: StdOptions): string {
+  const n = Array.isArray(p?.samples) ? p.samples.filter((s: any) => !s.error).length : 0;
+  if (!n) return "";
+  return `Precision of the ${n} sample${n === 1 ? "" : "s"} measured on two or more plates was estimated `
+    + "from the dilution-corrected replicate concentrations by the ANOVA estimators of the nested random "
+    + "model (plate as the run, within day when given; CLSI EP05-A3), negative variance components set to "
+    + "zero, with chi-square confidence intervals for the repeatability and total variances (Satterthwaite's "
+    + "df for the total) and Wald intervals for the between-run and between-day variances (as the VCA "
+    + `package); recovery was the mean over the nominal concentration, accepted within ±${o.qcAccuracy}% `
+    + `with within-run and total CV at most ${o.qcCv}% (ICH M10). `;
+}
 
 function LimitsStep({ table, o, set, rows }: {
   table: DataTableModel; o: StdOptions; set: (p: Partial<StdOptions>) => void; rows: StdRow[];
@@ -464,6 +528,7 @@ export function StdResults({ sheet, options: o, result }: ResultsProps<StdOption
       {(result.notes ?? []).map((n) => <Note key={n}>{n}</Note>)}
       {res.error ? <div className="results-error">{String(res.error)}</div>
         : <StdPlate res={res} o={o} onExclude={toggle} />}
+      <PrecisionReport p={result.precision} unit={o.unit} />
       <h4>Concentrations table</h4>
       <LinkedOutputs outputs={a.outputs}
         onMake={a.outputs.length || sheet.frozen ? undefined : () => { void a.commit(o, null, specsFor(a.tableName)); }}
@@ -741,6 +806,7 @@ export function StdMethods({ options: o, result }: ResultsProps<StdOptions, StdR
     + `interpolated from the curve, multiplied by their dilution factor and averaged per sample over the `
     + `dilutions within the range; values outside it are reported as below the LLOQ or above the ULOQ and `
     + `were not extrapolated. Confidence intervals of interpolated concentrations are where the curve's `
-    + `confidence band crosses the signal. ${limitsMethods(res.detection_limits, o.unit)}Analysed in OpenDose.`;
+    + `confidence band crosses the signal. ${limitsMethods(res.detection_limits, o.unit)}`
+    + `${precisionMethods(result.precision, o)}Analysed in OpenDose.`;
   return <CopyableMethods text={text} />;
 }

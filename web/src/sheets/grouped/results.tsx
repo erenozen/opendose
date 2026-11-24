@@ -13,6 +13,7 @@ import {
 import { fmtCI, fmtP, pLabel, stars } from "./format";
 import { rowMeansTable, CALC_TITLE } from "./tables";
 import InteractionBlock from "./interaction";
+import { CustomContrastsTable } from "../common/CustomContrasts";
 import { isAdditiveTwoWay } from "./interactionSummary";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../../report/family";
 import FamilyLine from "../common/FamilyLine";
@@ -240,7 +241,11 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
       if (s.percent_of_total == null && total > 0) s.percent_of_total = 100 * s.ss / total;
     }
     const gg = rows.some(([, s]) => s.p_geisser_greenhouse != null);
+    const rmFirst = options.interactionFocus === true;
+    const rmInteraction = <InteractionBlock result={result} table={table} factors={factors} first={rmFirst} />;
     return (
+      <>
+      {rmFirst && rmInteraction}
       <div className="result-card">
         <h3>Two-way repeated-measures ANOVA</h3>
         <p className="model-line">
@@ -260,6 +265,8 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
           <p className="results-error">Comparisons failed: {result.comparisons_error}</p>
         )}
       </div>
+      {!rmFirst && rmInteraction}
+      </>
     );
   }
   // Ordinary two-way ANOVA (from replicates or from mean / SD / N).
@@ -294,6 +301,7 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
       )}
       {result.cell_means && <CellMeans means={result.cell_means} rows={rowNames} cols={colNames} />}
       {result.multiple_comparisons && <TwoWayComparisons mc={result.multiple_comparisons} />}
+      <CustomContrastsTable block={result.custom_contrasts} />
     </div>
     {!first && interaction}
     </>

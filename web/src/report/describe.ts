@@ -343,6 +343,21 @@ export function describeResult(result: unknown): TestInfo {
         .filter((g: GroupN) => num(g.n));
       return withMc(info, r.comparisons);
     }
+    case "lmm": {
+      // general linear mixed model (P-87, sheets/common/lmmModel.ts)
+      const counts = Object.entries((r.n_groups ?? {}) as Record<string, number>)
+        .map(([g, k]) => `${k} ${g} groups`).join(" and ");
+      info.test = `linear mixed model (REML; ${String(r.formula ?? "")}; ${r.ddf === "satterthwaite"
+        ? "Satterthwaite" : "Kenward-Roger"} df from the ${counts}, not from the ${r.n_values} values)`;
+      info.sided = "two-sided";
+      info.exactP = true;
+      info.statisticWithDf = true;
+      info.nUnit = "subjects";
+      info.groups = (Array.isArray(r.cell_means) ? r.cell_means : [])
+        .map((c: R) => ({ name: c.b != null ? `${c.a} · ${c.b}` : String(c.a), n: c.n_units }))
+        .filter((g: GroupN) => num(g.n));
+      return withMc(info, r.comparisons);
+    }
     case "mixed_timecourse": {
       info.test = `mixed-effects model for repeated measures (REML; ${String(r.covariance?.label ?? "")
         .toLowerCase()}; between-within df)`;

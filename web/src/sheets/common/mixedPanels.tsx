@@ -4,7 +4,7 @@
 // variables table's grouping-column model (multivariable/mixedGrouping.ts).
 // The comparisons table with its family header is also used by the
 // time-course module (assays/timecourse).
-import { useMemo } from "react";
+import { lazy, Suspense, useMemo } from "react";
 import type Plotly from "plotly.js-dist-min";
 import { OptCheck } from "../../components/GraphOptionControls";
 import { tagTrace } from "../../graph";
@@ -29,6 +29,11 @@ import "./mixed.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
+
+// The general model (P-87: nested level, covariates, random slopes) has
+// its own results; the grouping-column sheet switches to it.
+const LmmResults = lazy(() => import("./lmmPanels").then((m) => ({ default: m.LmmResults })));
+const LmmMethods = lazy(() => import("./lmmPanels").then((m) => ({ default: m.LmmMethods })));
 
 const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const f = (v: unknown, d?: number) => (num(v) ? formatSig(v, d) : "n/a");
@@ -114,8 +119,13 @@ export function FamilyComparisons({ block, what, name, ciLevel = 0.95, familyHea
 // ------------------------------------------------------------ controls
 
 /** Unit, comparisons, CI level and negative variance (both analyses). */
-export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb }: {
+export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb, general = false,
+  comparisons = true }: {
   o: O; set: (patch: Partial<O>) => void; a: string; b: string | null; la: string[]; lb: string[];
+  /** The general model (P-87): variances bounded at zero, no containment df. */
+  general?: boolean;
+  /** false: no factor, so nothing to compare (covariates only). */
+  comparisons?: boolean;
 }) {
   const words = unitWords(o.unit, o.unitCustom);
   const scopes: ComparisonScope[] = b ? SCOPES : ["a_means"];
@@ -147,6 +157,7 @@ export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb 
           of {words.plural}, not of values (<Cite src={MIXED_SRC.lazic2010} />).
         </p>
       </section>
+      {comparisons && (
       <section>
         <h3>Multiple comparisons</h3>
         <label className="check-row">
@@ -181,6 +192,7 @@ export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb 
           comparison its own). Tukey and Dunnett adjust within each family; Šídák, Bonferroni and
           Holm count every comparison of every family.</p>
       </section>
+      )}
       <section>
         <h3>Options</h3>
         <label className="check-row">
@@ -190,15 +202,29 @@ export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb 
             {[0.9, 0.95, 0.99].map((l) => <option key={l} value={l}>{levelPct(l)}</option>)}
           </select>
         </label>
-        <label className="check-row">
-          <span>Negative unit variance</span>
-          <select aria-label="Negative unit variance" value={o.negativeVariance}
-            onChange={(e) => set({ negativeVariance: e.target.value === "zero" ? "zero" : "allow" } as Partial<O>)}>
-            <option value="allow">Allow (equals the classical nested ANOVA)</option>
-            <option value="zero">Constrain to zero</option>
-          </select>
-        </label>
-        <DdfSelect value={o.mixedDdf} onChange={(m) => set({ mixedDdf: m } as Partial<O>)} />
+        {general ? (
+          <>
+            <p className="hint-block">Variances are bounded at zero, as lme4 does: a variance the data
+              put at zero is reported as a boundary (singular) fit.</p>
+            <DdfSelect value={o.mixedDdf} onChange={(m) => set({ mixedDdf: m } as Partial<O>)}
+              methods={["kenward_roger", "satterthwaite"]}
+              hint={"Each test, estimate and comparison gets its own df from the fitted model: "
+                + "Kenward-Roger also adjusts the standard errors for small samples; Satterthwaite "
+                + "is lmerTest's default. Containment df are not defined with covariates or a nested level."} />
+          </>
+        ) : (
+          <>
+            <label className="check-row">
+              <span>Negative unit variance</span>
+              <select aria-label="Negative unit variance" value={o.negativeVariance}
+                onChange={(e) => set({ negativeVariance: e.target.value === "zero" ? "zero" : "allow" } as Partial<O>)}>
+                <option value="allow">Allow (equals the classical nested ANOVA)</option>
+                <option value="zero">Constrain to zero</option>
+              </select>
+            </label>
+            <DdfSelect value={o.mixedDdf} onChange={(m) => set({ mixedDdf: m } as Partial<O>)} />
+          </>
+        )}
       </section>
     </>
   );
@@ -214,6 +240,7 @@ function wordsOf(r: R): UnitWords {
 export function MixedUnitResults({ options, result: r }: ResultsProps<MixedUnitOptions, R>) {
   if (!r) return null;
   if (r.error) return <div className="results-error" role="alert">{String(r.error)}</div>;
+  if (r.analysis === "lmm") return <Suspense fallback={null}><LmmResults result={r} /></Suspense>;
   const words = wordsOf(r);
   const { a, b } = factorsOf(r);
   const grouping = r.analysis === "mixed_grouping";
@@ -365,6 +392,7 @@ export function MixedUnitResults({ options, result: r }: ResultsProps<MixedUnitO
 }
 
 export function MixedUnitMethods({ result: r }: ResultsProps<MixedUnitOptions, R>) {
+  if (r?.analysis === "lmm") return <Suspense fallback={null}><LmmMethods result={r} /></Suspense>;
   if (!r || r.error || !Array.isArray(r.anova)) return null;
   return <CopyableMethods text={mixedMethodsText(r, wordsOf(r), String(r.outcome ?? "the value"))} />;
 }
@@ -449,6 +477,8 @@ export function MixedNestedPlot({ graph, options, result, titles, scheme, format
       });
     } else {
       annotations.push({ text: result?.error ? "No graph: the analysis did not run"
+        : result?.analysis === "lmm" ? "No graph: this graph draws each group's mean within the "
+          + "factor levels, and a model with covariates or groups that span the levels has none"
         : "No results yet: this graph draws a nested two-way ANOVA or a mixed model with a grouping column",
         showarrow: false, font: { color: chrome.muted, size: 13 }, x: 0.5, y: 0.5,
         xref: "paper", yref: "paper" });

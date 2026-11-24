@@ -48,3 +48,15 @@ test("the comparison starts with the fit's weighting", () => {
     { weighting: "none" }),
     { mode: "parameter", xIsLog: false, datasetA: 0, datasetB: 1, model1: "one_site_binding" });
 });
+
+test("a global model's fit opens the nested pair (P-99), simpler model first", () => {
+  assert.deepEqual(compareFitsOptions("competitive_inhibition", false, "models", usable), {
+    mode: "models", xIsLog: false, model1: "competitive_inhibition", model2: "mixed_model_inhibition" });
+  assert.deepEqual(compareFitsOptions("mixed_model_inhibition", false, "models", usable), {
+    mode: "models", xIsLog: false, model1: "competitive_inhibition", model2: "mixed_model_inhibition" });
+  assert.deepEqual(compareFitsOptions("gaddum_schild_log", true, "models", usable), {
+    mode: "models", xIsLog: true, model1: "gaddum_schild_slope1_log", model2: "gaddum_schild_log" });
+  // the one-model modes do not take a global-only model
+  assert.deepEqual(compareFitsOptions("competitive_inhibition", false, "global", usable),
+    { mode: "global", xIsLog: false });
+});

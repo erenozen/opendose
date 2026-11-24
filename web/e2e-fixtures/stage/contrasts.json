@@ -1,0 +1,311 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Contrasts",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r013",
+ "sheets": [
+  {
+   "id": "d012",
+   "kind": "data",
+   "name": "Drug by genotype",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Response",
+    "rowTitles": [
+     "Vehicle",
+     "Drug"
+    ],
+    "datasets": [
+     {
+      "name": "WT",
+      "rows": [
+       [
+        "15.1",
+        "19.94",
+        "20.01",
+        "18.83",
+        "22.03",
+        "21.15"
+       ],
+       [
+        "19.55",
+        "26.6",
+        "22.82",
+        "22.64",
+        "27.56",
+        "23.53"
+       ]
+      ]
+     },
+     {
+      "name": "KO",
+      "rows": [
+       [
+        "16.64",
+        "21.57",
+        "22.01",
+        "22.19",
+        "20.93",
+        "19.99"
+       ],
+       [
+        "24.29",
+        "27.52",
+        "28.88",
+        "26.4",
+        "27.41",
+        "27.46"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r013",
+   "kind": "results",
+   "parentId": "d012",
+   "analysis": "grouped_two_way",
+   "options": {
+    "design": "rm_rows",
+    "rowFactor": "Drug",
+    "colFactor": "Genotype",
+    "interactionFocus": true
+   },
+   "name": "Two-way RM ANOVA of Drug by genotype"
+  },
+  {
+   "id": "d014",
+   "kind": "data",
+   "name": "Three groups",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "6.704"
+       ],
+       [
+        "9.491"
+       ],
+       [
+        "11.342"
+       ],
+       [
+        "11.446"
+       ],
+       [
+        "8.383"
+       ],
+       [
+        "11.02"
+       ]
+      ]
+     },
+     {
+      "name": "Drug A",
+      "rows": [
+       [
+        "13.79"
+       ],
+       [
+        "13.221"
+       ],
+       [
+        "13.447"
+       ],
+       [
+        "10.311"
+       ],
+       [
+        "12.727"
+       ]
+      ]
+     },
+     {
+      "name": "Drug B",
+      "rows": [
+       [
+        "13.563"
+       ],
+       [
+        "17.204"
+       ],
+       [
+        "14.185"
+       ],
+       [
+        "9.098"
+       ],
+       [
+        "16.38"
+       ],
+       [
+        "17.375"
+       ],
+       [
+        "13.929"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r015",
+   "kind": "results",
+   "parentId": "d014",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "anovaKind": "parametric",
+    "comparisons": "none",
+    "customContrasts": [
+     {
+      "name": "Drugs vs vehicle",
+      "coefficients": [
+       -2,
+       1,
+       1
+      ],
+      "planned": true
+     },
+     {
+      "name": "A vs B",
+      "coefficients": [
+       0,
+       1,
+       -1
+      ],
+      "planned": false
+     }
+    ]
+   },
+   "name": "One-way ANOVA of Three groups"
+  },
+  {
+   "id": "d016",
+   "kind": "data",
+   "name": "Genotype by drug",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "WT",
+     "KO"
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "10.733",
+        "9.804",
+        "10.724",
+        "12.335"
+       ],
+       [
+        "12.376",
+        "8.444",
+        "8.746",
+        "10.041"
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "11.993",
+        "12.108",
+        "14.236",
+        "13.054"
+       ],
+       [
+        "14.263",
+        "17.791",
+        "15.115",
+        "13.298"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r017",
+   "kind": "results",
+   "parentId": "d016",
+   "analysis": "grouped_two_way",
+   "options": {
+    "design": "none",
+    "rowFactor": "Genotype",
+    "colFactor": "Drug",
+    "customContrasts": [
+     {
+      "name": "Difference of differences",
+      "coefficients": [
+       1,
+       -1,
+       -1,
+       1
+      ],
+      "planned": false
+     }
+    ]
+   },
+   "name": "Two-way ANOVA of Genotype by drug"
+  }
+ ]
+}

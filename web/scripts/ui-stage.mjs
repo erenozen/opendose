@@ -724,6 +724,26 @@ const scenes = [
     await s.page.locator(".fit-summary-table").first().waitFor({ timeout: 120000 });
     await into(s, ".fit-summary");
   } },
+  // nlstools' vmkmki inhibition data (P-99): competitive vs mixed-model
+  // inhibition, each fitted to all six data sets at once (I from the
+  // titles), the nesting sentence, F test and AICc
+  { name: "results-compare-global", setup: async (s) => {
+    await fixture(s, "fit-compare.json", { live: true });
+    await s.page.locator(".pane-results .compare-nesting").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .compare-nesting");
+  } },
+  // drc's S.alba (P-100): glyphosate against bentazone from parallel 4PL
+  // curves; margins set, the slope ratio misses its margin (the warn note)
+  { name: "results-relative-potency", setup: async (s) => {
+    await fixture(s, "fit-potency.json", { live: true });
+    await s.page.locator(".pane-results .relative-potency").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .relative-potency");
+  } },
+  { name: "controls-relative-potency", setup: async (s) => {
+    await fixture(s, "fit-potency.json", { live: true });
+    await s.page.locator(".potency-margins").first().waitFor({ timeout: 120000 });
+    await into(s, ".potency-margins");
+  } },
   // a BCA standard curve (quadratic) with three unknown rows (P-22): the
   // interpolated X with its CI and prediction interval, and the markers
   { name: "results-interpolation", setup: async (s) => {
@@ -1206,6 +1226,89 @@ const scenes = [
     await click(s, checks.locator("summary"));
     await click(s, s.page.getByRole("button", { name: /Firth's correction: estimates shrunk/ }));
     await into(s, ".pane-answer", "start");
+  } },
+  // P-87: sleepstudy with a random slope of Days (Satterthwaite df)
+  { name: "results-lmm-slope", setup: async (s) => {
+    await fixture(s, "lmm.json", { live: true });
+    const card = s.page.locator(".pane-results .lmm-results").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-87: slices nested in animals with a covariate: random effects
+  { name: "results-lmm-nested", setup: async (s) => {
+    await fixture(s, "lmm.json", { live: true });
+    await selectSheet(s, "Mixed model of Patch clamp");
+    const block = s.page.locator(".lmm-results section[aria-label='Random effects']").first();
+    await block.waitFor({ timeout: 240000 });
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-87: the controls with a nested level, covariates and a random slope
+  { name: "controls-lmm", setup: async (s) => {
+    await fixture(s, "lmm.json", { live: true });
+    const controls = s.page.locator(".pane-controls").first();
+    const cov = await reveal(s, controls.getByRole("heading", { name: "Covariates" }));
+    await cov.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-83: the Interaction block of a two-way RM ANOVA (2 x 2, drug within)
+  { name: "results-rm-interaction", setup: async (s) => {
+    await fixture(s, "contrasts.json", { live: true });
+    const block = s.page.locator(".pane-results .interaction-block").first();
+    await block.locator(".interaction-dod").waitFor({ timeout: 240000 });
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-83: planned and post hoc (Scheffé) custom contrasts after one-way ANOVA
+  { name: "results-custom-contrasts", setup: async (s) => {
+    await fixture(s, "contrasts.json", { live: true });
+    await selectSheet(s, "One-way ANOVA of Three groups");
+    const card = s.page.locator(".pane-results .custom-contrasts-results").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-83: the "Custom contrast…" dialog with a sum that is not 0
+  { name: "dialog-custom-contrast", setup: async (s) => {
+    await fixture(s, "contrasts.json", { live: true });
+    await selectSheet(s, "One-way ANOVA of Three groups");
+    const controls = s.page.locator(".pane-controls").first();
+    await click(s, await reveal(s, controls.getByRole("button", { name: "Custom contrast…" })));
+    const d = dialog(s, "Custom contrast");
+    await d.getByLabel("Coefficient: Vehicle").fill("-1");
+    await d.getByLabel("Coefficient: Drug A").fill("2");
+    await click(s, d.getByRole("button", { name: "Add contrast" }));
+    await d.locator(".contrast-status[data-problem]").waitFor();
+    await settle(s, 500);
+  } },
+  // P-94: the standard curve's Precision report (4 plates on 2 days)
+  { name: "results-precision-report", setup: async (s) => {
+    await fixture(s, "precision.json", { live: true });
+    const rep = s.page.locator(".pane-results .precision-report").first();
+    await rep.waitFor({ timeout: 240000 });
+    await rep.locator(".precision-detail summary").nth(1).click();
+    await rep.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-94: CLSI EP05 data as a nested table under the precision study
+  { name: "results-nested-precision", setup: async (s) => {
+    await fixture(s, "precision.json", { live: true });
+    await selectSheet(s, "Precision of EP05 20 x 2 x 2");
+    const rep = s.page.locator(".pane-results .precision-results").first();
+    await rep.locator("tbody tr").first().waitFor({ timeout: 240000 });
+    await rep.locator(".precision-detail summary").first().click();
+    await rep.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-94: the standard-curve wizard's Precision step with its preview
+  { name: "assay-wizard-precision", setup: async (s) => {
+    await fixture(s, "precision.json", { live: true });
+    await click(s, await reveal(s, s.page.getByRole("button", { name: "Open setup wizard…" })));
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor();
+    await click(s, wiz.getByRole("button", { name: /Precision/ }));
+    await wiz.locator(".precision-report").waitFor({ timeout: 240000 });
     await settle(s, 800);
   } },
   { name: "results-schild", setup: async (s) => {

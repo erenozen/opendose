@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import traceback
 
 from . import (anova, columnstats, contingency, correlation, descriptive,
@@ -41,7 +42,7 @@ from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
 from . import logscale, rm_posthoc, twoway_contrasts
-from . import compare_params, flow, qpcr_refs
+from . import compare_models, compare_params, flow, qpcr_refs, relpotency
 from . import potency
 
 
@@ -1152,6 +1153,16 @@ def _anova(data, options):
                 [c for c in cols if len(c) > 0], nonempty_names)
         except ValueError as exc:
             result["trend"] = {"error": str(exc)}
+    if options.get("custom_contrasts"):
+        # P-83: contrasts typed as coefficients (planned: t test;
+        # post hoc: Scheffe), on the ANOVA's pooled residual
+        t = result["table"]
+        result["custom_contrasts"] = twoway_contrasts.custom_contrasts(
+            [(math.fsum(float(v) for v in c) / len(c)) if len(c) else None
+             for c in cols],
+            [len(c) for c in cols], t["ms_within"], t["df_within"],
+            options["custom_contrasts"], names=names,
+            ci_level=options.get("ci_level", 0.95))
     method = options.get("comparisons")
     if method:
         result["multiple_comparisons"] = anova.multiple_comparisons(
@@ -1200,17 +1211,26 @@ def _compare_fits(data, options):
     (nested) and AICc (Prism's two comparison methods)."""
     ds_index = options.get("dataset", 0)
     results = {}
-    fits = []
+    fits, idents = [], []
     for key in ("model_1", "model_2"):
         opts = dict(options.get(key) or {})
-        model = opts.pop("model")
+        # a model id, or a user-defined equation (options.user_equation,
+        # fitted to this data set alone as dose_response fits it)
+        model = opts.pop("model", None)
+        if model is not None:
+            opts["model"] = model
         sub = _dose_response(
             {"x": data["x"], "datasets": [data["datasets"][ds_index]]},
-            {"model": model, "x_is_log": options.get("x_is_log", True), **opts})
+            {"x_is_log": options.get("x_is_log", True), **opts})
         entry = sub["datasets"][0]
+        if model is None:
+            model = (sub.get("user_equation") or {}).get("name", "equation")
         if "error" in entry:
             raise ValueError(f"{model}: {entry['error']}")
         fits.append(entry["fit"])
+        idents.append(compare_models.fit_identity(
+            {**entry["fit"], "user_equation": sub.get("user_equation")},
+            opts.get("constraints")))
         results[key] = entry["fit"]
     g1, g2 = fits[0]["goodness"], fits[1]["goodness"]
     # Weighted fits are compared on the sums of squares they minimised
@@ -1239,7 +1259,146 @@ def _compare_fits(data, options):
         results["notes"] = ["Both fits are weighted, so the F test and AICc "
                             "use the weighted sums of squares (the quantity "
                             "each fit minimised)."]
+    # is one model a special case of the other (P-99): the F test is valid
+    # only then (compare_models.nesting)
+    results["nesting"] = compare_models.nesting(
+        idents[0][0], idents[1][0], constraints_1=idents[0][1],
+        constraints_2=idents[1][1], k_1=k1, k_2=k2)
     return {"analysis": "compare_fits", **results}
+
+
+def _compare_global_fits(data, options):
+    """Compare two models each fitted to ALL data sets at once (P-99):
+    global-only models (enzyme inhibition, Gaddum/Schild, ...), a
+    library model with parameters shared, or a user-defined equation.
+
+    data: as global_model_fit. options: model_1 / model_2: {"model": id}
+    or {"user_equation": {...}}, each with optional "constraints" and
+    "shared" (default: the model's documented shared parameters, none
+    for an ordinary model, so it is a separate curve per data set);
+    common options as global_model_fit (x_is_log, column_constants,
+    weighting, summary_format, replicates, error_bars). Both fits must
+    use the same points. Result: {"model_1", "model_2" (global_model_fit
+    results), "f_test" (extra-sum-of-squares, when the df differ and the
+    models are not known to be non-nested), "aicc", "nesting",
+    "sum_of_squares", "warnings", "notes"}."""
+    common = {k: v for k, v in options.items()
+              if k not in ("model_1", "model_2")}
+    fits = []
+    for key in ("model_1", "model_2"):
+        opts = dict(options.get(key) or {})
+        if not opts.get("model") and not opts.get("user_equation"):
+            raise ValueError(f"{key} needs a model or a user equation")
+        try:
+            fits.append(_global_model_fit(data, {**common, **opts}))
+        except (ValueError, RuntimeError) as exc:
+            raise ValueError(f"Model {key[-1]}: {exc}") from exc
+    g1, g2 = fits[0]["goodness"], fits[1]["goodness"]
+    if g1["n_points"] != g2["n_points"]:
+        raise ValueError(
+            f"the two models fit different points ({g1['n_points']} and "
+            f"{g2['n_points']}): a model of log(X) leaves out X = 0. Choose "
+            "two models that read X the same way")
+    w1, w2 = g1.get("ss_res_weighted"), g2.get("ss_res_weighted")
+    weighted = w1 is not None and w2 is not None
+    ss = [float(w1), float(w2)] if weighted else [g1["ss_res"], g2["ss_res"]]
+    n = int(g1["n_points"])
+    df = [int(g1["df"]), int(g2["df"])]
+    k = [n - df[0], n - df[1]]
+    (m1, c1), (m2, c2) = (
+        compare_models.fit_identity(f, (options.get(key) or {}).get("constraints"))
+        for f, key in zip(fits, ("model_1", "model_2")))
+    nest = compare_models.nesting(
+        m1, m2, constraints_1=c1, constraints_2=c2,
+        shared_1=fits[0].get("shared"), shared_2=fits[1].get("shared"),
+        k_1=k[0], k_2=k[1])
+    cmp = compare_models.compare_two(ss, k, df, n, nest)
+    notes = []
+    if weighted:
+        notes.append("Both fits are weighted, so the F test and AICc use the "
+                     "weighted sums of squares (the quantity each fit "
+                     "minimised).")
+    return {"analysis": "compare_global_fits", "model_1": fits[0],
+            "model_2": fits[1], "n_points": n, **cmp,
+            "sum_of_squares": "weighted" if weighted else "unweighted",
+            "notes": notes, "source": compare_models.SOURCE}
+
+
+def _relative_potency(data, options):
+    """Relative potency of a test sample against a reference standard from
+    parallel curves (P-100; opendose.relpotency): the two data sets fitted
+    with every parameter shared but the potency (the parallel model) and
+    with none shared; parallelism by the F test and by equivalence
+    margins; the potency ratio EC50_reference / EC50_test with Fieller's
+    CI. data: as dose_response. options: model (a library model with an
+    EC50 / IC50 parameter), reference (data-set index, 0), test (1),
+    constraints, x_is_log, weighting, summary_format, replicates,
+    error_bars, margins {param: {"lower", "upper"}} (set before seeing
+    the data), ci_level (0.95), equivalence_level (0.90), alpha (0.05)."""
+    model = options.get("model", "log_agonist_vs_response_4pl")
+    spec = nlfit.MODELS.get(model)
+    if spec is None:
+        raise ValueError(f"unknown model: {model}")
+    pot = relpotency.check_model(spec)
+    if spec.required_constants:
+        raise ValueError(f"{spec.label} needs experimental constants; choose a "
+                         "dose-response model such as the 4PL")
+    sets = data.get("datasets") or []
+    ia, ib = int(options.get("reference", 0)), int(options.get("test", 1))
+    if ia == ib:
+        raise ValueError("choose two different data sets: a reference and a "
+                         "test sample")
+    if not (0 <= ia < len(sets) and 0 <= ib < len(sets)):
+        raise ValueError("relative potency needs two data sets (a reference "
+                         "and a test sample)")
+    ra, rb = dict(sets[ia]), dict(sets[ib])
+    ra["name"] = ra.get("name") or f"Data set {ia + 1}"
+    rb["name"] = rb.get("name") or f"Data set {ib + 1}"
+    if ra["name"] == rb["name"]:
+        ra["name"], rb["name"] = f"{ra['name']} (reference)", f"{rb['name']} (test)"
+    constraints = compare_params._internal_constraints(
+        spec, model, options.get("constraints"))
+    if pot in constraints:
+        raise ValueError(f"{relpotency.display_name(spec, pot)} is held constant: "
+                         "there is no potency to compare")
+    free = [p for p in spec.params if p not in constraints
+            and p not in (spec.data_constants or {})]
+    common = {k: options[k] for k in ("x_is_log", "weighting", "summary_format",
+                                      "replicates", "error_bars") if k in options}
+    common.update(model=model, constraints=constraints)
+    sub = {"x": data["x"], "datasets": [ra, rb]}
+    fits = {}
+    try:
+        fits["parallel"] = _global_model_fit(
+            sub, dict(common, shared=[p for p in free if p != pot]))
+    except (ValueError, RuntimeError) as exc:
+        raise ValueError(f"could not fit the parallel model: {exc}") from exc
+    # the separate curves from their default start and from the parallel
+    # fit (the restricted optimum is a point of the unrestricted model, so
+    # this start can only lower the sum of squares); the better one is kept
+    warm = {p: [d["fitted_values"][p] for d in fits["parallel"]["datasets"]]
+            for p in free}
+    tries, last = [], None
+    for start in (None, warm):
+        try:
+            tries.append(_global_model_fit(
+                sub, dict(common, shared=[], **({"initial_values": start}
+                                                if start else {}))))
+        except (ValueError, RuntimeError) as exc:
+            last = exc
+    if not tries:
+        raise ValueError(f"could not fit the separate curves: {last}")
+    fits["separate"] = min(tries, key=lambda g: relpotency._wss(g["goodness"]))
+    out = relpotency.analyse(
+        spec, fits["parallel"], fits["separate"],
+        margins=options.get("margins"),
+        ci_level=float(options.get("ci_level", 0.95)),
+        equivalence_level=float(options.get("equivalence_level", 0.90)),
+        alpha=float(options.get("alpha", 0.05)))
+    out["warnings"] = _nan_warnings(data, {ia, ib}) + out["warnings"]
+    return {"analysis": "relative_potency", "model": model, "label": spec.label,
+            "x_is_log": spec.x_is_log, "parallel_fit": fits["parallel"],
+            "separate_fit": fits["separate"], **out}
 
 
 def _correlation(data, options):
@@ -1457,6 +1616,24 @@ def _two_way_anova(data, options):
             ci_level=options.get("ci_level", 0.95),
             rows=options.get("interaction_rows"),
             cols=options.get("interaction_cols")))
+    if options.get("custom_contrasts"):
+        # P-83: coefficients over the cells, row by row (row 1 / every
+        # column, then row 2 ...), on the within-cell residual
+        means, ns, ss_w, df_w = twoway_contrasts.cell_summaries(cells)
+        rn = options.get("row_names") or [
+            f"Row {i + 1}" for i in range(len(cells))]
+        cn = [nm or f"Column {j + 1}" for j, nm in enumerate(names)]
+        if df_w >= 1 and ss_w > 0:
+            result["custom_contrasts"] = twoway_contrasts.custom_contrasts(
+                [m for row in means for m in row],
+                [n for row in ns for n in row], ss_w / df_w, df_w,
+                options["custom_contrasts"],
+                names=[f"{r} / {c}" for r in rn for c in cn],
+                ci_level=options.get("ci_level", 0.95))
+        else:
+            result["custom_contrasts"] = {
+                "contrasts": [], "error": "custom contrasts need replicate "
+                "values within the cells (a within-cell residual)"}
     method = options.get("comparisons")  # tukey | sidak | bonferroni
     if method:
         row_names = options.get("row_names") or [
@@ -1860,11 +2037,27 @@ def _rm_two_way(data, options):
                       for ds in data["datasets"]])
     row_names = options.get("row_names") or [
         f"Row {i + 1}" for i in range(n_rows)]
-    if options.get("design", "mixed") == "both":
-        return repeated.rm_two_way_both(cells, row_names=row_names,
-                                        col_names=names)
-    return repeated.rm_two_way_mixed(cells, row_names=row_names,
-                                     col_names=names)
+    design = options.get("design", "mixed")
+    if design == "both":
+        result = repeated.rm_two_way_both(cells, row_names=row_names,
+                                          col_names=names)
+    else:
+        result = repeated.rm_two_way_mixed(cells, row_names=row_names,
+                                           col_names=names)
+    if options.get("interaction_contrasts", True):
+        # P-83: difference of differences and simple effects on the
+        # subjects' own contrast scores (repeated.rm_contrasts)
+        try:
+            result.update(repeated.rm_contrasts(
+                cells, design=design, row_names=result["row_names"],
+                col_names=[nm or f"Column {j + 1}"
+                           for j, nm in enumerate(names)],
+                ci_level=options.get("ci_level", 0.95),
+                rows=options.get("interaction_rows"),
+                cols=options.get("interaction_cols")))
+        except ValueError as exc:
+            result["contrast_notes"] = [str(exc)]
+    return result
 
 
 def _ec50_shift(data, options):
@@ -3337,7 +3530,10 @@ def _global_model_fit(data, options):
     result = equations.fit_global_model(
         gdatasets, model, shared=options.get("shared"),
         constraints=options.get("constraints") or {},
-        weighting=options.get("weighting", "none"))
+        weighting=options.get("weighting", "none"),
+        # start values {param: value or [one per data set]} (P-100 starts
+        # the separate curves from the parallel fit)
+        initial=options.get("initial_values"))
     cov = result.pop("_cov", None)
     if cov is not None:
         # the joint covariance of the fitted parameters (one row per
@@ -3446,6 +3642,8 @@ def _list_models(data, options):
 
 _HANDLERS.update({
     "global_model_fit": _global_model_fit,
+    "compare_global_fits": _compare_global_fits,
+    "relative_potency": _relative_potency,
     "validate_equation": _validate_equation,
     "list_models": _list_models,
 })
@@ -4681,6 +4879,53 @@ _HANDLERS.update({
     "mixed_grouping": _mixed_grouping,
     "mixed_timecourse": _mixed_timecourse,
 })
+
+from . import lmm  # noqa: E402
+
+
+def _lmm(data, options):
+    """General linear mixed model on a long table (opendose.lmm, P-87):
+    outcome ~ factors (0-2, with interaction) + covariates + (1 [+
+    slopes] | group) [+ (1 | group:subgroup)]. data: {"variables":
+    [{"name", "values"}]}. options: outcome, group (required), subgroup,
+    factors, covariates, slopes (covariates with a random slope on
+    group), slope_structure ("correlated" | "independent"), ddf
+    ("kenward_roger" | "satterthwaite"), ci_level, levels, comparisons,
+    comparison_scope, control_index, group_word, subgroup_word. Result:
+    {"analysis": "lmm", "formula", "fixed_effects": [{term, estimate,
+    se, df, t, p, ci}], "anova": [{term, f, dfn, dfd, p}],
+    "random_effects", "correlations", "residual", "boundary",
+    "converged", "emmeans", "comparisons", "goodness_of_fit",
+    "warnings", ...}."""
+    for key in ("outcome", "group"):
+        if not options.get(key):
+            raise ValueError(f"lmm needs options.{key}")
+    return lmm.lmm_long(
+        _mv_variables(data), options["outcome"],
+        factors=options.get("factors") or [],
+        covariates=options.get("covariates") or [],
+        group=options["group"], subgroup=options.get("subgroup") or None,
+        slopes=options.get("slopes") or [], options=options)
+
+
+_HANDLERS["lmm"] = _lmm
+
+from . import precision  # noqa: E402
+
+
+def _precision_study(data, options):
+    """Assay precision and recovery (opendose.precision, P-94): per
+    sample, repeatability (within-run), between-run, between-day and total
+    variance components with SD, CV and CIs (CLSI EP05-A3 / VCA), the
+    repeatability coefficient and, with a nominal concentration, recovery
+    with the acceptance verdicts. data: {"samples": [{"name", "values",
+    "runs", "days"?, "nominal"?}]} or {"records": [{value, run, day?,
+    sample?, nominal?}]}. options: ci_level, recovery_limit, cv_limit
+    (percent), use_days."""
+    return precision.precision_study(data, options)
+
+
+_HANDLERS["precision_study"] = _precision_study
 
 
 def analyze(payload: dict) -> dict:

@@ -558,8 +558,10 @@ def parse_constraint(spec, param: str) -> Constraint:
     low = s.lower().replace("-", " ").replace("_", " ")
     if low in ("shared", "share", "global"):
         return Constraint("shared")
-    if low in ("column constant", "data set constant", "dataset constant",
-               "column title"):
+    # "column" is what the web's equation editor sends for "Data set
+    # constant (one value per data set)" (lib/userEquation.ts)
+    if low in ("column", "column constant", "data set constant",
+               "dataset constant", "column title"):
         return Constraint("column")
     if low in ("constant", "required"):
         return Constraint("required")

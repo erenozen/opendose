@@ -105,6 +105,13 @@ export async function runEngine<T>(fn: (engine: EngineBridge) => T,
     slots.set(coalesce, ctl);
   }
   try {
+    // After a failed boot an analysis waits for the user's Try again (the
+    // engine banner); it never restarts the download itself, which would
+    // swap "These are saved results" back to a loading banner. The run
+    // fails like a job queued during the boot: whatever was shown stays,
+    // and the run is asked for again once the engine is up (DECISIONS 4).
+    const st = host.state;
+    if (st.phase === "failed") throw new Error(`the analysis engine could not start: ${st.error ?? "unknown error"}`);
     await startEngine();
     const ask = (payload: string): Promise<Outcome> =>
       host.submit({ type: "analyze", payload }, { priority, signal: ctl.signal }).then(

@@ -111,6 +111,10 @@ export function analysisPlan(analysisId: string, t: DataTableModel, options: unk
     return o.repeated === undefined || o.repeated === "none" ? pair()
       : { kind: "none", datasets: two(t, A, B) };
   }
+  // relative potency (P-100) reads the reference and the test sample only
+  if (t.type === "xy" && analysisId === COMPARE_FITS && o.mode === "potency") {
+    return { kind: "points", datasets: two(t, A, B) };
+  }
   if (t.type === "xy" && [ANALYSIS_NONLIN, LINREG, COMPARE_FITS].includes(analysisId)) {
     return { kind: "points", datasets: all(t) };
   }
