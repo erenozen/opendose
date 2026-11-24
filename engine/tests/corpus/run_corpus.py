@@ -5252,6 +5252,10 @@ result, P or test name (the analysis is "Analysis 1", its settings
 withheld); after Commit my answers the results show `t=-5.596, df=10`
 (the scipy reference of P-68) and a banner names what the answers point
 to and the analysis the link holds.
+
+Independent check (2026-11-24, by the lead): scipy.stats.ttest_ind of
+Treated against Control without its row 3 (21.8) gives t = 5.244906 on 9
+df, P = 5.3128e-4, the sensitivity copy's numbers.
 """
 
 
