@@ -71,6 +71,8 @@ function serviceWorker(hash: string): Plugin {
     generateBundle(_options, bundle) {
       const app = [
         './', 'index.html', 'favicon.svg', 'favicon-32.png', 'apple-touch-icon.png',
+        // the web app manifest and its icons (installing works offline too)
+        'manifest.webmanifest', 'icon-192.png', 'icon-512.png',
         `py/opendose/bundle.json?v=${hash}`,
         ...Object.keys(bundle).filter((f) => !f.endsWith('.map') && f !== 'index.html'),
       ]

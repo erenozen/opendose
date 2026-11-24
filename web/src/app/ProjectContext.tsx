@@ -22,6 +22,7 @@ import { maskProject } from "../share/exercise";
 import { endExercise, startExercise } from "../share/exerciseStore";
 import { notify } from "../components/ui/Toast.store";
 import { ResultsCache } from "./analysis";
+import { unlinkFile } from "./fileSave";
 import { applyTheme, watchSystemScheme } from "./theme";
 import { sampleProject } from "./factory";
 import { primeSampleResults } from "./sampleResults";
@@ -154,6 +155,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     results.prime(p.sheets.filter((s): s is ResultsSheet => s.kind === "results"));
     readOnlyRef.current = !!opts.readOnly;
     setReadOnly(!!opts.readOnly);
+    // Another project: Save no longer writes to the old one's file (P-71).
+    unlinkFile();
     if (!opts.readOnly) { clearShareLink(); endExercise(); }
     store.reset(p);
     switchedRef.current = true;

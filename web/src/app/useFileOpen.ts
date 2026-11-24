@@ -10,6 +10,7 @@ import { prepareReproduceCheck } from "./reproduceCheck";
 import { prismTableToFamily, type PrismTable } from "./factory";
 import { openTableFile, TABLE_OPEN, TABLE_OPEN_ACCEPT } from "./tableFile";
 import { infoSheetsFromPrism, type PzfxInfo } from "../share/pzfx";
+import { canPickFiles, linkFile, openPicker, type FileHandleLike } from "./fileSave";
 
 /** Files Open takes: OpenDose projects, Prism files and one table file
  *  (CSV, TSV, text, .xlsx, .xls, .ods), which goes to the Import dialog. */
@@ -91,8 +92,11 @@ export function useFileOpen(into?: (p: Project) => Project) {
 
   // `pick` and `open` refer to each other ("Choose another file").
   const pickRef = useRef<() => void>(() => {});
+  const pickNow = useCallback(() => pickRef.current(), []);
 
-  const open = useCallback(async (file: File) => {
+  /** `handle`: the file on disk (the system picker, the installed app's
+   *  file handler), so Save writes back into it (P-71). */
+  const open = useCallback(async (file: File, opts: { handle?: FileHandleLike } = {}) => {
     if (TABLE_OPEN.test(file.name)) { openTableFile(file); return; }
     const prism = PRISM.test(file.name);
     notify(prism && !engineReadyRef.current
@@ -112,6 +116,7 @@ export function useFileOpen(into?: (p: Project) => Project) {
       const worth = before.sheets.some((s) => s.kind === "data") && !isExampleProject(before);
       // Saved by another build: recompute and compare (stable-results-versions).
       replace(prepareReproduceCheck(text, project, file.name), savedSelection(text));
+      if (opts.handle) linkFile(opts.handle);
       notify(`Opened “${file.name}”.`, {
         tone: "success", id: TOAST_ID,
         action: worth ? { label: "Undo", onAction: () => replace(before) } : undefined,
@@ -124,8 +129,15 @@ export function useFileOpen(into?: (p: Project) => Project) {
     }
   }, [openPrism, replace, store]);
 
-  /** Opens the system file picker; the chosen file is opened. */
-  const pick = useCallback(() => {
+  /** Opens the system file picker; the chosen file is opened. Where the
+   *  browser can write files back (Chromium), its own picker, so the file
+   *  stays linked; elsewhere a file input. */
+  const pick = useCallback(async () => {
+    if (canPickFiles()) {
+      const got = await openPicker(OPEN_ACCEPT);
+      if (got === null) return;
+      if (got !== "unavailable") { void open(got.file, { handle: got.handle }); return; }
+    }
     const input = document.createElement("input");
     input.type = "file";
     input.accept = OPEN_ACCEPT;
@@ -135,7 +147,7 @@ export function useFileOpen(into?: (p: Project) => Project) {
     }, { once: true });
     input.click();
   }, [open]);
-  pickRef.current = pick;
+  pickRef.current = () => { void pick(); };
 
   // Ctrl/Cmd+O: Open, as in every desktop app.
   useEffect(() => {
@@ -150,5 +162,49 @@ export function useFileOpen(into?: (p: Project) => Project) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  return { open, prismTables, importTables, dismissPrism: () => setPrismTables(null) };
+  return { open, pick: pickNow, prismTables, importTables, dismissPrism: () => setPrismTables(null) };
+}
+
+interface LaunchParams { files?: readonly FileHandleLike[] }
+interface LaunchQueueLike { setConsumer(fn: (p: LaunchParams) => void): void }
+
+/**
+ * The installed app's file handler (web app manifest `file_handlers`): a
+ * .json, .pzfx or .prism file double-clicked in the system opens through
+ * `open`, the same path as Open…, with its handle, so Save writes back
+ * into it. Launches wait until `ready` (the start has decided which
+ * project opens), so the last session never replaces the launched file.
+ */
+export function useLaunchQueue(open: (f: File, o: { handle?: FileHandleLike }) => Promise<void> | void,
+  ready: boolean) {
+  const queued = useRef<FileHandleLike[]>([]);
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const q = (window as unknown as { launchQueue?: LaunchQueueLike }).launchQueue;
+    if (!q) return;
+    q.setConsumer((params) => {
+      const handles = (params.files ?? []).filter((h) => OPENABLE.test(h.name) || TABLE_OPEN.test(h.name));
+      // A project or Prism file first, as a drop picks (App.tsx).
+      const first = handles.find((h) => OPENABLE.test(h.name)) ?? handles[0];
+      if (!first) return;
+      queued.current.push(first);
+      setCount((n) => n + 1);
+    });
+  }, []);
+  const openRef = useRef(open);
+  openRef.current = open;
+  useEffect(() => {
+    if (!ready || !queued.current.length) return;
+    const handles = queued.current.splice(0);
+    void (async () => {
+      for (const h of handles) {
+        try {
+          await openRef.current(await h.getFile(), { handle: h });
+        } catch (e) {
+          notify(`Could not open “${h.name}”: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`,
+            { tone: "error", id: TOAST_ID });
+        }
+      }
+    })();
+  }, [ready, count]);
 }

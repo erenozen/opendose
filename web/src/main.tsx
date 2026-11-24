@@ -5,6 +5,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import { registerOfflineCache } from './lib/offline'
+// Listens for the install prompt before it can fire (About › Install as app).
+import './app/install'
 import { hasProtectedLink } from './share/boot'
 import UnlockScreen from './share/UnlockScreen'
 

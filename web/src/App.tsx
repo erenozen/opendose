@@ -11,7 +11,7 @@ import { primeSampleResults } from "./app/sampleResults";
 import { useUi } from "./app/ui";
 import { UiProvider } from "./app/UiProvider";
 import { useAutosave } from "./app/useAutosave";
-import { OPENABLE, useFileOpen } from "./app/useFileOpen";
+import { OPENABLE, useFileOpen, useLaunchQueue } from "./app/useFileOpen";
 import { TABLE_OPEN } from "./app/tableFile";
 import { useDerivedSync } from "./app/useDerivedSync";
 import { useCalculatedSync } from "./app/useCalculatedSync";
@@ -26,6 +26,7 @@ import Header from "./components/Header";
 import InfoSheetView from "./components/InfoSheetView";
 import Navigator from "./components/Navigator";
 import SessionBanners from "./components/SessionBanners";
+import VersionsHost from "./components/ProjectVersions";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet, makeProject } from "./project/ops";
 import type { Project } from "./project/types";
@@ -86,6 +87,8 @@ function Shell() {
   usePrintSetup();
   usePasteAnywhere();
   useDropOpen(files.open);
+  // The installed app's file handler: after the start has settled (P-71).
+  useLaunchQueue(files.open, !guide.startPending);
 
   // The project the app opens with is the example (unless a share link
   // brought one): its tables are labelled "Example data" and a paste
@@ -191,7 +194,8 @@ function Shell() {
           document.getElementById("sheet")?.focus();
         }}>Skip to the sheet</a>
       )}
-      <Header onOpenFile={(f) => { void files.open(f); }} onNewProject={newProject} inert={behindDrawer} />
+      <Header onOpenFile={(f) => { void files.open(f); }} onPickFile={files.pick}
+        onNewProject={newProject} inert={behindDrawer} />
       {/* Conditions about the whole project, under the header (one
           Banner each, DECISIONS 6). */}
       <div className="banner-region" inert={behindDrawer}>
@@ -235,6 +239,7 @@ function Shell() {
             if (dataId) select(dataId);
           }} />
       )}
+      <VersionsHost autosave={autosave} />
       <SimulateHost />
       <TableFileImport />
       <PowerHost />

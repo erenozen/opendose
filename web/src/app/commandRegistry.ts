@@ -12,6 +12,7 @@ import { openGridFind, openGridReplace } from "./gridFind";
 import { focusNote } from "./noteFocus";
 import { printSheet } from "./usePrint";
 import { useCommands } from "./commands";
+import { canPickFiles } from "./fileSave";
 import { useProject } from "./context";
 import { useUi } from "./ui";
 import { familyChildren, familyRootId, findSheet } from "../project/ops";
@@ -32,7 +33,9 @@ const SHELL_EVENT = "opendose-shell";
 export type ShellRequest =
   | "open" | "new-project" | "about" | "preferences" | "prism-csv" | "help" | "which-test"
   // answered by the shell (App.tsx)
-  | "example" | "describe" | "plan";
+  | "example" | "describe" | "plan"
+  // answered by components/ProjectVersions.tsx (P-72, P-73)
+  | "save-version" | "recent" | "compare";
 
 export function requestShell(kind: ShellRequest): void {
   window.dispatchEvent(new CustomEvent<ShellRequest>(SHELL_EVENT, { detail: kind }));
@@ -97,10 +100,23 @@ export function useCommandRegistry(): Command[] {
         keywords: "start again blank clear", run: () => requestShell("new-project") },
       { id: "open", label: "Open…", group: "file", shortcut: modKey("O"),
         keywords: "project file prism pzfx import load", run: () => requestShell("open") },
+      { id: "recent", label: "Open recent…", group: "file",
+        keywords: "recent projects versions sessions history restore autosave",
+        run: () => requestShell("recent") },
       { id: "example", label: "Open the example project…", group: "file",
         keywords: "sample demo dose response contingency survival", run: () => requestShell("example") },
       { id: "save", label: "Save project", group: "file", shortcut: modKey("S"),
-        keywords: "download project file json keep", run: cmd.save },
+        keywords: "download project file json keep", run: () => { void cmd.save(); } },
+      // Only where the browser can write a picked file (P-71); elsewhere
+      // Save project's download already asks where, as the browser is set.
+      ...(canPickFiles() ? [{ id: "save-as", label: "Save as…", group: "file" as const,
+        keywords: "save copy new file name location json", run: () => { void cmd.saveAs(); } }] : []),
+      { id: "save-version", label: "Save a version…", group: "file", disabled: readOnly,
+        keywords: "version snapshot checkpoint note keep history browser",
+        run: () => requestShell("save-version") },
+      { id: "compare", label: "Compare with…", group: "file",
+        keywords: "compare diff versions changes differences what changed exclusions",
+        run: () => requestShell("compare") },
       { id: "print", label: "Print…", group: "file", shortcut: modKey("P"),
         keywords: "paper pdf", disabled: !selected,
         run: () => { if (selected) printSheet(select, selected.id); } },

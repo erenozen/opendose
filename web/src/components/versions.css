@@ -1,0 +1,39 @@
+/* File › Open recent… (components/ProjectVersions.tsx): projects this
+   browser holds, each with its autosaved sessions and saved versions, one
+   row each with its actions on the right (under the words when narrow). */
+/* A long list scrolls with the dialog (one scroll, reachable by keyboard). */
+.recent-list { display: flex; flex-direction: column; gap: var(--space-16); }
+.recent-project h3 {
+  margin: 0 0 var(--space-4); font-size: var(--text-body); font-weight: var(--weight-semibold);
+  color: var(--ink); overflow-wrap: anywhere;
+}
+.recent-project ul { list-style: none; margin: 0; padding: 0; container-type: inline-size; }
+.recent-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  gap: var(--space-4) var(--space-12); padding: var(--space-6) 0;
+  border-top: 1px solid var(--line);
+}
+.recent-row:first-child { border-top: 0; }
+.recent-what { display: flex; flex-direction: column; min-width: 0; }
+.recent-name { color: var(--ink); overflow-wrap: anywhere; }
+.recent-meta { color: var(--muted); font-size: var(--text-caption); }
+.recent-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+@container (max-width: 520px) {
+  .recent-row { grid-template-columns: minmax(0, 1fr); }
+}
+.recent-storage { margin: 0; color: var(--muted); font-size: var(--text-caption); }
+
+/* File › Compare with… (components/CompareDialog.tsx): the two sides, then
+   the log in the History panel's steps (report/report.css .history-step). */
+.compare-sides { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-12); }
+.compare-sides select { width: 100%; min-width: 0; }
+@media (max-width: 760px) { .compare-sides { grid-template-columns: minmax(0, 1fr); } }
+.compare-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.compare-log .compare-what {
+  margin: 0; color: var(--muted); font-size: var(--text-caption); overflow-wrap: anywhere;
+}
+.compare-log .compare-summary {
+  margin: var(--space-4) 0 var(--space-8); color: var(--ink); font-weight: var(--weight-semibold);
+}
+.compare-log ul { margin: 0; padding-left: var(--space-20); }
+.compare-log li { overflow-wrap: anywhere; }

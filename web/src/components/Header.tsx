@@ -31,8 +31,11 @@ import { testWithheld, useExercise } from "../share/exerciseStore";
  * command registry (app/commandRegistry.ts); the header answers the
  * registry's shell requests (open, about, preferences, help…).
  */
-export default function Header({ onOpenFile, onNewProject, inert }: {
+export default function Header({ onOpenFile, onPickFile, onNewProject, inert }: {
   onOpenFile: (f: File) => void;
+  /** Open…: the system picker that keeps the file linked (P-71); absent,
+   *  the hidden file input below. */
+  onPickFile?: () => void;
   onNewProject: () => void;
   /** Behind the open navigator drawer (a modal dialog). */
   inert?: boolean;
@@ -141,11 +144,13 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
   const viewRef = useRef<HTMLButtonElement>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
-  const handlers = useRef({ onNewProject, pick: batch.pick, guide });
-  useLayoutEffect(() => { handlers.current = { onNewProject, pick: batch.pick, guide }; });
+  const handlers = useRef({ onNewProject, onPickFile, pick: batch.pick, guide });
+  useLayoutEffect(() => { handlers.current = { onNewProject, onPickFile, pick: batch.pick, guide }; });
   useEffect(() => onShellRequest((kind) => {
     const h = handlers.current;
-    if (kind === "open") openInput.current?.click();
+    if (kind === "open") {
+      if (h.onPickFile) h.onPickFile(); else openInput.current?.click();
+    }
     else if (kind === "new-project") h.onNewProject();
     else if (kind === "about") setAboutOpen(true);
     else if (kind === "preferences") setPrefsOpen(true);
