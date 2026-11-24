@@ -275,6 +275,13 @@ const il6 = (await page.locator(".qpcr-target", { hasText: "IL6" }).locator("tr"
   .first().innerText()).replace(/\s+/g, " ");
 expect("qPCR: IL6 fold change LPS vs Control 11.71 (CI 8.218 to 16.69)",
   il6.includes("11.71") && il6.includes("8.218 to 16.69"), il6);
+// P-69: "What this means" of the qPCR module: the fold change and CI of the
+// sheet's LPS vs. Control row in words
+const qMeaning = (await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => ""))
+  .replace(/\s+/g, " ");
+expect("P-69 qPCR meaning: IL6 11.71-fold higher in LPS than in Control (95% CI 8.218 to 16.69), as the row shows",
+  qMeaning.includes("IL6 expression in LPS was 11.71-fold higher than in Control (fold change 11.71, 95% CI 8.218 to 16.69)")
+  && il6.includes("11.71") && il6.includes("8.218 to 16.69"), qMeaning);
 const qLine = await analysedLine("sample wells used");
 expect("P-16 qPCR: 108 of 108 sample wells used, 3 samples per group",
   qLine === "Analysed: 108 of 108 sample wells used; samples per group: Control 3, LPS 3, LPS + inhibitor 3.", qLine);

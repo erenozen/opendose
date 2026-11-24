@@ -31,6 +31,7 @@ import { POSTHOC_NAMES } from "./describe.ts";
 import { ratioClause } from "./ratioToControl.ts";
 import { withheldInfo } from "../sheets/common/withheld.ts";
 import { SRC, type Source } from "../guide/sources.ts";
+import { REF_SOURCES } from "../sheets/assays/qpcr/refs.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -894,6 +895,243 @@ function iccMeaning(r: R): Meaning | null {
   "Intraclass correlation: reliability of raters or instruments rating the same targets.");
 }
 
+// ------------------------------------------------------------- Wave 2 models (P-69)
+
+/** "Treatment Mutagen (vs. Control)" or "each one-unit increase in Dose". */
+function termWords(c: R, refs: R | null | undefined): { vs: string | null; variable: string } {
+  const { variable, level } = splitLevel(String(c.name));
+  const ref = level && refs && typeof refs === "object" ? refs[variable] : null;
+  return { variable, vs: level ? `${variable} ${level}${ref ? ` (vs. ${ref})` : " (vs. the reference level)"}` : null };
+}
+
+/** Poisson, quasi-Poisson and negative binomial regression (rate ratios),
+ *  binomial and quasi-binomial regression (odds ratios). */
+function countModelMeaning(r: R, style: PStyle): Meaning | null {
+  const coefs: R[] = (Array.isArray(r.coefficients) ? r.coefficients : [])
+    .filter((c: R) => c && c.name !== "Intercept" && num(c.p));
+  if (!coefs.length) return null;
+  const c = coefs[0];
+  const binomial = r.analysis === "binomial_regression";
+  const ratio = binomial ? c.odds_ratio : c.rate_ratio;
+  if (!num(ratio)) return null;
+  const ci = ci2(binomial ? c.odds_ratio_ci : c.rate_ratio_ci);
+  const lvl = num(r.ci_level) ? `${Number((r.ci_level * 100).toPrecision(4))}%` : "95%";
+  const ciT = ci ? `, ${lvl} CI ${fmt(ci[0])} to ${fmt(ci[1])}` : "";
+  const { vs, variable } = termWords(c, r.reference_levels);
+  const others = [...new Set(coefs.slice(1).map((x) => splitLevel(String(x.name)).variable))].filter((v) => v !== variable);
+  const hold = others.length ? `, holding ${list(others)} constant` : "";
+  const outcome = String(r.outcome ?? "the outcome");
+  const sig = c.p < ALPHA;
+  const quasi = r.family === "quasipoisson" || r.family === "quasibinomial";
+  const phi = num(r.dispersion?.phi) ? r.dispersion.phi : null;
+  const spread = quasi && phi !== null ? `; the CI and P allow for a variance ${fmt(phi)} times the ${binomial ? "binomial" : "Poisson"} variance (quasi-likelihood)`
+    : r.analysis === "negative_binomial_regression" ? "; the CI and P allow for counts more variable than Poisson counts (negative binomial)" : "";
+  const verdict = sig
+    ? `a ratio this far from 1 would be unusual (${P(c.p, style)}) if ${variable} had no association with ${outcome}`
+    : `the data do not show an association (${P(c.p, style)}), and the CI includes 1`;
+  if (binomial) {
+    const total = r.totals ? ` (out of ${String(r.totals)})` : "";
+    const lead = vs ? `${vs} multiplies the odds of ${outcome}${total} by ${fmt(ratio)}`
+      : `Each one-unit increase in ${variable} multiplies the odds of ${outcome}${total} by ${fmt(ratio)}`;
+    return meaning(`${lead} (odds ratio${ciT})${hold}${spread}; ${verdict}.`,
+      [SRC.wartonHui2011, ...(quasi ? [SRC.wedderburn1974] : []), sig ? S.greenland2016 : S.amrhein2019],
+      `an odds ratio of ${fmt(ratio)} as ${fmt(ratio)} times the share of positives. It multiplies the odds; when positives are common the share changes much less.`,
+      `${quasi ? "Quasi-binomial" : "Binomial"} regression: models the share of positives out of the number counted, so each count carries the weight of its total.`);
+  }
+  const per = r.exposure ? ` per unit of ${String(r.exposure)}` : "";
+  const lvl0 = splitLevel(String(c.name)).level;
+  const ref0 = lvl0 && r.reference_levels ? r.reference_levels[variable] : null;
+  const lead = vs ? `The rate of ${outcome}${per} with ${variable} ${lvl0} was ${hrWords(ratio)} that with ${ref0 ?? "the reference level"}`
+    : `Each one-unit increase in ${variable} multiplies the rate of ${outcome}${per} by ${fmt(ratio)}`;
+  const model = r.analysis === "negative_binomial_regression" ? "Negative binomial regression"
+    : quasi ? "Quasi-Poisson regression" : "Poisson regression";
+  const why = r.analysis === "negative_binomial_regression"
+    ? "models counts whose variance grows faster than their mean, as overdispersed counts do."
+    : quasi ? "models counts, with the variance allowed to be a multiple of the mean." : "models counts whose variance equals their mean.";
+  return meaning(`${lead} (rate ratio ${fmt(ratio)}${ciT})${hold}${spread}; ${verdict}.`,
+    [SRC.mccullaghNelder1989, ...(quasi ? [SRC.wedderburn1974] : r.analysis === "negative_binomial_regression"
+      ? [SRC.venablesRipley2002] : []), sig ? S.greenland2016 : S.amrhein2019],
+    `a rate ratio as a difference in counts. It multiplies the expected count${per}: when the reference rate is low, a large ratio can be a small change in counts.`,
+    `${model}: ${why}`);
+}
+
+/** Three-way ANOVA: the highest-order interaction the data show first. */
+function threeWayMeaning(r: R, style: PStyle): Meaning | null {
+  const src: R = r.sources && typeof r.sources === "object" ? r.sources : {};
+  const entries = (Object.entries(src) as [string, R][]).filter(([k, s]) => !/^residual/i.test(k) && num(s?.p));
+  if (!entries.length) return null;
+  const byTerm = (re: RegExp) => entries.filter(([, s]) => re.test(String(s.term ?? "")));
+  const three = byTerm(/^ABC$/)[0];
+  const twos = byTerm(/^(AB|AC|BC)$/).sort((a, b) => a[1].p - b[1].p);
+  const mains = byTerm(/^[ABC]$/);
+  const name = (k: string) => k.replace(/ x /g, " × ");
+  const test = "Three-way ANOVA: splits the variation into three factors, their three two-way interactions and the three-way interaction.";
+  const sources = [SRC.gpThreeWay, S.gpInteraction];
+  const MIS3 = "a significant main effect as an effect that holds at every level of the other factors. "
+    + "With an interaction, the effect of one factor depends on the levels of the others.";
+  if (three && three[1].p < ALPHA) {
+    return meaning(`How ${name(twos.find(([, s]) => s.term === "BC")?.[0] ?? "the second and third factors")} combine differs between levels of `
+      + `${mains.find(([, s]) => s.term === "A")?.[0] ?? "the first factor"} (three-way interaction ${P(three[1].p, style)}), `
+      + "so describe the effects within each combination of levels rather than as averages.",
+    [...sources, S.greenland2016], MIS3, test);
+  }
+  const sig2 = twos.filter(([, s]) => s.p < ALPHA);
+  const threeT = three ? `the data do not show a three-way interaction (${P(three[1].p, style)})` : "";
+  if (sig2.length) {
+    const [k, s] = sig2[0];
+    const [f1, f2] = k.split(" x ");
+    return meaning(`The effect of ${f2} depended on ${f1} (${name(k)} interaction ${P(s.p, style)})`
+      + sig2.slice(1).map(([x, y]) => `; ${x.split(" x ").join(" and ")} also interact (${P(y.p, style)})`).join("")
+      + `${threeT ? `; ${threeT}` : ""}, so describe the effect of ${f2} at each level of ${f1}.`,
+    [...sources, S.greenland2016], MIS3, test);
+  }
+  const mainT = mains.map(([k, s]) => `${k} ${P(s.p, style)}`);
+  return meaning(`The data do not show that any factor's effect depends on another (smallest interaction `
+    + `${twos.length ? P(twos[0][1].p, style) : "P not available"}${threeT ? `; ${threeT}` : ""}); averaged over the others, `
+    + `the main effects are ${list(mainT)}.`, [...sources, S.amrhein2019],
+  "“no interaction”: the effects are proven to add up. A large interaction P only means the data do not show the effects depend on each other.",
+  test);
+}
+
+/** "mice" from the engine's "df come from 12 mice, not from 36 values". */
+function unitWord(r: R): string {
+  const m = /df come from \d+ (.+?), not from/.exec(String(r.design_note ?? ""));
+  return m ? m[1] : String(r.grouping ?? "units");
+}
+
+/** Mixed models with experimental units as a random intercept: nested
+ *  two-way (grouped table) and a grouping column (multiple variables). */
+function mixedUnitMeaning(r: R, style: PStyle): Meaning | null {
+  const terms: R[] = (Array.isArray(r.anova) ? r.anova : []).filter((t: R) => num(t?.p));
+  if (!terms.length) return null;
+  const units = unitWord(r);
+  const counts = num(r.n_units) && num(r.n_values)
+    ? `; the tests count the ${r.n_units} ${units}, not the ${r.n_values} values` : "";
+  const icc = num(r.icc) ? ` (${pct(100 * Math.max(0, r.icc))} of the variation lies between ${units})` : "";
+  const inter = terms.find((t) => /×|:| x /.test(String(t.term)));
+  const test = r.analysis === "mixed_grouping"
+    ? `Linear mixed model: compares ${list((r.factor_names ?? []).map(String)) || "the groups"} with each of the ${units} as a random intercept, so values from the same one are not counted as independent.`
+    : `Nested two-way mixed model: two factors with ${units} as a random intercept, so the replicate values of one unit are not counted as independent.`;
+  const mis = "every value as an independent replicate. Values from one unit (one animal, one dish) are not independent, "
+    + "so n is the number of units, which is why the CI is wider and the P larger than an ordinary ANOVA's.";
+  const sources = [SRC.lazic2010, SRC.aarts2014];
+  const fdf = (t: R) => `F(${fmt(t.dfn)}, ${fmt(t.dfd)}) = ${fmt(t.f)}, ${P(t.p, style)}`;
+  if (inter && inter.p < ALPHA) {
+    const [a, b] = String(inter.term).split(/\s*(?:×|:| x )\s*/);
+    return meaning(`The effect of ${b} differed between levels of ${a} (interaction ${fdf(inter)})${counts}${icc}, `
+      + `so describe the effect of ${b} at each level of ${a}.`, [...sources, S.gpInteraction, S.greenland2016], mis, test);
+  }
+  const mains = terms.filter((t) => t !== inter);
+  const sig = mains.filter((t) => t.p < ALPHA);
+  const parts = mains.map((t) => (t.p < ALPHA ? `the ${t.term} means differ (${fdf(t)})`
+    : `the data do not show a difference between the ${t.term} means (${fdf(t)})`));
+  const interT = inter ? `the data do not show an interaction (${P(inter.p, style)}); ` : "";
+  return meaning(`${interT[0] ? interT[0].toUpperCase() + interT.slice(1) : ""}${interT ? parts.join("; ") : `${parts[0][0].toUpperCase()}${parts.join("; ").slice(1)}`}`
+    + `${counts}${icc}.`, [...sources, sig.length ? S.greenland2016 : S.amrhein2019], mis, test);
+}
+
+/** The group × time mixed model of a time course. */
+function timecourseMeaning(r: R, style: PStyle): Meaning | null {
+  const terms: R[] = Array.isArray(r.anova) ? r.anova : [];
+  const gt = terms.find((t) => /×|:/.test(String(t.term)) && num(t.p));
+  const g = terms.find((t) => /^group$/i.test(String(t.term)) && num(t.p));
+  if (!gt) return null;
+  const groups: string[] = Array.isArray(r.groups) ? r.groups.map(String) : [];
+  const cmp: R[] = Array.isArray(r.group_difference_at_time?.comparisons) ? r.group_difference_at_time.comparisons : [];
+  const test = `Mixed-effects model for repeated measures: each subject measured at every time, with ${String(r.covariance?.label ?? "a covariance structure").toLowerCase()} for the repeated values.`;
+  const mis = "a difference at one time point as a difference in the whole time course. The Group × Time interaction asks "
+    + "whether the groups change differently over time; the comparisons at each time ask where they differ.";
+  const sources = [S.gpInteraction, SRC.gpMixed, SRC.aarts2014];
+  if (gt.p < ALPHA) {
+    let ex = "";
+    const withD = cmp.filter((c) => num(c.difference));
+    if (withD.length >= 2) {
+      const first = withD[0], last = withD[withD.length - 1];
+      const [a, b] = String(first.pair ?? "").split(" vs. ");
+      ex = `: ${a} − ${b} was ${fmt(first.difference)} at time ${first.time ?? first.family} and ${fmt(last.difference)} at time ${last.time ?? last.family}`;
+    }
+    return meaning(`The ${groups.length ? `${list(groups)} ` : ""}groups changed differently over time (Group × Time ${P(gt.p, style)})${ex}, `
+      + "so compare the groups at each time rather than by one average difference.", [...sources, S.greenland2016], mis, test);
+  }
+  return meaning(`The data do not show that the groups change differently over time (Group × Time ${P(gt.p, style)})`
+    + `${g ? `; averaged over time, the groups ${g.p < ALPHA ? "differ" : "do not show a difference"} (${P(g.p, style)})` : ""}.`,
+  [...sources, S.amrhein2019], mis, test);
+}
+
+/** Quantal (probit, logit, cloglog) dose-response: the ED50 of each line. */
+function quantalMeaning(r: R): Meaning | null {
+  const fits: R[] = Array.isArray(r.fits) ? r.fits.filter((x: R) => !x.error) : [];
+  const fit = fits[0];
+  const ec = (Array.isArray(fit?.ec) ? fit.ec : []).find((e: R) => e.level === 50) ?? fit?.ec?.[0];
+  if (!fit || !ec || !num(ec.dose)) return null;
+  const lvl = `${Number(((num(r.ci_level) ? r.ci_level : 0.95) * 100).toPrecision(4))}%`;
+  const c = ci2(ec.dose_ci_fieller);
+  const ciT = c ? ` (${lvl} Fieller CI ${fmt(c[0])} to ${fmt(c[1])})` : ec.dose_ci_fieller ? ` (the ${lvl} Fieller CI is unbounded: the slope is too uncertain)` : "";
+  const level = num(ec.level) ? fmt(ec.level) : "50";
+  const more = fits.length > 1 ? " (first data set shown)" : "";
+  const gof = fit.goodness_of_fit;
+  const fitT = num(gof?.p_pearson) ? (gof.p_pearson < (fit.heterogeneity?.alpha ?? ALPHA)
+    ? `; the counts scatter more than the ${fit.link ?? "probit"} curve allows (Pearson χ² P = ${fmt(gof.p_pearson)})${fit.heterogeneity?.applied ? ", so its CIs are widened for heterogeneity" : ""}`
+    : "") : "";
+  return meaning(`For ${String(fit.name ?? "the line")}${more}, ${level}% of the subjects are expected to respond at a dose of ${fmt(ec.dose)}${ciT}${fitT}.`,
+    [SRC.bliss1934],
+    `the ED${level} as the dose that gives each subject ${level}% of its response. Each subject responds or not; the ED${level} is the dose at which ${level}% of them do.`,
+    `Quantal dose-response (${String(fit.link ?? "probit")}): models the share of subjects responding at each dose.`);
+}
+
+/** One summary value per subject (an area under the curve, a value at a
+ *  time or over a window) compared between groups. */
+function subjectAucMeaning(r: R, style: PStyle): Meaning | null {
+  const cmp = r.comparison;
+  if (!cmp || !num(cmp.p)) return null;
+  const groups: R[] = Array.isArray(r.groups) ? r.groups : [];
+  const n = groups.map((g) => `${g.group} ${g.n}`).join(", ");
+  // the time-course window summaries (sheets/assays/timecourse WINDOW_LABELS)
+  const WINDOW: Record<string, string> = { mean: "mean over the window", max: "peak in the window",
+    auc: "area under the curve over the window", auc_per_time: "time-weighted mean over the window" };
+  const what = typeof r.summary === "string" && WINDOW[r.summary] ? WINDOW[r.summary]
+    : r.per_time ? "area under the curve divided by its time span" : "area under the curve";
+  const names: string[] = Array.isArray(cmp.names) ? cmp.names.map(String) : [];
+  const diff = num(cmp.difference) && names.length === 2
+    ? `; ${names[0]} − ${names[1]} = ${fmt(cmp.difference)}` : "";
+  const test = `Summary-measure analysis: one ${what} per subject, compared between groups by ${String(cmp.test ?? "a test")}.`;
+  const mis = "the repeated values of a subject as independent replicates. Here each subject counts once, through its own summary value.";
+  if (cmp.p < ALPHA) {
+    return meaning(`Each subject's ${what} differs between the groups${n ? ` (subjects: ${n})` : ""}: a difference this large would be unusual `
+      + `(${P(cmp.p, style)}) if the groups did not differ${diff}.`, [SRC.gpIndependent, S.greenland2016], mis, test);
+  }
+  return meaning(`The data do not show that each subject's ${what} differs between the groups (${P(cmp.p, style)})${diff}.`,
+    [SRC.gpIndependent, S.amrhein2019], mis, test);
+}
+
+/** qPCR: the 2^-ΔΔCq fold change of each target against the calibrator. */
+function qpcrMeaning(r: R, o: R, style: PStyle): Meaning | null {
+  const per: R[] = Array.isArray(r.per_target) ? r.per_target : [];
+  const lvl = `${Number(((num(o.ciLevel) ? o.ciLevel : 0.95) * 100).toPrecision(4))}%`;
+  for (const t of per) {
+    // the comparison of a group with the calibrator, as the results sheet
+    // shows it (its CI carries the calibrator's own scatter too)
+    const cs: R[] = Array.isArray(t?.statistics?.comparisons) ? t.statistics.comparisons : [];
+    const c = cs.find((x) => num(x?.fold_change) && x.second === r.calibrator && x.first !== r.calibrator)
+      ?? cs.find((x) => num(x?.fold_change));
+    if (!c) continue;
+    const fc = c.fold_change;
+    const ci = ci2(c.fold_change_ci);
+    const p = c.p_adjusted ?? c.p;
+    const group = String(c.first ?? c.group ?? "the group"), cal = String(c.second ?? r.calibrator ?? "the calibrator");
+    const refs = Array.isArray(r.reference_genes) ? list(r.reference_genes.map(String)) : "the reference genes";
+    const dir = fc >= 1 ? `${fmt(fc)}-fold higher` : `${fmt(1 / fc)}-fold lower`;
+    const pT = num(p) ? (p < ALPHA ? `; a change this large would be unusual (${P(p, style)}) if expression did not differ`
+      : `; the data do not show a change (${P(p, style)})`) : "";
+    return meaning(`${String(t.target)} expression in ${group} was ${dir} than in ${cal} (fold change ${fmt(fc)}`
+      + `${ci ? `, ${lvl} CI ${fmt(ci[0])} to ${fmt(ci[1])}` : ""}), normalised to ${refs}${pT}.`,
+    [SRC.livakSchmittgen2001, REF_SOURCES.miqe, num(p) && p < ALPHA ? S.greenland2016 : S.amrhein2019],
+    "a fold change as a change in protein or in activity. It is a ratio of mRNA amounts relative to the reference genes, and assumes they do not change with treatment (see the reference-gene check).",
+    "Relative quantification by 2^−ΔΔCq: each target's Cq is normalised to the reference genes, then to the calibrator group.");
+  }
+  return null;
+}
+
 function withheldMeaning(): Meaning {
   return meaning("With one independent value in a group there is no estimate of the variability within groups, so no "
     + "P value or CI can say whether the groups differ; more independent experiments are needed.",
@@ -945,7 +1183,17 @@ export function meaningOf(input: MeaningInput): Meaning | null {
       case "deming": return demingMeaning(r);
       case "method_regression": return methodRegMeaning(r);
       case "icc": return iccMeaning(r);
-      default: return null;
+      // Wave 2 models and assays (P-69)
+      case "poisson_regression":
+      case "negative_binomial_regression":
+      case "binomial_regression": return countModelMeaning(r, style);
+      case "three_way_anova": return threeWayMeaning(r, style);
+      case "mixed_nested_two_way":
+      case "mixed_grouping": return mixedUnitMeaning(r, style);
+      case "mixed_timecourse": return timecourseMeaning(r, style);
+      case "subject_auc": return subjectAucMeaning(r, style);
+      case "qpcr": return qpcrMeaning(r, o, style);
+      default: return input.analysisId === "quantal" ? quantalMeaning(r) : null;
     }
   } catch {
     return null;

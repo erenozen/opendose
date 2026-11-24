@@ -4690,6 +4690,30 @@ e2e-share runs the exported bundle's `analysis.py` on the acceptance
 project: the t test (t and P to the table's four digits) and the 4PL
 (LogIC50 within 1e-3, IC50 within 0.5%) are reproduced.
 
+### P-69 "What this means" for every analysis
+
+`web/src/report/meaning.ts` gains readers for Poisson, quasi-Poisson and
+negative binomial regression (the rate ratio with its CI per unit of
+exposure; McCullagh & Nelder 1989 ch. 6, Wedderburn 1974, Venables &
+Ripley 2002), binomial regression (odds ratio; Warton & Hui 2011),
+three-way ANOVA (the highest-order interaction the data show; GraphPad
+three-way ANOVA guide), the nested two-way and grouping-column mixed
+models (n counts the units; Lazic 2010, Aarts et al. 2014), the
+time-course mixed model (Group × Time first, then the difference at the
+first and last time), one summary value per subject (tumour and
+time-course modules), quantal fits (the ED50 with its Fieller CI; Bliss
+1934) and the qPCR module (the 2^-ΔΔCq fold change of the sheet's row
+against the calibrator with its CI; Livak & Schmittgen 2001, MIQE 2.0).
+`meaningModels.test.ts` pins each sentence on native results, its
+non-significant form (never "no difference"), and its sources; e2e-results
+checks the quasi-Poisson sentence on the Ames revertant counts against its
+coefficient row, e2e-assays the qPCR sentence (IL6 11.71-fold, 95% CI
+8.218 to 16.69).
+
+Not covered yet: the other assay modules (standard curve, plate, flow,
+densitometry, luciferase, growth, wound, MIC, kinetics, synergy, AUC,
+volcano, cluster) have no "What this means" line; their results sheets
+are unchanged.
 """
 
 

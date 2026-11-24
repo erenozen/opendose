@@ -986,6 +986,14 @@ const analyzeWith = async (re) => {
   expect("P-46 acceptance: the methods name quasi-Poisson and φ = 3.085",
     /modeled by quasi-Poisson regression/.test(methods) && /φ = Pearson χ² \/ df = 3\.085/.test(methods)
       && /F\(2, 15\) = 5\.615/.test(methods), methods.slice(0, 200));
+  // P-69: "What this means" puts the rate ratio and its CI in words, the
+  // numbers of the coefficient's row, with the extra variance said
+  const meaningText = (await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  const mm = /multiplies the rate of Revertants by (\S+) \(rate ratio \1, 95% CI (\S+) to (\S+)\)(?:, holding .+? constant)?; the CI and P allow for a variance 3\.085 times the Poisson variance \(quasi-likelihood\)/.exec(meaningText);
+  const tableText = (await page.locator(".pane-results").innerText()).replace(/\s+/g, " ");
+  expect("P-69 acceptance: the meaning reports the rate ratio with its CI in words, as its row shows them",
+    !!mm && tableText.includes(`${mm[1]} ${mm[2]} to ${mm[3]}`), meaningText);
   const okChip = page.locator(".pane-answer").getByRole("button", { name: "OK: Quasi-Poisson SEs (φ = 3.085)" });
   expect("P-46 the chip now says quasi-Poisson is in use and offers the way back", await appears(okChip));
 }
