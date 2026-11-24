@@ -1149,6 +1149,31 @@ const scenes = [
     await refs.evaluate((el) => el.scrollIntoView({ block: "center" }));
     await settle(s, 800);
   } },
+  // P-87: sleepstudy with a random slope of Days (Satterthwaite df)
+  { name: "results-lmm-slope", setup: async (s) => {
+    await fixture(s, "lmm.json", { live: true });
+    const card = s.page.locator(".pane-results .lmm-results").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-87: slices nested in animals with a covariate: random effects
+  { name: "results-lmm-nested", setup: async (s) => {
+    await fixture(s, "lmm.json", { live: true });
+    await selectSheet(s, "Mixed model of Patch clamp");
+    const block = s.page.locator(".lmm-results section[aria-label='Random effects']").first();
+    await block.waitFor({ timeout: 240000 });
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-87: the controls with a nested level, covariates and a random slope
+  { name: "controls-lmm", setup: async (s) => {
+    await fixture(s, "lmm.json", { live: true });
+    const controls = s.page.locator(".pane-controls").first();
+    const cov = await reveal(s, controls.getByRole("heading", { name: "Covariates" }));
+    await cov.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
   { name: "results-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     const card = s.page.locator(".schild-card");

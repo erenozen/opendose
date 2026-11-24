@@ -354,3 +354,21 @@ def test_single_level_factor_is_dropped_with_a_note():
     res = run(v, "Reaction", factors=["lab"], covariates=["Days"], group="Subject")
     assert "lab has a single level and is left out of the model." in res["warnings"]
     assert res["formula"] == "Reaction ~ Days + (1 | Subject)"
+
+
+def test_unit_means_for_the_nested_scatter():
+    """Factors only, animals nested in genotype: every animal's raw mean
+    and the model's cell means (with a covariate there are none)."""
+    res = run(animal_vars(), "current", factors=["genotype"], group="animal",
+              subgroup="slice", options={"levels": {"genotype": ["WT", "KO"]}})
+    assert [c["a"] for c in res["cell_means"]] == ["WT", "KO"]
+    assert [c["n_units"] for c in res["cell_means"]] == [6, 6]
+    assert len(res["units"]) == 12 and res["units"][0]["unit"] == "M1"
+    recs = REF["animals"]["records"]
+    m1 = [r["current"] for r in recs if r["animal"] == "M1"]
+    assert res["units"][0]["mean"] == pytest.approx(sum(m1) / len(m1))
+    em = {e["level"]: e["mean"] for e in res["emmeans"]["genotype"]}
+    assert res["cell_means"][1]["mean"] == pytest.approx(em["KO"])
+    cov = run(animal_vars(), "current", factors=["genotype"], covariates=["size"],
+              group="animal")
+    assert cov["cell_means"] is None and cov["units"] is None

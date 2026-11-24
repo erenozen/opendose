@@ -2190,3 +2190,53 @@ Greenwood variances on survival::lung at 365 days gives male 0.33609,
 female 0.52646, difference 0.19038 (95% CI 0.04563 to 0.33512, SE
 0.073852) and the Klein et al. 2007 cloglog statistic 6.2066, P =
 0.012728. All equal the engine.
+
+## Feature validation: mixed models, RM contrasts, assay precision (2026-11-24)
+
+### P-87 General linear mixed model on a long table
+
+`lmm.lmm_long` (API handler `lmm`; the multiple-variables sheet "Mixed
+model with a grouping column" switches to it once a nested level or a
+covariate is chosen): outcome ~ factors (0 to 2, with interaction) +
+covariates + (1 [+ slopes] | group) [+ (1 | group:nested level)],
+fitted by REML on the profiled deviance of Bates et al. (2015, J Stat
+Softw 67(1)), with treatment-coded fixed effects (lme4's table), Type
+III F tests of the cell means, and Kenward-Roger (1997) or Satterthwaite
+(lmerTest; Kuznetsova et al. 2017, J Stat Softw 82(13)) df from
+`ddfm.GeneralBlockDdf`. Variances are bounded at zero; a variance at
+zero or an intercept-slope correlation of +-1 is reported as a boundary
+(singular) fit in words, and a fit whose scaled gradient exceeds 0.002
+(lme4's check) or whose curvature is not positive definite says it did
+not converge. `ddfm.BlockDdf` was refactored to share the block code;
+the time-course models' KR and Satterthwaite results are bit-identical
+to main (checked on all four covariance structures).
+
+Reference: `engine/tests/reference/lmm_long.py` (statsmodels 0.15
+`MixedLM`, REML, with `vc_formula` for the nested level; an independent
+dense n x n Satterthwaite with a numerical Hessian and a dense
+Kenward-Roger; published lme4 / lmerTest output; R is not installed).
+Data: lme4's sleepstudy and Pastes (engine/tests/fixtures), a synthetic
+animal / slice / cell design (12 animals, 36 slices, 172 cells).
+`engine/tests/test_lmm.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| sleepstudy, Reaction ~ Days + (1 \| Subject) | (Intercept) 251.4051, SE 9.7467, df 22.8102; Days 10.4673, SE 0.8042, df 161 (lmerTest, published; dense Satterthwaite 22.8103 / 161.000); REML criterion 1786.465 | 1e-7 estimates, 1e-6 SE, 1e-4 df, published to 4 decimals |
+| sleepstudy, Reaction ~ Days + (Days \| Subject) | REML criterion 1743.6; variances 612.09 and 35.07, r = 0.07 (0.06555), residual 654.94; SE 6.825 and 1.546 on 17 df (lme4, published) | 1e-4 variances, 1e-5 SE, 1e-4 df |
+| Pastes, strength ~ 1 + (1 \| batch/cask) | 60.0533, SE 0.6769, batch variance 1.657, residual 0.678 (lme4 via statsmodels' test suite); cask 8.433 (statsmodels); df 9 | published to 3 to 4 decimals; statsmodels 1e-3 |
+| animal / slice / cell, current ~ genotype + size + (1 \| animal) + (1 \| animal:slice) | KO -0.35222, SE 0.88085, Satterthwaite df 9.9799, KR df 10.0045, KR SE 0.88095; size 0.49732, SE 0.036381; variances 1.8377, 0.68068, 3.96896; REML criterion 821.4231 | 1e-6 estimates, 1e-5 SE, 1e-4 df |
+
+Also tested: scaling the outcome by 1000 and the covariate by 1e-6 and
+shuffling the rows scale every estimate, SE and variance exactly and
+leave df, F and P; outcomes at 1e-12 and 1e12 give the same df 17;
+numeric subject IDs are labels; blank or non-numeric values are left
+out and counted; a group variance that the data put at zero is a stated
+boundary fit whose intercept df become n - 1 (the parameter is held at
+zero for the df); a perfectly correlated slope is named; one group, all
+values equal, two rows, a constant covariate, a slope that does not vary
+within groups or is not a covariate, a nested level with one value per
+group and a column used twice are refused with a sentence; with two
+factors the interaction F is the square of the 2 x 2 difference of
+differences' t. e2e (`e2e-results.mjs`): sleepstudy pasted as a long
+table gives the lmerTest numbers, then the random slope's; Pastes with
+the nested level gives lme4's.

@@ -353,11 +353,12 @@ def fit_lmm(y, factors, covariates, g1_codes, *, g2_codes=None,
             group_names=("group", "subgroup"), slopes=(),
             slope_structure="correlated", ddf="kenward_roger",
             ci_level=0.95, comparisons=None, comparison_scope=None,
-            control_index=0, interaction=True) -> dict:
+            control_index=0, interaction=True, group_labels=None) -> dict:
     """y: values; factors: [(name, codes, levels)] (0, 1 or 2);
     covariates: [(name, values)]; g1_codes: top-level group codes;
     g2_codes: second level (already unique across g1 groups) or None;
-    slopes: names of covariates with a random slope on g1."""
+    slopes: names of covariates with a random slope on g1; group_labels:
+    the g1 labels in code order (for the per-group means)."""
     if ddf not in ("kenward_roger", "satterthwaite"):
         raise ValueError("ddf must be 'kenward_roger' or 'satterthwaite' "
                          "(containment df are not defined for covariates "
@@ -635,6 +636,39 @@ def fit_lmm(y, factors, covariates, g1_codes, *, g2_codes=None,
                                                        in enumerate(c))
                                             for c in cells])
 
+    # the nested scatter's inputs (factors only, each top-level group in
+    # one cell): every group's raw mean and the model's cell means
+    cell_means, units = None, None
+    codes_all = [c for _, c, _ in active]
+    if cells and not covs:
+        cell_means = []
+        for k, cell in enumerate(cells):
+            sel = np.all([codes_all[f] == i for f, i in enumerate(cell)], axis=0)
+            se, dfk = D.contrast(ddf, Lcell[k])
+            est = float(Lcell[k] @ beta)
+            cell_means.append({
+                "a": levels[0][cell[0]],
+                "b": levels[1][cell[1]] if len(cell) == 2 else None,
+                "mean": est, "se": float(se), "df": float(dfk),
+                "ci": [est - tq(dfk) * se, est + tq(dfk) * se],
+                "n_units": int(np.unique(g1[sel]).size),
+                "n_values": int(sel.sum()), "raw_mean": float(y[sel].mean())})
+        spans = [len({tuple(int(c[i]) for c in codes_all)
+                      for i in np.flatnonzero(g1 == g)}) for g in range(n_g1)]
+        if max(spans) == 1:
+            units = []
+            for g in range(n_g1):
+                sel = g1 == g
+                i0 = int(np.flatnonzero(sel)[0])
+                vals = y[sel]
+                units.append({
+                    "unit": group_labels[g] if group_labels else str(g + 1),
+                    "a": levels[0][int(codes_all[0][i0])],
+                    "b": (levels[1][int(codes_all[1][i0])]
+                          if len(codes_all) == 2 else None),
+                    "n": int(vals.size), "mean": float(vals.mean()),
+                    "sd": float(vals.std(ddof=1)) if vals.size > 1 else None})
+
     # share of the variance (random intercepts only)
     shares = None
     if not slopes:
@@ -655,6 +689,8 @@ def fit_lmm(y, factors, covariates, g1_codes, *, g2_codes=None,
         "converged": bool(converged),
         "convergence": conv_msg,
         "emmeans": emm,
+        "cell_means": cell_means,
+        "units": units,
         "covariate_means": cov_means,
         "n_values": int(n),
         "n_groups": {g1_word: int(n_g1),
@@ -796,7 +832,7 @@ def lmm_long(variables, outcome, *, factors=(), covariates=(), group,
         comparisons=options.get("comparisons"),
         comparison_scope=options.get("comparison_scope"),
         control_index=options.get("control_index", 0),
-        interaction=options.get("interaction", True))
+        interaction=options.get("interaction", True), group_labels=groups)
     out = {"analysis": "lmm",
            "method": ("Linear mixed model, REML; Type III F tests with "
                       f"{ddfm.LABELS[res['ddf']]} df"),

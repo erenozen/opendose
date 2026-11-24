@@ -731,3 +731,29 @@ const longData = (name, names, rows, categorical) => data(name, {
   write("derived-numbers.json", project("Derived numbers", [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn],
     { selected: rp.id }));
 }
+
+// lmm.json (P-87): lme4's sleepstudy under the grouping-column mixed model
+// with Days as a covariate and a random slope (Satterthwaite df), and the
+// synthetic animal / slice / cell design of engine/tests/reference/
+// lmm_long.py (genotype fixed, cell size a covariate, slices nested in
+// animals, Kenward-Roger df)
+{
+  const fx = (f) => readFileSync(join(here, "../../../engine/tests/fixtures", f), "utf8").trim().split("\n")
+    .slice(1).map((l) => l.split(",").map((c) => c.replace(/^"|"$/g, "")));
+  const sleep = fx("lme4_sleepstudy.csv").map((r) => [r[1], r[2], r[3]]);
+  const st = longData("Sleep study", ["Reaction", "Days", "Subject"], sleep, []);
+  const sr = results(st, "mv_mixed_grouping", { outcome: "Reaction", factor1: "", factor2: "",
+    grouping: "Subject", covariates: ["Days"], slopes: ["Days"], unit: "other", unitCustom: "subjects",
+    comparisons: "tukey", scope: "a_means", controlIndex: 0, ciLevel: 0.95, negativeVariance: "allow",
+    mixedDdf: "satterthwaite" }, "Mixed model of Sleep study");
+  const recs = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/lmm_long.json"),
+    "utf8")).animals.records;
+  const names = ["animal", "slice", "genotype", "size", "current"];
+  const at = longData("Patch clamp", names, recs.map((r) => names.map((k) => String(r[k]))),
+    ["animal", "slice", "genotype"]);
+  const ar = results(at, "mv_mixed_grouping", { outcome: "current", factor1: "genotype", factor2: "",
+    grouping: "animal", subgroup: "slice", covariates: ["size"], unit: "animal", unitCustom: "",
+    comparisons: "tukey", scope: "a_means", controlIndex: 0, ciLevel: 0.95, negativeVariance: "allow",
+    mixedDdf: "kenward_roger" }, "Mixed model of Patch clamp");
+  write("lmm.json", project("Mixed models", [st, sr, at, ar], { selected: sr.id }));
+}

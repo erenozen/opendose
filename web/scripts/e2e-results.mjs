@@ -12,11 +12,13 @@
 // Passing-Bablok (P-42), Lin's CCC (P-43) and the reliability ICC (P-44);
 // quasi-Poisson (P-46), partial and compared correlations (P-48), the
 // survival difference at a chosen time (P-28) and the references behind
-// a Normalize (P-57).
+// a Normalize (P-57); the general linear mixed model on a long table
+// (P-87).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
 import { chromium } from "playwright";
+import { createRequire } from "node:module";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -1080,6 +1082,81 @@ const analyzeWith = async (re) => {
     rows[0] === "WT 21, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)"
       && rows[1] === "KO 31.33, the smallest mean (“10 nM”) 99.67, the mean of the last row (“vehicle”)",
     rows.join(" | "));
+}
+
+// --- P-87: the general linear mixed model on a long table -------------------
+{
+  // engine/tests/reference/lmm_long.py: statsmodels MixedLM plus the
+  // published lme4 / lmerTest output for sleepstudy and Pastes; the df from
+  // an independent dense Satterthwaite / Kenward-Roger implementation.
+  const fix = (name) => readFileSync(join(here, "..", "..", "engine", "tests", "fixtures", name), "utf8")
+    .trim().split("\n").map((l) => l.split(",").map((c) => c.replace(/^"|"$/g, "")));
+  const tsv = (rows, cols) => [cols.map((c) => rows[0][c]).join("\t"),
+    ...rows.slice(1).map((r) => cols.map((c) => r[c]).join("\t"))].join("\n");
+  const lmmRow = async (term) => (await page.locator(".lmm-results section[aria-label='Fixed effects'] tbody tr", {
+    has: page.locator("th", { hasText: new RegExp(`^${term.replace(/[()]/g, "\\$&")}$`) }) }).first()
+    .innerText().catch(() => "")).replace(/\s+/g, " ").trim();
+  const sleep = fix("lme4_sleepstudy.csv");
+  await pastedTable("multivariable", "Sleep study", tsv(sleep, [1, 2, 3]));
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Mixed model with a grouping column/ }).click();
+  const controls = page.locator(".pane-controls");
+  await controls.getByLabel("Grouping column (random)").selectOption("Subject");
+  await controls.getByRole("checkbox", { name: "Days", exact: true }).check();
+  await controls.getByLabel("Degrees of freedom (mixed model)").selectOption("satterthwaite");
+  const fitted = await liveResults(/lme4: Reaction ~ Days \+ \(1 \| Subject\)/, 90000);
+  // lmerTest (published): (Intercept) 251.4051 SE 9.7467 df 22.81; Days
+  // 10.4673 SE 0.8042 df 161
+  const icpt = await lmmRow("(Intercept)");
+  const days = await lmmRow("Days");
+  expect("P-87 acceptance: sleepstudy, random intercept, fixed effects and SEs as lme4, Satterthwaite df as lmerTest",
+    fitted && /^\(Intercept\) 251\.4 9\.747 22\.81 /.test(icpt) && /^Days 10\.47 0\.8042 161 13\.02 /.test(days),
+    `${icpt} / ${days}`);
+  expect("P-87 the design note counts 18 subjects, not 180 values",
+    await liveResults(/df come from the 18 Subject groups, not from the 180 values: Satterthwaite df/));
+  // random slope: (Intercept) SE 6.825, Days SE 1.546, df 17; variances
+  // 612.1 / 35.07, correlation 0.066, residual 654.9
+  await controls.getByRole("checkbox", { name: "Random slope of Days by Subject" }).check();
+  const slope = await liveResults(/lme4: Reaction ~ Days \+ \(1 \+ Days \| Subject\)/, 90000);
+  const days2 = await lmmRow("Days");
+  const re = (await page.locator(".lmm-results section[aria-label='Random effects']").innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect("P-87 random slope: Days SE 1.546 on 17 df; variances 612.1 and 35.07, r = 0.0656, residual 654.9",
+    slope && /^Days 10\.47 1\.546 17 6\.771 /.test(days2) && re.includes("Subject (Intercept) 612.1 24.74")
+      && re.includes("Subject Days 35.07 5.922") && re.includes("Residual 654.9 25.59")
+      && re.includes("Correlation of (Intercept) and Days by Subject: 0.0656"), `${days2} / ${re.slice(0, 300)}`);
+  const methods = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("P-87 methods text: random slope correlated with the intercept, Satterthwaite as lmerTest",
+    methods.includes("a random intercept for each Subject with a random slope of Days (correlated with the intercept)")
+      && methods.includes("Satterthwaite's method (as in lmerTest"), methods.slice(0, 300));
+
+  // Pastes: strength ~ 1 + (1 | batch) + (1 | batch:cask); lme4: intercept
+  // 60.0533 (SE 0.6769), batch variance 1.657, residual 0.678
+  const pastes = fix("lme4_pastes.csv");
+  await pastedTable("multivariable", "Pastes", tsv(pastes, [1, 2, 3]));
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /Mixed model with a grouping column/ }).click();
+  await controls.getByLabel("Grouping column (random)").selectOption("batch");
+  await controls.getByLabel("Nested level (random)").selectOption("cask");
+  await controls.getByLabel("Factor", { exact: true }).selectOption("");
+  const nestedOk = await liveResults(/lme4: strength ~ 1 \+ \(1 \| batch\) \+ \(1 \| batch:cask\)/, 90000);
+  const ic = await lmmRow("(Intercept)");
+  const re2 = (await page.locator(".lmm-results section[aria-label='Random effects']").innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect("P-87 acceptance: Pastes, two nested levels: intercept 60.05 (SE 0.6769, 9 df), batch 1.657, cask 8.434, residual 0.678",
+    nestedOk && /^\(Intercept\) 60\.05 0\.6769 9 88\.72 /.test(ic) && re2.includes("batch (Intercept) 1.657")
+      && re2.includes("cask (Intercept) 8.434") && re2.includes("Residual 0.678"), `${ic} / ${re2.slice(0, 300)}`);
+  expect("P-87 nested: the design note counts batches and casks within them",
+    await liveResults(/df come from the 10 batch groups \(30 cask groups within them\), not from the 60 values/));
+  const axe = await page.evaluate(async (src) => {
+    // eslint-disable-next-line no-eval
+    if (!window.axe) (0, eval)(src);
+    // eslint-disable-next-line no-undef
+    const r = await axe.run(document.querySelector(".pane-controls"), { runOnly: { type: "rule",
+      values: ["select-name", "label", "aria-input-field-name", "button-name"] } });
+    return r.violations.map((v) => v.id);
+  }, readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"));
+  expect("P-87 axe: the mixed model controls have names", axe.length === 0, axe.join(", "));
 }
 
 // ------------------------------------------------------------------------

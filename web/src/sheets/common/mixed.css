@@ -20,3 +20,6 @@
 .mixed-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin: var(--space-6) 0; }
 .mixed-units summary { cursor: pointer; font-size: var(--text-body-s); color: var(--ink-2); }
 .mixed-units summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+/* P-87: the random-slope option sits under its covariate */
+.covariate-slope { padding-inline-start: var(--space-24); }
