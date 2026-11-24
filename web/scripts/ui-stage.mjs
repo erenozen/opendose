@@ -1036,6 +1036,65 @@ const scenes = [
     await waitLive(s);
     await into(s, ".pane-controls details.initial-values", "start");
   } },
+  // bootstrap CIs of the example 4PL (P-101): the settings under the CI
+  // method, the busy line with its progress bar, the results with the
+  // bootstrap note and its details fold
+  { name: "controls-bootstrap", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator("details.advanced > summary").first());
+    await c.getByLabel("Confidence intervals").selectOption("bootstrap");
+    await c.locator(".bootstrap-fields").waitFor({ timeout: 30000 });
+    await into(s, ".pane-controls .bootstrap-fields", "center");
+  } },
+  { name: "results-bootstrap-progress", busy: true, setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator("details.advanced > summary").first());
+    await c.getByLabel("Confidence intervals").selectOption("bootstrap");
+    await c.getByLabel("Resamples", { exact: true }).fill("10000");
+    await s.page.locator(".analysis-busy progress").waitFor({ timeout: 60000 });
+    await into(s, ".analysis-busy", "center");
+  } },
+  { name: "results-bootstrap", setup: async (s) => {
+    await example(s);
+    const c = s.page.locator(".pane-controls");
+    await click(s, c.locator("details.advanced > summary").first());
+    await c.getByLabel("Confidence intervals").selectOption("bootstrap");
+    await s.page.locator('.pane-results[data-live="true"] .fit-bootstrap').first().waitFor({ timeout: 180000 });
+    const fold = s.page.locator(".pane-results details.fit-bootstrap-detail").first();
+    await click(s, fold.locator("summary"));
+    await into(s, ".pane-results .result-card .results-table", "start");
+    await settle(s, 600);
+  } },
+  // the parameters' correlation and covariance (P-102), the joint region
+  // card and the region graph of LogIC50 and HillSlope
+  { name: "results-fit-covariance", setup: async (s) => {
+    await example(s);
+    const fold = s.page.locator(".pane-results details.fit-covariance").first();
+    await click(s, fold.locator("summary"));
+    await into(s, ".pane-results details.fit-covariance", "start");
+  } },
+  { name: "results-fit-region", setup: async (s) => {
+    await example(s);
+    const card = s.page.locator(".pane-results .region-card");
+    await card.getByRole("button", { name: "Plot the region" }).click();
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? []).length >= 3,
+      null, { timeout: 180000 });
+    await selectSheet(s, "Nonlin fit of Dose response");
+    await s.page.locator(".pane-results .region-card .hint-block").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .region-card", "start");
+    await settle(s, 600);
+  } },
+  { name: "graphs-fit-region", setup: async (s) => {
+    await example(s);
+    const card = s.page.locator(".pane-results .region-card");
+    await card.getByRole("button", { name: "Plot the region" }).click();
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? []).length >= 3,
+      null, { timeout: 180000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
   { name: "sim-user-equation", setup: async (s) => {
     await example(s);
     await click(s, s.page.getByRole("button", { name: /^Model:/ }));
@@ -2069,8 +2128,9 @@ async function runScene(sc) {
         await page.emulateMedia({ colorScheme: theme });
         await page.waitForTimeout(MOTION ? 700 : 350);
         await themeCheck(s, sc.name, theme);
-        // an analysis rerun by the switch (a large table) finishes before the shot
-        await page.waitForFunction(() => !document.querySelector(".analysis-busy:not(.cancelled)"), null,
+        // an analysis rerun by the switch (a large table) finishes before the
+        // shot, unless the busy line is what the scene shows (busy: true)
+        if (!sc.busy) await page.waitForFunction(() => !document.querySelector(".analysis-busy:not(.cancelled)"), null,
           { timeout: 60000, polling: 500 }).catch(() => err(sc.name, `${vp.width} ${theme}: still computing at the shot`));
         await page.screenshot({ path: join(OUT, `${sc.name}-${vp.width}-${theme}.png`), fullPage: !!sc.full });
         await axe(s, sc.name, theme);

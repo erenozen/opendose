@@ -58,6 +58,12 @@ export function whatIsPlotted(graphType: string | null | undefined,
         + "from a fit with Top, Bottom and Hill slope shared; the line is the least-squares fit, "
         + "and its slope is shown with its 95% confidence interval (Arunlakshana & Schild 1959). "
         + "pA2 and KB are reported from the global Gaddum/Schild fit.";
+    case "fit_region":
+      return "Joint 95% confidence region of two fitted parameters (solid line): every pair for "
+        + "which the best fit of the other parameters keeps the sum of squares within the F limit "
+        + "with 2 numerator degrees of freedom (profile likelihood; Bates & Watts 1988). The dashed "
+        + "ellipse is the linear approximation behind the asymptotic standard errors; the point is "
+        + "the best fit.";
     case "raincloud":
       return "Rainclouds show a kernel density estimate of the values (half violin), a box with "
         + "the median and interquartile range, and the individual values beside it.";

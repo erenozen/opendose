@@ -7,8 +7,9 @@
 // (P-14) and two event rates (P-47); and the fit models of wave 1: Weibull
 // and hormesis models (P-19), range constraints (P-20), initial values and
 // the fit report (P-21) and simulating a user-defined equation (P-51); the
-// fit summary and its table of parameters (P-17); interpolated unknowns
-// with their CIs (P-22); method comparison and reliability:
+// fit summary and its table of parameters (P-17); bootstrap CIs of a fit
+// (P-101), the parameters' correlation and joint region (P-102);
+// interpolated unknowns with their CIs (P-22); method comparison and reliability:
 // Passing-Bablok (P-42), Lin's CCC (P-43) and the reliability ICC (P-44);
 // quasi-Poisson (P-46), partial and compared correlations (P-48), the
 // survival difference at a chosen time (P-28) and the references behind
@@ -129,6 +130,105 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   await controls.getByLabel("LogIC50 start").fill("");
   await appears(fold.locator("tbody tr", { hasText: "LogIC50 -7" }), 60000);
   await controls.locator("details.initial-values > summary").click();
+}
+
+// --- P-101: bootstrap CIs of the example 4PL ------------------------------
+{
+  // engine/tests/test_fit_bootstrap.py, pinned against
+  // engine/tests/reference/fit_bootstrap.py (scipy curve_fit on the same
+  // seeded resamples): case resampling, 2,000 resamples, seed 1 give
+  // Top 98.39 to 101.4, LogIC50 -7.012 to -6.947, HillSlope -1.193 to
+  // -1.020 and IC50 9.734e-8 to 1.129e-7.
+  const controls = page.locator(".pane-controls");
+  const adv = controls.locator("details.advanced").first();
+  const wasOpen = await adv.evaluate((e) => e.open);
+  if (!wasOpen) await adv.locator("summary").click();
+  const restarts = () => page.evaluate(() => globalThis.__opendoseEngine.stats.restarts);
+  const before = await restarts();
+  await controls.getByLabel("Confidence intervals").selectOption("bootstrap");
+  expect("P-101 acceptance: a progress bar while the resamples are refitted",
+    await appears(page.locator(".analysis-busy progress"), 30000));
+  expect("P-101 the CI column is headed as bootstrap percentile",
+    await liveResults(/95% CI \(bootstrap percentile\)/, 180000));
+  const rows = (await page.locator(".pane-results .results-table").first().locator("tbody tr").allInnerTexts())
+    .map((t) => t.replace(/\s+/g, " ").trim());
+  const want = ["Top 99.86 0.7313 98.39 to 101.4", "Bottom 0.9801 0.7445 -0.07284 to 2.14",
+    "LogIC50 -6.983 0.01471 -7.012 to -6.947", "HillSlope -1.103 0.03869 -1.193 to -1.02",
+    "IC50 (M) 1.040e-7 n/a 9.734e-8 to 1.129e-7"];
+  expect("P-101 acceptance: percentile CIs of the reference bootstrap (2,000 case resamples, seed 1)",
+    want.every((w) => rows.includes(w)), rows.join(" | "));
+  const note = await page.locator(".pane-results .fit-bootstrap").first().innerText().catch(() => "");
+  expect("P-101 the note says how: 2,000 case resamples, seed 1, all refitted; SE asymptotic",
+    note.startsWith("Bootstrap percentile CIs from 2,000 case resamples (seed 1), all refitted.")
+      && note.includes("Std. Error is asymptotic"), note);
+  expect("P-101 the headline CI says bootstrap", await answerText(/95% CI 9\.734e-8 to 1\.129e-7 \(bootstrap\)/));
+  const fold = page.locator(".pane-results details.fit-bootstrap-detail").first();
+  await fold.locator("summary").click();
+  const logRow = (await fold.locator("tbody tr", { hasText: "LogIC50" }).innerText()).replace(/\s+/g, " ").trim();
+  expect("P-101 the details fold keeps the asymptotic CI it replaced",
+    logRow.startsWith("LogIC50 ") && logRow.endsWith("-7.013 to -6.953"), logRow);
+  await fold.locator("summary").click();
+  // cancellable: 10,000 resamples, cancelled mid-way, stop between steps
+  await controls.getByLabel("Resamples", { exact: true }).fill("10000");
+  await appears(page.locator(".analysis-busy progress"), 30000);
+  await page.locator(".analysis-busy").getByRole("button", { name: "Cancel" }).click();
+  expect("P-101 Cancel stops the bootstrap", await appears(page.locator(".analysis-busy.cancelled"), 10000));
+  await controls.getByLabel("Resamples", { exact: true }).fill("2000");
+  expect("P-101 after a cancel the same seed gives the same CIs again",
+    await liveResults(/LogIC50\s*-6\.983\s*0\.01471\s*-7\.012 to -6\.947/, 120000));
+  expect("P-101 a cancelled bootstrap stops at its next step: the worker is kept (no restart)",
+    (await restarts()) === before, `${before} -> ${await restarts()}`);
+  await controls.getByLabel("Confidence intervals").selectOption("asymptotic");
+  await liveResults(/95% CI \(asymptotic\)/, 60000);
+  if (!wasOpen) await adv.locator("summary").click();
+}
+
+// --- P-102: the parameters' correlation and their joint region -----------
+{
+  // engine/tests/test_fit_region.py, pinned against
+  // engine/tests/reference/fit_region.py (scipy curve_fit's covariance
+  // with the analytic Jacobian; the exact profile of Top and Bottom, linear
+  // with LogIC50 and HillSlope held): correlation of HillSlope with Top
+  // 0.6008, Bottom -0.606, LogIC50 0.009504; var(LogIC50) 2.165e-4 (SE
+  // 0.01471); the 95% joint region of LogIC50 and HillSlope spans LogIC50
+  // -7.021 to -6.944 and HillSlope -1.212 to -1.005, F(2, 23) = 3.422.
+  const norm = (t) => t.replace(/\s+/g, " ").trim();
+  const fold = page.locator(".pane-results details.fit-covariance").first();
+  await fold.locator("summary").click();
+  const corr = (await fold.locator("table").first().locator("tbody tr").allInnerTexts()).map(norm);
+  expect("P-102 acceptance: a folded table shows the correlation matrix of the example 4PL",
+    corr.length === 4 && corr[3] === "HillSlope 0.6008 -0.606 0.009504 1"
+      && corr[1] === "Bottom -0.2684 1", corr.join(" | "));
+  const covRow = norm(await fold.locator("table").nth(1).locator("tbody tr", { hasText: "LogIC50" }).innerText());
+  expect("P-102 the covariance behind the SEs: var(LogIC50) 2.165e-4 = 0.01471²",
+    covRow === "LogIC50 -0.004613 -0.004842 2.165e-4 5.409e-6", covRow);
+  await fold.locator("summary").click();
+  const card = page.locator(".pane-results .region-card");
+  await card.getByRole("button", { name: "Plot the region" }).click();
+  const region = await page.waitForFunction(() => {
+    const data = document.querySelector(".plot-card .plot")?.data ?? [];
+    const t = data.find((d) => d.name === "95% joint region");
+    if (!t) return false;
+    const xs = t.x.filter((v) => v !== null), ys = t.y.filter((v) => v !== null);
+    const lay = document.querySelector(".plot-card .plot")?.layout ?? {};
+    return { n: xs.length, x: [Math.min(...xs), Math.max(...xs)], y: [Math.min(...ys), Math.max(...ys)],
+      ellipse: data.some((d) => d.name === "Linear approximation"),
+      best: data.some((d) => d.name === "Best fit"),
+      titles: [lay.xaxis?.title?.text, lay.yaxis?.title?.text] };
+  }, null, { timeout: 120000 }).then((h) => h.jsonValue(), () => null);
+  const sig4 = (v) => Number(v.toPrecision(4));
+  expect("P-102 acceptance: a region plot for LogIC50 and HillSlope (LogIC50 -7.021 to -6.944, "
+    + "HillSlope -1.212 to -1.005), with the ellipse and the best fit",
+    !!region && region.n === 73 && sig4(region.x[0]) === -7.021 && sig4(region.x[1]) === -6.944
+      && sig4(region.y[0]) === -1.212 && sig4(region.y[1]) === -1.005 && region.ellipse && region.best
+      && region.titles[0] === "LogIC50" && region.titles[1] === "HillSlope", JSON.stringify(region));
+  await page.getByRole("treeitem", { name: "Nonlin fit of Dose response", exact: true }).first().click();
+  expect("P-102 the region card says what was traced: F(2, 23) = 3.422",
+    await liveResults(/SS_min × \(1 \+ 2F\/23\), F\(2, 23\) = 3\.422/, 60000));
+  // leave the example as it was: one undo removes the graph and the option
+  await page.locator("header").getByRole("button", { name: "Undo" }).click();
+  expect("P-102 one undo removes the region graph and the option",
+    await page.getByRole("treeitem", { name: /^Joint region of/ }).count() === 0);
 }
 
 // --- P-11: residuals of the example's 4PL fit, in the Checks row ---------

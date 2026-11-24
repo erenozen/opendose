@@ -18,10 +18,12 @@ class FakeWorker implements WorkerLike {
   onerror: ((e: ErrorEvent) => void) | null = null;
   terminated = false;
   jobs: { id: number; payload: string }[] = [];
+  stops: number[] = [];
   constructor() { FakeWorker.all.push(this); }
   postMessage(m: WorkerRequest) {
     if (m.type === "boot") return;
     if (m.type === "analyze") this.jobs.push({ id: m.id, payload: m.payload });
+    if (m.type === "stop") this.stops.push(m.id);
   }
   terminate() { this.terminated = true; }
   send(m: WorkerResponse) { this.onmessage?.({ data: m } as MessageEvent<WorkerResponse>); }
@@ -289,4 +291,36 @@ test("the answer cache is bounded by size, least recently used first", () => {
   assert.ok(cache.size < 10);
   assert.ok(cache.get("k9"));
   assert.equal(cache.get("k0"), undefined);
+});
+
+test("a stepped job reports progress; cancelled, it is stopped at its next step, no spare", async () => {
+  const { h, advance } = host();
+  void h.boot();
+  const w = FakeWorker.all[0];
+  w.ready();
+  const seen: [number, number][] = [];
+  const ctl = new AbortController();
+  const boot = h.submit({ type: "analyze", payload: "bootstrap" },
+    { signal: ctl.signal, onProgress: (d, t) => seen.push([d, t]) });
+  const next = h.submit({ type: "analyze", payload: "next" });
+  await tick();
+  const id = w.jobs[0].id;
+  w.send({ type: "jobProgress", id, done: 20, total: 2000 });
+  w.send({ type: "jobProgress", id, done: 40, total: 2000 });
+  assert.deepEqual(seen, [[20, 2000], [40, 2000]]);
+  advance(5000);
+  await new Promise((r) => setTimeout(r, 1600));
+  assert.equal(FakeWorker.all.length, 1, "a job that can be stopped warms no spare");
+  ctl.abort();
+  await assert.rejects(boot, (e) => isCancelled(e));
+  assert.deepEqual(w.stops, [id], "the worker is asked to stop it");
+  assert.equal(w.terminated, false, "the worker is kept");
+  assert.equal(w.jobs.length, 1, "nothing new is sent while it drains");
+  // the worker ends it at its next step; the queue goes on on the same worker
+  w.jobs.shift();
+  w.send({ type: "result", id, ok: false, message: "stopped", ms: 1 });
+  await tick();
+  assert.equal(w.jobs[0]?.payload, "next");
+  w.answer("n");
+  assert.equal(await next, "n");
 });

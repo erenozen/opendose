@@ -100,7 +100,8 @@ function fitFigure(fit: FitResult, xUnit: string): KeyFigure | null {
   const fig: KeyFigure = {
     name: label,
     value: e.constrained ? `= ${formatSig(e.value)}` : formatSig(e.value),
-    ci: ci && ci !== "n/a" ? `95% CI ${ci}` : undefined,
+    ci: ci && ci !== "n/a"
+      ? `95% CI ${ci}${fit.ci_method === "bootstrap" ? " (bootstrap)" : ""}` : undefined,
     facts,
   };
   // The incomplete-curve report (sheets/xy/rangeFlags.tsx) decides what

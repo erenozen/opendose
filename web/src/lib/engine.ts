@@ -87,6 +87,8 @@ export interface RunOptions {
   /** A newer run with the same key cancels this one. */
   coalesce?: string;
   priority?: Priority;
+  /** Progress of a request the worker runs in steps (a bootstrap). */
+  onProgress?: (done: number, total: number, what?: string) => void;
 }
 
 const slots = new Map<string, AbortController>();
@@ -95,7 +97,7 @@ const slots = new Map<string, AbortController>();
 export async function runEngine<T>(fn: (engine: EngineBridge) => T,
   opts: RunOptions = {}): Promise<T> {
   const ctl = new AbortController();
-  const { signal: outer, coalesce, priority } = opts;
+  const { signal: outer, coalesce, priority, onProgress } = opts;
   if (outer) {
     if (outer.aborted) ctl.abort();
     else outer.addEventListener("abort", () => ctl.abort(), { once: true });
@@ -114,7 +116,7 @@ export async function runEngine<T>(fn: (engine: EngineBridge) => T,
     if (st.phase === "failed") throw new Error(`the analysis engine could not start: ${st.error ?? "unknown error"}`);
     await startEngine();
     const ask = (payload: string): Promise<Outcome> =>
-      host.submit({ type: "analyze", payload }, { priority, signal: ctl.signal }).then(
+      host.submit({ type: "analyze", payload }, { priority, signal: ctl.signal, onProgress }).then(
         (text) => ({ ok: true, text }),
         (e) => {
           if (isCancelled(e)) throw e;

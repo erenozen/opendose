@@ -180,6 +180,9 @@ let py: Py | null = null;
 /** The Pyodide folder on this site (BootConfig.indexURL). */
 let indexURL = "";
 let analyzeJson: ((s: string) => string) | null = null;
+/** opendose.api.StepJob: an analysis run in steps (a bootstrap). */
+interface StepJob { step(): string | undefined; result(): string; destroy(): void }
+let stepJob: ((s: string) => StepJob) | null = null;
 
 async function boot(cfg: BootConfig) {
   indexURL = cfg.indexURL;
@@ -219,8 +222,9 @@ async function boot(cfg: BootConfig) {
   for (const [name, text] of Object.entries(files)) {
     if (/^[\w.]+\.py$/.test(name)) runtime.FS.writeFile(`/app/opendose/${name}`, text);
   }
-  runtime.runPython('import sys\nsys.path.insert(0, "/app")\nfrom opendose.api import analyze_json');
+  runtime.runPython('import sys\nsys.path.insert(0, "/app")\nfrom opendose.api import analyze_json, StepJob');
   const fn = runtime.globals.get("analyze_json") as (s: string) => string;
+  stepJob = runtime.globals.get("StepJob") as (s: string) => StepJob;
   mark("engine imported");
   let versions: RuntimeVersions | null = null;
   try {
@@ -270,10 +274,34 @@ function ensureReader(runtime: Py, format: WorkbookFormat): Promise<void> {
 
 let workbookReader: ((path: string, format: string) => string) | null = null;
 
-async function analyze(payload: string): Promise<string> {
+/** Requests that run in steps (opendose.api.StepJob): a curve fit with
+ *  bootstrap CIs or a joint confidence region. Every other request is
+ *  one call. */
+const STEPPED = /"ci_method":\s*"bootstrap"|"joint_region":\s*\[/;
+/** Jobs the page asked to stop: checked between two steps. */
+const stops = new Set<number>();
+let current: number | null = null;
+
+async function analyze(id: number, payload: string): Promise<string> {
   if (!py || !analyzeJson) throw new Error("the analysis engine is not ready");
   if (payload.includes('"xlsx_b64"')) await ensureReader(py, "xlsx");
-  return analyzeJson(payload);
+  if (!stepJob || !STEPPED.test(payload)) return analyzeJson(payload);
+  // Seconds of refits: run them a chunk at a time, report progress after
+  // each, and read messages in between, so a stop ends the job at the
+  // next chunk instead of retiring the worker.
+  const job = stepJob(payload);
+  try {
+    for (;;) {
+      if (stops.has(id)) throw new Error("stopped");
+      const p = job.step();
+      if (p == null) return job.result();
+      const { done, total, what } = JSON.parse(p) as { done: number; total: number; what?: string };
+      post({ type: "jobProgress", id, done, total, what });
+      await new Promise((r) => setTimeout(r, 0));
+    }
+  } finally {
+    job.destroy();
+  }
 }
 
 /** Every sheet of a workbook, read by engine/opendose/workbooks.py. */
@@ -329,13 +357,18 @@ scope.onmessage = (e: MessageEvent<WorkerRequest>) => {
     });
     return;
   }
+  if (msg.type === "stop") {
+    if (msg.id === current) stops.add(msg.id);
+    return;
+  }
   // Jobs run strictly one after another (the page sends one at a time;
   // this keeps the worker correct even if it did not).
   chain = chain.then(async () => {
     const t0 = performance.now();
+    current = msg.id;
     try {
       let json: string;
-      if (msg.type === "analyze") json = await analyze(msg.payload);
+      if (msg.type === "analyze") json = await analyze(msg.id, msg.payload);
       else if (msg.type === "readWorkbook") json = await readWorkbook(msg.bytes, msg.format);
       else {
         if (!py) throw new Error("the analysis engine is not ready");
@@ -349,6 +382,9 @@ scope.onmessage = (e: MessageEvent<WorkerRequest>) => {
         message: err instanceof Error ? err.message : String(err),
         ms: Math.round(performance.now() - t0),
       });
+    } finally {
+      current = null;
+      stops.clear();
     }
   });
 };

@@ -63,6 +63,10 @@
 }
 .analysis-busy .spinner { width: 14px; height: 14px; border-width: 2px; }
 .analysis-busy-time { font-variant-numeric: tabular-nums; color: var(--muted); }
+/* A stepped job's progress (bootstrap resamples), as Monte Carlo's bar. */
+.analysis-busy progress { width: 120px; height: var(--space-8); accent-color: var(--accent); }
+/* "460 of 2,000": as wide as the finished count, so the line does not grow */
+.analysis-busy-count { min-width: 14ch; text-align: end; }
 .analysis-busy button { margin-left: auto; padding: 3px 10px; font-size: var(--text-body-s); }
 .analysis-busy.long { border-color: var(--warn-ink); }
 .analysis-busy.long [role="status"] { color: var(--warn-ink); font-weight: var(--weight-semibold); }
