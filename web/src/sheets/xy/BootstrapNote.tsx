@@ -18,7 +18,7 @@ export function BootstrapNote({ name, fit }: { name: string; fit: FitResult }) {
         <p key={w} className="model-line fit-note fit-bootstrap-warning"><NumText text={w} /></p>
       ))}
       {rows.length > 0 && (
-        <details className="advanced fit-starts fit-bootstrap-detail" data-no-export>
+        <details className="advanced fit-fold fit-bootstrap-detail" data-no-export>
           <summary>Bootstrap details</summary>
           <table className="results-table goodness">
             <caption className="sr-only">Bootstrap SE and bias of {name}</caption>
