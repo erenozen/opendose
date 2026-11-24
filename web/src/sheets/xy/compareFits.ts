@@ -11,7 +11,10 @@
 //  - "parameter": one parameter (logEC50, Hill slope, Top ...) of model 1
 //    between two chosen data sets, by the engine's `compare_parameter`
 //    (difference / ratio with CI, F test and AICc for sharing it;
-//    compareParameter.ts).
+//    compareParameter.ts);
+//  - "potency": the relative potency of a test sample (data set B)
+//    against a reference standard (A) from parallel curves, with the
+//    parallelism F test and equivalence margins (relativePotency.ts).
 // The result keeps the per-data-set fit shape the XY graph draws (model 1
 // or the separate curves as `fit`, the other model's curve under
 // `altCurves`). Pure: unit-tested with node --test.
@@ -31,12 +34,13 @@ import {
   compareAicc, extraSumOfSquaresF, type AiccComparison, type FTest,
 } from "./fitStats.ts";
 import { comparableParameters, defaultParameter, runParameter } from "./compareParameter.ts";
+import { normalizeMargins, potencyModel, runPotency, type Margin } from "./relativePotency.ts";
 import { tQuantile } from "../grouped/stats.ts";
 
 export const ANALYSIS_COMPARE = "compare_fits";
 export const GRAPH_COMPARE = "compare_fits_xy";
 
-export type CompareMode = "models" | "global" | "parameter";
+export type CompareMode = "models" | "global" | "parameter" | "potency";
 /** Which comparison to report: both, the F test (nested models) or AICc
  *  only (models that are not nested). */
 export type CompareMethod = "both" | "f" | "aicc";
@@ -74,6 +78,9 @@ export interface CompareOptions {
    *  depend on this browser's equation library). */
   userEquation1?: UserEquationDef | null;
   userEquation2?: UserEquationDef | null;
+  /** "potency" mode: equivalence margins per parameter, as typed (set
+   *  before the data are seen). Data set A is the reference, B the test. */
+  margins?: Record<string, Margin>;
 }
 
 export const DEFAULT_COMPARE: CompareOptions = {
@@ -92,7 +99,7 @@ const isConstraints = (v: unknown): v is Record<string, ConstraintState> =>
 export function normalizeCompare(raw: unknown): CompareOptions {
   const r = (raw && typeof raw === "object" ? raw : {}) as Partial<CompareOptions>;
   return {
-    mode: r.mode === "global" || r.mode === "parameter" ? r.mode : "models",
+    mode: r.mode === "global" || r.mode === "parameter" || r.mode === "potency" ? r.mode : "models",
     model1: typeof r.model1 === "string" && r.model1 ? r.model1 : DEFAULT_COMPARE.model1,
     model2: typeof r.model2 === "string" && r.model2 ? r.model2 : DEFAULT_COMPARE.model2,
     constraints1: isConstraints(r.constraints1) ? r.constraints1 : {},
@@ -111,6 +118,7 @@ export function normalizeCompare(raw: unknown): CompareOptions {
       ? r.weighting as WeightingKind : "none",
     ...(typeof r.weightK === "number" && r.weightK > 0 && r.weightK <= 10 ? { weightK: r.weightK } : {}),
     ...userEquations(r),
+    ...(Object.keys(normalizeMargins(r.margins)).length ? { margins: normalizeMargins(r.margins) } : {}),
   };
 }
 
@@ -159,9 +167,9 @@ export function comparableInModels(m: ModelMeta): boolean {
 export const isGlobalModel = (m: ModelMeta): boolean =>
   !!m.globalOnly || !!m.datasetConstants?.length;
 
-export function comparableModels(scope: "single" | "models" = "single"):
+export function comparableModels(scope: "single" | "models" | "potency" = "single"):
   { family: string; models: ModelMeta[] }[] {
-  const ok = scope === "models" ? comparableInModels : comparable;
+  const ok = scope === "models" ? comparableInModels : scope === "potency" ? potencyModel : comparable;
   return modelsByFamily().map((g) => ({ family: g.family, models: g.models.filter(ok) }))
     .filter((g) => g.models.length);
 }
@@ -546,7 +554,18 @@ function runOneParameter(engine: Engine, table: DataTableModel, o: CompareOption
   });
 }
 
+function runRelativePotency(engine: Engine, table: DataTableModel, o: CompareOptions): any {
+  const m = modelMeta(o.model1);
+  if (!MODELS_META[o.model1]) return fail("Choose a model from the list");
+  return runPotency(engine, table, {
+    model: m, held: constraintValues(m, o.constraints1), reference: o.datasetA, test: o.datasetB,
+    xIsLog: o.xIsLog, errorBars: o.errorBars, margins: o.margins,
+    extra: { ...summaryOptions(table), ...compareWeighting(o) },
+  });
+}
+
 export function runCompare(engine: Engine, table: DataTableModel, o: CompareOptions): any {
+  if (o.mode === "potency") return runRelativePotency(engine, table, o);
   if (o.mode === "parameter") return runOneParameter(engine, table, o);
   return o.mode === "global" ? runGlobal(engine, table, o) : runModels(engine, table, o);
 }

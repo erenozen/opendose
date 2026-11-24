@@ -41,7 +41,7 @@ from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
 from . import logscale, rm_posthoc, twoway_contrasts
-from . import compare_models, compare_params, flow, qpcr_refs
+from . import compare_models, compare_params, flow, qpcr_refs, relpotency
 from . import potency
 
 
@@ -1311,6 +1311,83 @@ def _compare_global_fits(data, options):
             "model_2": fits[1], "n_points": n, **cmp,
             "sum_of_squares": "weighted" if weighted else "unweighted",
             "notes": notes, "source": compare_models.SOURCE}
+
+
+def _relative_potency(data, options):
+    """Relative potency of a test sample against a reference standard from
+    parallel curves (P-100; opendose.relpotency): the two data sets fitted
+    with every parameter shared but the potency (the parallel model) and
+    with none shared; parallelism by the F test and by equivalence
+    margins; the potency ratio EC50_reference / EC50_test with Fieller's
+    CI. data: as dose_response. options: model (a library model with an
+    EC50 / IC50 parameter), reference (data-set index, 0), test (1),
+    constraints, x_is_log, weighting, summary_format, replicates,
+    error_bars, margins {param: {"lower", "upper"}} (set before seeing
+    the data), ci_level (0.95), equivalence_level (0.90), alpha (0.05)."""
+    model = options.get("model", "log_agonist_vs_response_4pl")
+    spec = nlfit.MODELS.get(model)
+    if spec is None:
+        raise ValueError(f"unknown model: {model}")
+    pot = relpotency.check_model(spec)
+    if spec.required_constants:
+        raise ValueError(f"{spec.label} needs experimental constants; choose a "
+                         "dose-response model such as the 4PL")
+    sets = data.get("datasets") or []
+    ia, ib = int(options.get("reference", 0)), int(options.get("test", 1))
+    if ia == ib:
+        raise ValueError("choose two different data sets: a reference and a "
+                         "test sample")
+    if not (0 <= ia < len(sets) and 0 <= ib < len(sets)):
+        raise ValueError("relative potency needs two data sets (a reference "
+                         "and a test sample)")
+    ra, rb = dict(sets[ia]), dict(sets[ib])
+    ra["name"] = ra.get("name") or f"Data set {ia + 1}"
+    rb["name"] = rb.get("name") or f"Data set {ib + 1}"
+    if ra["name"] == rb["name"]:
+        ra["name"], rb["name"] = f"{ra['name']} (reference)", f"{rb['name']} (test)"
+    constraints = compare_params._internal_constraints(
+        spec, model, options.get("constraints"))
+    if pot in constraints:
+        raise ValueError(f"{relpotency.display_name(spec, pot)} is held constant: "
+                         "there is no potency to compare")
+    free = [p for p in spec.params if p not in constraints
+            and p not in (spec.data_constants or {})]
+    common = {k: options[k] for k in ("x_is_log", "weighting", "summary_format",
+                                      "replicates", "error_bars") if k in options}
+    common.update(model=model, constraints=constraints)
+    sub = {"x": data["x"], "datasets": [ra, rb]}
+    fits = {}
+    try:
+        fits["parallel"] = _global_model_fit(
+            sub, dict(common, shared=[p for p in free if p != pot]))
+    except (ValueError, RuntimeError) as exc:
+        raise ValueError(f"could not fit the parallel model: {exc}") from exc
+    # the separate curves from their default start and from the parallel
+    # fit (the restricted optimum is a point of the unrestricted model, so
+    # this start can only lower the sum of squares); the better one is kept
+    warm = {p: [d["fitted_values"][p] for d in fits["parallel"]["datasets"]]
+            for p in free}
+    tries, last = [], None
+    for start in (None, warm):
+        try:
+            tries.append(_global_model_fit(
+                sub, dict(common, shared=[], **({"initial_values": start}
+                                                if start else {}))))
+        except (ValueError, RuntimeError) as exc:
+            last = exc
+    if not tries:
+        raise ValueError(f"could not fit the separate curves: {last}")
+    fits["separate"] = min(tries, key=lambda g: relpotency._wss(g["goodness"]))
+    out = relpotency.analyse(
+        spec, fits["parallel"], fits["separate"],
+        margins=options.get("margins"),
+        ci_level=float(options.get("ci_level", 0.95)),
+        equivalence_level=float(options.get("equivalence_level", 0.90)),
+        alpha=float(options.get("alpha", 0.05)))
+    out["warnings"] = _nan_warnings(data, {ia, ib}) + out["warnings"]
+    return {"analysis": "relative_potency", "model": model, "label": spec.label,
+            "x_is_log": spec.x_is_log, "parallel_fit": fits["parallel"],
+            "separate_fit": fits["separate"], **out}
 
 
 def _correlation(data, options):
@@ -3408,7 +3485,10 @@ def _global_model_fit(data, options):
     result = equations.fit_global_model(
         gdatasets, model, shared=options.get("shared"),
         constraints=options.get("constraints") or {},
-        weighting=options.get("weighting", "none"))
+        weighting=options.get("weighting", "none"),
+        # start values {param: value or [one per data set]} (P-100 starts
+        # the separate curves from the parallel fit)
+        initial=options.get("initial_values"))
     cov = result.pop("_cov", None)
     if cov is not None:
         # the joint covariance of the fitted parameters (one row per
@@ -3518,6 +3598,7 @@ def _list_models(data, options):
 _HANDLERS.update({
     "global_model_fit": _global_model_fit,
     "compare_global_fits": _compare_global_fits,
+    "relative_potency": _relative_potency,
     "validate_equation": _validate_equation,
     "list_models": _list_models,
 })

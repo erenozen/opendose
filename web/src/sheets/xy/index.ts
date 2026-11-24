@@ -179,7 +179,8 @@ export const compareAnalysis = defineAnalysis<CompareOptions, Record<string, unk
   label: "Compare fits (F test, AICc)",
   short: "Compare fits",
   description: "Two models on each data set, or one curve for all data sets against a "
-    + "separate curve for each: extra-sum-of-squares F test and AICc.",
+    + "separate curve for each: extra-sum-of-squares F test and AICc. Also the relative potency "
+    + "of a test sample from parallel curves.",
   sheetName: (t) => `Comparison of fits of ${t}`,
   defaultOptions: () => ({ ...DEFAULT_COMPARE }),
   normalizeOptions: (raw) => normalizeCompare(raw),

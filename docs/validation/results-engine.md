@@ -2375,3 +2375,53 @@ substrate units x 1e-6 (F and AICc unchanged); the mixed model stuck at
 its limit (F set to 0, with a warning); Gaddum/Schild slope 1 vs free; a
 missing data-set constant, a log-X model against a model of X (X = 0
 rows left out by one: refused), too few points, weighting (weighted SS).
+
+### P-100 Relative potency from parallel curves, with equivalence
+
+`relpotency.py` and the API handler `relative_potency`: a reference
+standard and a test sample fitted together twice with
+`fit_global_model`, with every parameter shared except the potency
+(logEC50, EC50, ...: parallel curves) and with every parameter separate
+(one pooled residual variance; started from the parallel fit as well as
+from its default start, the better kept). Parallelism by the
+extra-sum-of-squares F test (Finney 1978, Statistical Method in
+Biological Assay, ch. 3-4; USP <1034>) and, because an F test cannot show
+parallelism, by equivalence: the 90% CI of each other parameter's
+difference (test - reference; Fieller's ratio for a slope) inside
+margins the user sets before seeing the data (USP <1032>/<1034>; Hauck
+et al. 2005, PDA J Pharm Sci Technol 59:127-137). One missed margin says
+equivalence is not shown. The relative potency EC50_reference /
+EC50_test comes from the parallel fit with Fieller's interval for two
+correlated estimates (Fieller 1954; the log-EC50 covariance transformed
+to the EC50 scale) and a delta-method SE, as drc's EDcomp reports them.
+`fit_global_model` takes start values per data set (`initial` lists).
+
+Reference: `engine/tests/reference/relative_potency.py`, drc's LL.4
+parameterisation (e itself) fitted with scipy `least_squares` on the
+stacked, indicator-coded data, F by hand, Fieller's interval as the
+roots of its quadratic. R (drc::EDcomp, compParm) is not installed and no
+EDcomp output for S.alba is published, so the potency, F and equivalence
+values are this script's. The one published S.alba output, drc's fit
+with common lower and upper limits (drc reference page for S.alba,
+`summary(S.alba.LL.4.1)`), is pinned: the reference reproduces its
+printed SEs with the observed information (drc's covariance), and the
+engine's Gauss-Newton SEs equal the reference's J'J ones.
+`engine/tests/test_relative_potency.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| drc S.alba (Christensen, Teicher & Streibig 2003; 68 points), common c and d (published) | e 28.638392 and 66.933054, b 5.058358 and 2.385448, c 0.716452, d 3.854375, residual SE 0.370514 on 62 df (drc's printed values) | 2e-5 on e, 1e-6 elsewhere |
+| S.alba, bentazone reference, glyphosate test (the acceptance test) | parallelism F(3, 60) = 2.747128, P = 0.050657; relative potency 0.425398, Fieller 95% CI 0.349703 to 0.516115, delta SE 0.041033 (63 df) | 1e-5 |
+| S.alba equivalence (90%, 60 df) | Top difference 0.069584 (-0.184772 to 0.323940), Bottom 0.210082 (-0.139598 to 0.559762), Hill slope ratio 0.529942 (0.289957 to 0.926266): the slope misses 0.8 to 1.25 although the F test passes | 1e-5 |
+
+Also tested: both parameterisations (logEC50 with X as concentration,
+and IC50) give the same ratio; swapping reference and test inverts the
+ratio and its Fieller interval; dose units x 1e-6 leave the ratio, CI and
+F unchanged; seeded parallel curves recover the shift and pass
+equivalence; non-parallel ones fail the F test; a 3PL (slope fixed) and a
+fit with only the potency free (no F test, no equivalence rows);
+Fieller with covariance against the quadratic roots (50 random cases)
+and the unbounded case; clear errors for one data set, the same data set
+twice, a global model, a model without an EC50, the potency held
+constant, a margin with lower >= upper or a ratio margin at 0, too few
+points; two data sets with the same name.

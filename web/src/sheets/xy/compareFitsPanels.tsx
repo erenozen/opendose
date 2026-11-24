@@ -16,6 +16,8 @@ import {
   sideMeta, type CompareMethod, type CompareOptions, type CompareRow,
 } from "./compareFits";
 import { ParameterControls, ParameterMethods, ParameterResults } from "./compareParameterPanels";
+import { potencyModel } from "./relativePotency";
+import { PotencyControls, PotencyMethods, PotencyResults } from "./relativePotencyPanels";
 import "./xy.css";
 import { NumberField } from "../../components/ui";
 
@@ -26,7 +28,7 @@ const USER_PREFIX = "user:";
 function ModelSelect({ label, value, onChange, disabled, scope = "single", equation, onEquation }: {
   label: string; value: string; onChange: (id: string) => void; disabled?: boolean;
   /** "models": also global-only models and the saved user equations. */
-  scope?: "single" | "models";
+  scope?: "single" | "models" | "potency";
   /** The user equation of this side (value = USER_MODEL_ID). */
   equation?: UserEquationDef | null;
   onEquation?: (def: UserEquationDef) => void;
@@ -113,6 +115,29 @@ export function CompareControls({ table, options, onChange, readOnly }: Controls
   const s1 = sideMeta(options, 1), s2 = sideMeta(options, 2);
   const logX = options.mode === "models" ? s1.needsLogX || s2.needsLogX : m1.needsLogX;
   const globalConstants = [...new Set([...(s1.datasetConstants ?? []), ...(s2.datasetConstants ?? [])])];
+  if (options.mode === "potency") {
+    return (
+      <div className="controls">
+        <ModeSection options={options} set={set} readOnly={readOnly} />
+        <PotencyControls table={table} options={options} set={set} readOnly={readOnly}
+          model={<>
+            <ModelSelect label="Model" value={options.model1} disabled={readOnly} scope="potency"
+              onChange={(id) => set({ model1: id, constraints1: {}, margins: {} })} />
+            <HoldConstant which="the model" meta={m1} value={options.constraints1}
+              disabled={readOnly} onChange={(c) => set({ constraints1: c })} />
+          </>} />
+        {logX && (
+          <label className="check-row">
+            <input type="checkbox" checked={options.xIsLog} disabled={readOnly}
+              onChange={(e) => set({ xIsLog: e.target.checked })} />
+            <span>X values are already log10(concentration)</span>
+          </label>
+        )}
+        <WeightingSection options={options} set={set} readOnly={readOnly} />
+        <ErrorBarSection options={options} set={set} readOnly={readOnly} />
+      </div>
+    );
+  }
   if (options.mode === "parameter") {
     return (
       <div className="controls">
@@ -216,6 +241,11 @@ type SetOptions = (patch: Partial<CompareOptions>) => void;
 
 /** Leaving "Two models" for a one-model mode: a global-only model or a
  *  user equation in model 1 falls back to the default model. */
+function potencyModelOf(o: CompareOptions): Partial<CompareOptions> {
+  return o.model1 !== USER_MODEL_ID && potencyModel(modelMeta(o.model1))
+    ? {} : { model1: "log_agonist_vs_response_4pl", userEquation1: null, constraints1: {}, margins: {} };
+}
+
 function singleModel(o: CompareOptions): Partial<CompareOptions> {
   return o.model1 === USER_MODEL_ID || !comparable(modelMeta(o.model1))
     ? { model1: DEFAULT_COMPARE.model1, userEquation1: null, constraints1: {} } : {};
@@ -230,7 +260,7 @@ function ModeSection({ options, set, readOnly }: { options: CompareOptions; set:
         <label>
           <input type="radio" name="compare-mode" checked={options.mode === "models"}
             disabled={readOnly} onChange={() => set({ mode: "models" })} />
-          Two models, fitted to each data set
+          Two models, fitted to each data set (a global model: to all data sets at once)
         </label>
         <label>
           <input type="radio" name="compare-mode" checked={options.mode === "global"}
@@ -241,6 +271,11 @@ function ModeSection({ options, set, readOnly }: { options: CompareOptions; set:
           <input type="radio" name="compare-mode" checked={options.mode === "parameter"}
             disabled={readOnly} onChange={() => set({ mode: "parameter", ...singleModel(options) })} />
           Compare a parameter (logEC50, Hill slope, Top …) between two data sets
+        </label>
+        <label>
+          <input type="radio" name="compare-mode" checked={options.mode === "potency"}
+            disabled={readOnly} onChange={() => set({ mode: "potency", ...potencyModelOf(options) })} />
+          Relative potency: a test sample against a reference, from parallel curves
         </label>
       </fieldset>
     </section>
@@ -396,6 +431,7 @@ function Card({ row, method, short, weighted }: {
 export function CompareResults({ result }: ResultsProps<CompareOptions, any>) {
   if (!result) return null;
   if (result.error) return <div className="results-error">Analysis failed: {String(result.error)}</div>;
+  if (result.mode === "potency") return <PotencyResults result={result} />;
   if (result.mode === "parameter") return <ParameterResults result={result} />;
   const short = shortNames(result);
   return (
@@ -432,6 +468,7 @@ const withSpace = (s: string) => (s ? `${s} ` : "");
 
 export function CompareMethods({ options, result }: ResultsProps<CompareOptions, any>) {
   if (!result || result.error) return null;
+  if (result.mode === "potency") return <PotencyMethods options={options} result={result} />;
   if (result.mode === "parameter") return <ParameterMethods options={options} result={result} />;
   const rows = (result.rows ?? []).filter((r: CompareRow) => r.models);
   if (!rows.length) return null;

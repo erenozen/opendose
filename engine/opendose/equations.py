@@ -2764,7 +2764,11 @@ def fit_global_model(datasets, model: str, *, shared=None, constraints=None,
     theta0 = []
     for name, owner, owners in layout:
         if initial and name in initial:
-            theta0.append(float(initial[name]))
+            v = initial[name]
+            if isinstance(v, (list, tuple)):  # one start per data set
+                v = (np.mean([v[i] for i in owners]) if owner is None
+                     else v[owner])
+            theta0.append(float(v))
         elif owner is None:
             theta0.append(float(np.mean([inits[i][name] for i in owners])))
         else:
