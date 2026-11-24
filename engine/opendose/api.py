@@ -2421,6 +2421,41 @@ def _poisson_regression(data, options):
         variables, [options["outcome"], *options["predictors"]])
 
 
+def _binomial_regression(data, options):
+    """data: multiple-variables table. options: {outcome (the positives),
+    totals (the number counted), predictors, interactions?,
+    reference_levels?, ci_level?, ci_method?: profile|wald, quasi?: false
+    (quasi-binomial: SEs times sqrt(phi), t tests, F tests)}."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "binomial_regression",
+         **multivar.binomial_regression(
+             variables, options["outcome"], options["totals"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"),
+             quasi=bool(options.get("quasi", False)))},
+        variables, [options["outcome"], options["totals"], *options["predictors"]])
+
+
+def _negative_binomial_regression(data, options):
+    """data: multiple-variables table. options: {outcome (counts),
+    predictors, interactions?, reference_levels?, exposure? (its log is an
+    offset), ci_level?, ci_method?: profile|wald}."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "negative_binomial_regression",
+         **multivar.negative_binomial_regression(
+             variables, options["outcome"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             exposure=options.get("exposure") or None,
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"))},
+        variables, [options["outcome"], *options["predictors"]])
+
+
 def _pca(data, options):
     """data: multiple-variables table. options: {variables?: [names],
     standardize?: true, selection?: parallel_analysis|kaiser|variance|
@@ -3142,6 +3177,8 @@ _HANDLERS = {
     "ancova": _ancova,
     "logistic_regression": _logistic_regression,
     "poisson_regression": _poisson_regression,
+    "binomial_regression": _binomial_regression,
+    "negative_binomial_regression": _negative_binomial_regression,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,

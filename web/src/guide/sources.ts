@@ -299,6 +299,14 @@ export const SRC = {
   // 323:1123-1124, read 2026-11-24.
   vickersAltman2001: { label: "Vickers & Altman 2001, Analysing controlled trials with baseline and follow up measurements, BMJ 323:1123",
     url: "https://doi.org/10.1136/bmj.323.7321.1123" },
+  // Count and proportion models (P-86): analyse positives out of counted
+  // with a binomial GLM, not a t test on percentages. Crossref: Ecology
+  // 92(1):3-10, read 2026-11-24.
+  wartonHui2011: { label: "Warton & Hui 2011, The arcsine is asinine: the analysis of proportions in ecology, Ecology 92:3",
+    url: "https://doi.org/10.1890/10-0340.1" },
+  // Negative binomial regression: MASS::glm.nb, the reference method.
+  venablesRipley2002: { label: "Venables & Ripley 2002, Modern Applied Statistics with S, 4th ed., section 7.4",
+    url: "https://doi.org/10.1007/978-0-387-21706-2" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

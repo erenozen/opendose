@@ -143,13 +143,16 @@ export function CorrelationControls({ table, options, onChange }: ControlsProps<
 
 /* ------------------------------------------------------------ regression */
 
-function ModelSpec<O extends RegressionOptions>({ table, options, onChange, outcomeHint, outcomeFilter }: {
+export function ModelSpec<O extends RegressionOptions>({ table, options, onChange, outcomeHint, outcomeFilter,
+  exclude = [] }: {
   table: DataTableModel; options: O; onChange: (o: O) => void;
   outcomeHint: string; outcomeFilter: (v: VarInfo) => boolean;
+  /** Variables with another role (the totals of a binomial model). */
+  exclude?: string[];
 }) {
   const info = variableInfo(table);
   const set = (p: Partial<O>) => onChange({ ...options, ...p });
-  const candidates = info.filter((v) => v.name !== options.outcome);
+  const candidates = info.filter((v) => v.name !== options.outcome && !exclude.includes(v.name));
   const chosen = options.predictors.filter((p) => candidates.some((v) => v.name === p));
   const [a, setA] = useState("");
   const [b, setB] = useState("");

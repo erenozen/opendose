@@ -137,6 +137,75 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   await page.keyboard.press("Escape");
 }
 
+// --- P-86: binomial regression of positives out of counted ------------------
+{
+  // engine/tests/reference/count_glms.py (statsmodels GLM Binomial with the
+  // profile likelihood by refitting): 3 experiments x 2 groups; odds ratio
+  // Treated vs Control 3.196 (95% CI 2.127 to 4.881), experiment as a block
+  // (LR test of the term), dispersion φ = 0.02723 on 2 df
+  const r = ref("count_glms").dishes;
+  await pastedTable("multivariable", "Dishes", tsv(["Positive", "Counted", "Group", "Experiment"],
+    [r.data.positive, r.data.counted, r.data.group, r.data.experiment]));
+  await analyze(/^Binomial regression \(positives out of counted\)/);
+  await liveResults(/Binomial regression of Positive out of Counted/);
+  const answer = await text(page.locator(".pane-answer .answer-items"));
+  expect("P-86 acceptance: the answer is the odds ratio for group, 3.196 (95% CI 2.127 to 4.881)",
+    answer === "Group: Treated vs. Control Odds ratio 3.196 95% CI 2.127 to 4.881 P < 0.0001 · "
+      + "binomial regression, 6 rows", answer);
+  const or = await row("β1: Group[Treated]");
+  expect("P-86 the table prints the same odds ratio with its profile CI",
+    / 3\.196 2\.127 to 4\.881$/.test(or), or);
+  const block = await text(page.locator(".pane-results table", { has: page.locator("caption", { hasText: "Tests of each term" }) })
+    .locator("tbody tr", { hasText: "Experiment" }));
+  expect("P-86 acceptance: the experiment enters as a block, with its own likelihood ratio test on 2 df",
+    /^Experiment 2 /.test(block), block);
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: "Note: Dispersion φ = 0.02723 on 2 df" });
+  expect("P-86 acceptance: the Checks row has the dispersion check (φ = 0.02723 on 2 df)", await appears(chip));
+  const methods = await text(page.locator(".methods-text p"));
+  expect("P-86 the methods text names the binomial model and the odds ratio",
+    /out of the number counted \(Counted\) was modeled by binomial regression/.test(methods)
+      && /Group\[Treated\]: odds ratio 3\.196 \(95% CI 2\.127 to 4\.881\)/.test(methods), methods.slice(0, 220));
+}
+
+// --- P-86: overdispersed dishes switch to quasi-binomial from the chip ------
+{
+  // the same reference: 3 experiments x 2 groups x 3 dishes, φ = 4.772 on
+  // 14 df; quasi-binomial SE of Group[Treated] = binomial SE x √φ
+  const r = ref("count_glms").dishes_overdispersed;
+  await pastedTable("multivariable", "More dishes", tsv(["Positive", "Counted", "Group", "Experiment"],
+    [r.data.positive, r.data.counted, r.data.group, r.data.experiment]));
+  await analyze(/^Binomial regression \(positives out of counted\)/);
+  await liveResults(/Binomial regression of Positive out of Counted/);
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: "Check: Proportions are overdispersed (φ = 4.772)" });
+  expect("P-86 overdispersed dishes get a warning chip (φ = 4.772)", await appears(chip));
+  await chip.click();
+  await page.locator(".pane-answer").getByRole("button", { name: "Use quasi-binomial standard errors" }).click();
+  await liveResults(/Quasi-binomial regression of Positive out of Counted/);
+  const se = Number((await row("β1: Group[Treated]")).split(" ")[3]);
+  const want = r.quasi.se[1];
+  expect(`P-86 quasi-binomial: the SE of Group[Treated] is ${want.toPrecision(4)} (binomial SE × √φ)`,
+    Math.abs(se - want) / want < 5e-4, String(se));
+}
+
+// --- P-86: negative binomial regression of overdispersed counts ------------
+{
+  // engine/tests/reference/count_glms.py (statsmodels NegativeBinomial nb2,
+  // GLM NB SEs) and Kenne Pagui et al. 2020 Table 2: Ames TA98, θ = 20.51,
+  // log(Dose + 10) 0.3125 (SE 0.08790)
+  const r = ref("count_glms").ames;
+  await pastedTable("multivariable", "Ames NB", tsv(["Dose", "log(Dose + 10)", "Revertants"],
+    [r.data.dose, r.data.log_dose_plus_10, r.data.revertants]));
+  await analyze(/^Negative binomial regression/);
+  await liveResults(/Negative binomial regression of Revertants/);
+  const coef = await row("β2: log(Dose + 10)");
+  expect("P-86 negative binomial: log(Dose + 10) 0.3125, SE 0.0879 (the published ML fit)",
+    /^β2: log\(Dose \+ 10\) 0\.3125 0\.0879 /.test(coef), coef);
+  const theta = await row("θ (shape)");
+  expect("P-86 negative binomial: θ = 20.51", theta === "θ (shape) 20.51", theta);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

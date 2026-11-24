@@ -103,6 +103,9 @@ export const METHODS: Record<string, (p?: MethodsParams) => string> = {
   ancova: () => "Analysis of covariance (ANCOVA) was chosen because each subject was measured before "
     + "treatment and after it in two or more groups; the follow-up was compared between groups with the "
     + "baseline as a covariate (Vickers & Altman 2001).",
+  binomial_glm: () => "Binomial regression (a logistic GLM) of the number positive out of the number "
+    + "counted in each dish was chosen because the counts came from several dishes or animals per group; "
+    + "the experiment entered as a block and overdispersion was checked (Warton & Hui 2011).",
   binomial: () => "The exact binomial test was chosen because one group with two outcomes was "
     + "compared with an expected proportion.",
   chisq_gof: () => "The chi-square goodness-of-fit test was chosen because counts in three or "
@@ -166,6 +169,10 @@ export const ALTERNATIVE_METHODS: Record<string, string> = {
     + "structures by AIC and each subject's area under the curve between groups.",
   "Two-way repeated-measures ANOVA (group × time)": "Two-way repeated-measures ANOVA with group and "
     + "time as factors was chosen to analyse the measurements before and after treatment.",
+  "Proportion per biological replicate, then a t test or ANOVA": "The proportion was computed for "
+    + "each biological replicate and those values compared.",
+  "Negative binomial regression": "Negative binomial regression was chosen for counts that vary more "
+    + "than a Poisson distribution allows.",
   "Cox regression": "Cox regression was chosen for hazard ratios with confidence intervals "
     + "adjusted for covariates, or for a continuous predictor instead of groups.",
 };
@@ -222,6 +229,7 @@ const LEGACY: Legacy[] = [
   [/^Three or more independent groups whose SDs you expect to differ: /, m0("welch_anova")],
   [/^Three or more independent groups with roughly Gaussian values: /, m0("one_way_anova")],
   [/^The counts were pooled from several animals, cultures or experiments\. /, m0("proportion_per_unit")],
+  [/^The counts come from several dishes, wells or animals per group /, m0("binomial_glm")],
   [/^One group with two outcomes compared with an expected proportion: /, m0("binomial")],
   [/^Counts in three or more categories compared with expected proportions /, m0("chisq_gof")],
   [/^Each subject was classified twice /, m0("mcnemar")],

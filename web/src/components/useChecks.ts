@@ -11,6 +11,7 @@ import { equivalenceChip } from "../report/equivalence";
 import { findSexFactor, sexChip } from "../guide/sex";
 import { dispersionChip } from "../sheets/multivariable/dispersion";
 import { equalSlopesChip } from "../sheets/multivariable/ancova";
+import { binomialDispersionChip } from "../sheets/multivariable/glm";
 
 export interface Counts { ok: number; warn: number; info: number; questions: number }
 
@@ -35,7 +36,9 @@ export function useChecks({ sheet, data, result, options, readOnly }: {
     const dispersion = dispersionChip(sheet.analysis, result, sheet.id);
     // ANCOVA's equal-slopes check (sheets/multivariable/ancova.ts)
     const slopes = equalSlopesChip(sheet.analysis, result);
-    const extra = [chip, margin, sex, dispersion, slopes].filter((c) => c !== null);
+    // binomial regression's dispersion check (sheets/multivariable/glm.ts)
+    const binomial = binomialDispersionChip(sheet.analysis, result, sheet.id);
+    const extra = [chip, margin, sex, dispersion, slopes, binomial].filter((c) => c !== null);
     return extra.length ? { ...base, chips: [...base.chips, ...extra] } : base;
   }, [base, graph, result, data.table, sheet.analysis, sheet.id, options]);
   const plan = useMemo(() => planCheckState(project, sheet, data), [project, sheet, data]);

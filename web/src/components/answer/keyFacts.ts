@@ -270,6 +270,36 @@ function ancovaFacts(r: R): KeyFacts {
   })) };
 }
 
+/** Binomial and negative binomial regression (P-86) and Firth's logistic
+ *  regression (P-89): the odds or rate ratio of the first predictor (each
+ *  level against the reference level, or per unit), with its CI and P.
+ *  The other predictors (a block such as the experiment) stay in the
+ *  table. */
+function glmFacts(r: R): KeyFacts {
+  const pred = (r.predictors as string[] | undefined)?.[0];
+  if (!pred || !Array.isArray(r.coefficients)) return null;
+  const firth = r.method === "firth";
+  const ratio = r.analysis === "negative_binomial_regression" ? "rate_ratio" : "odds_ratio";
+  const ref = (r.reference_levels as Record<string, string> | undefined)?.[pred];
+  const pct = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const model = firth ? "Firth's correction: shrunk toward no effect"
+    : `${r.analysis === "negative_binomial_regression" ? "negative binomial"
+      : r.family === "quasibinomial" ? "quasi-binomial" : "binomial"} regression, ${r.n_rows_analyzed} rows`;
+  const items = (r.coefficients as R[]).slice(1).filter((c) => c.name === pred || c.name.startsWith(`${pred}[`))
+    .map((c): KeyItem => {
+      const level = c.name === pred ? null : c.name.slice(pred.length + 1, -1);
+      const lims = c[`${ratio}_ci`] as (number | null)[] | undefined;
+      return { title: level === null ? `${pred}, per unit` : `${pred}: ${level} vs. ${ref ?? "reference"}`,
+        figure: {
+          name: ratio === "rate_ratio" ? "Rate ratio" : "Odds ratio", value: formatSig(c[ratio]),
+          ci: lims ? `${pct} CI ${lims[0] === null ? "n/a" : formatSig(lims[0])} to ${
+            lims[1] === null ? "n/a" : formatSig(lims[1])}` : undefined,
+          facts: [firth ? `${pLabel(c.p)} (penalized likelihood ratio)` : pLabel(c.p), model],
+        } };
+    });
+  return items.length ? { kind: "figures", items } : null;
+}
+
 /** The headline facts of a result, or null for "show the table first". */
 export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFacts {
   if (!result || typeof result !== "object") return null;
@@ -279,6 +309,7 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (r.analysis === "method_regression") return methodRegFacts(r);
   if (r.analysis === "icc") return iccFacts(r);
   if (r.analysis === "ancova") return ancovaFacts(r);
+  if (r.analysis === "binomial_regression" || r.analysis === "negative_binomial_regression") return glmFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
   if (r.analysis === "ttest" && !r.test?.toString().match(/kolmogorov|ratio_paired/)) return ttestFacts(r);
   if (r.analysis === "anova") return anovaFacts(r);

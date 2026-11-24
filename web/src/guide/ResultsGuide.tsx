@@ -81,7 +81,8 @@ export function Chips({ chips, dataId, multiplicity, readOnly }: {
           {cur.action === "interaction" && dataId && !readOnly && <InteractionAction dataId={dataId} />}
           {cur.action === "bar-axis" && cur.target && !readOnly && <BarAxisAction graphId={cur.target} />}
           {cur.action === "sex-two-way" && dataId && !readOnly && <SexFactorAction dataId={dataId} />}
-          {cur.action === "quasi-poisson" && cur.target && !readOnly && <QuasiPoissonAction resultsId={cur.target} />}
+          {(cur.action === "quasi-poisson" || cur.action === "quasi-binomial") && cur.target && !readOnly
+            && <QuasiPoissonAction resultsId={cur.target} />}
           <Sources sources={cur.sources} />
           {cur.explainer && <LearnMore id={cur.explainer} />}
         </div>

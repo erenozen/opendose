@@ -850,6 +850,40 @@ function ancova(d: Design, base: Base): Draft {
 }
 
 function counts(d: Design, base: Base): Draft {
+  // Positives out of counted in each dish, well or animal, compared between
+  // groups (P-86): a binomial GLM on the counts with the experiment as a
+  // block, not a t test on percentages (Warton & Hui 2011).
+  if (d.replicates !== "independent" && d.groups !== "one") {
+    return { ...base, rule: "binomial_glm",
+      test: "Binomial regression of positives out of counted, experiment as a block",
+      reason: "The counts come from several dishes, wells or animals per group (often over several "
+        + "experiments). Model the number positive out of the number counted in each one with a binomial "
+        + "regression (logistic GLM): it weighs each dish by how many were counted, gives the odds ratio "
+        + "between groups with its confidence interval, takes the experiment as a block, and checks whether "
+        + "the dishes differ more than counting error (overdispersion; quasi-binomial then widens the "
+        + "intervals). A t test on percentages ignores how many were counted and can give proportions "
+        + "outside 0 to 100% (Warton & Hui 2011).",
+      target: { tableType: "multivariable", analysisId: "mv_binomial", options: {},
+        layout: "Multiple variables table: one row per dish (or well, animal), with its group, its "
+          + "experiment, the number positive and the number counted." },
+      alternatives: [
+        { test: "Proportion per biological replicate, then a t test or ANOVA", when: "simpler, with one "
+          + "proportion per dish or animal; it ignores how many were counted in each",
+        target: { tableType: COLUMN, analysisId: A_COLUMN,
+          options: { analysis: d.groups === "two" ? "ttest" : "anova",
+            ...(d.groups === "two" ? { ttestKind: d.paired ? "paired" : "welch" } : {}) },
+          layout: "Column table: one column per group, one row per biological replicate holding "
+            + "its proportion." } },
+        { test: "Cochran-Mantel-Haenszel test", when: "for one 2×2 table of pooled counts per experiment, "
+          + "keeping experiments as strata" },
+        { test: "Negative binomial regression", when: "for counts with no total (colonies, cells per "
+          + "field) that vary more than a Poisson distribution allows",
+        target: { tableType: "multivariable", analysisId: "mv_negbin", options: {},
+          layout: "Multiple variables table: one row per dish or field with its group and its count." } },
+      ],
+      postHoc: null, sources: src("wartonHui2011", "wedderburn1974", "lord2020"),
+      explainers: ["replicates"] };
+  }
   if (d.replicates !== "independent") {
     return { ...base, rule: "proportion_per_unit",
       test: "Proportion per biological replicate, then a t test or ANOVA",
