@@ -5298,6 +5298,12 @@ groups": F(3, 19) = 9.529, Holm adjusted P 0.3268 (Low), 0.03157 (Mid),
 means 3.026, 6.457, 14.09; Dose 2 / Vehicle 4.66-fold. "Mixed model of
 Weekly scores": differences 0.7027, 1.598, 2.465 vs. Baseline.
 
+Independent check (2026-11-24, by the lead): one-way ANOVA from the four
+groups' means, SDs and Ns by hand (pooled within-group SS) gives F(3, 19)
+= 9.529330, P = 4.70255e-4; Student t of each group against Control on
+the pooled MSE with a hand Holm step-down gives 0.326828, 0.0315708,
+2.46896e-4: the engine's values.
+
 ## Feature validation: aligned rank transform two-way ANOVA (2026-11-24)
 
 P-85. A nonparametric two-way ANOVA with the interaction by the aligned
