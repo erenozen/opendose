@@ -21,7 +21,8 @@ import { openPowerTool } from "../power/events";
 import { openRatesTool } from "../rates/events";
 import { openFlowEvents } from "../sheets/assays/flow/eventsModel";
 import {
-  exportBundle, exportPzfxFile, exportWorkbook, openPptxExport, openReplay, openShareLink,
+  exportBundle, exportPzfxFile, exportStatsTable, exportWorkbook, openPptxExport, openReplay,
+  openShareLink,
 } from "../share/events";
 import { PZFX_TYPES } from "../share/pzfx";
 
@@ -130,6 +131,15 @@ export function useCommandRegistry(): Command[] {
         keywords: "zip csv svg png methods archive", run: () => exportBundle() },
       { id: "xlsx", label: "Export tables and results to Excel (.xlsx)", group: "share",
         keywords: "excel xlsx workbook spreadsheet sheets csv numbers", run: () => exportWorkbook() },
+      { id: "stats-csv", label: "Export statistics table (.csv)", group: "share",
+        keywords: "statistics table every analysis p values tests summary report csv",
+        run: () => exportStatsTable("csv") },
+      { id: "stats-xlsx", label: "Export statistics table to Excel (.xlsx)", group: "share",
+        keywords: "statistics table every analysis p values tests summary report excel xlsx",
+        run: () => exportStatsTable("xlsx") },
+      { id: "stats-word", label: "Copy statistics table for Word", group: "share",
+        keywords: "statistics table every analysis p values tests summary report word docx clipboard",
+        run: () => exportStatsTable("word") },
       { id: "pzfx", label: "Export tables as .pzfx (opens in GraphPad Prism)", group: "share",
         keywords: "prism", run: () => exportPzfxFile() },
       { id: "pptx", label: "Export graphs to PowerPoint (.pptx)…", group: "share",

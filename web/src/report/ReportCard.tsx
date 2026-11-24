@@ -13,6 +13,8 @@ import { useFamilyEquivalence } from "./estimation/useFamilyEquivalence";
 import { P_STYLES } from "./pformat";
 import { resultSentence } from "./sentences";
 import { snippetsFor } from "./snippets";
+import { longValues, scriptRuns, sheetScript, type ScriptEntry } from "./scripts";
+import { versionLabel } from "../export/cite";
 import { openChecklist, openHistory, openReportingDetails, softwareLabel, useReportPrefs } from "./useReport";
 import "./report.css";
 import { Button } from "../components/ui";
@@ -50,7 +52,8 @@ export default function ReportCard({ sheet, table, options, result }: {
           <CopyButton text={legend} label="Copy legend" />
         </div>
       )}
-      <Snippets result={result} options={options} table={table} />
+      <Snippets sheet={sheet} dataName={data?.name ?? ""} title={project.title} result={result} options={options}
+        table={table} />
       <div className="report-actions">
         <Button onClick={() => openChecklist(sheet.parentId)}>Journal checklists</Button>
         <Button onClick={() => openHistory(sheet.parentId)}>History</Button>
@@ -60,11 +63,24 @@ export default function ReportCard({ sheet, table, options, result }: {
   );
 }
 
-function Snippets({ result, options, table }: { result: unknown; options: unknown; table: DataTableModel }) {
+function Snippets({ sheet, dataName, title, result, options, table }: {
+  sheet: ResultsSheet; dataName: string; title: string; result: unknown; options: unknown; table: DataTableModel;
+}) {
   const [lang, setLang] = useState<"r" | "python">("r");
   const [open, setOpen] = useState(false);
   const s = useMemo(() => (open ? snippetsFor(result, options, table) : null),
     [open, result, options, table]);
+  // "Copy whole script": this sheet's section of the bundle's analysis.py /
+  // analysis.R with the helpers and the table's values in it (P-67)
+  const whole = useMemo(() => {
+    if (!open) return null;
+    const e: ScriptEntry = { sheet: sheet.name, analysisId: sheet.analysis, result, options, table, dataName,
+      csv: "data/data.long.csv" };
+    if (!scriptRuns(e)) return null;
+    const meta = { title, app: `OpenDose ${versionLabel()}`, date: new Date().toISOString() };
+    const long = longValues(table);
+    return { r: sheetScript(e, "r", long, meta), python: sheetScript(e, "py", long, meta) };
+  }, [open, sheet.name, sheet.analysis, result, options, table, dataName, title]);
   return (
     <div className="report-block snippets">
       <details onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
@@ -78,9 +94,13 @@ function Snippets({ result, options, table }: { result: unknown; options: unknow
                   <Tabs.Tab value="python">Python</Tabs.Tab>
                 </Tabs.List>
                 <CopyButton text={lang === "r" ? s.r : s.python} label={`Copy ${lang === "r" ? "R" : "Python"} code`} />
+                {whole && (
+                  <CopyButton text={lang === "r" ? whole.r : whole.python} label="Copy whole script"
+                    what={`the whole ${lang === "r" ? "R" : "Python"} script`} />
+                )}
               </div>
               <Tabs.Panel value={lang}>
-                <pre><code>{lang === "r" ? s.r : s.python}</code></pre>
+                <pre tabIndex={0} aria-label={`${lang === "r" ? "R" : "Python"} code`}><code>{lang === "r" ? s.r : s.python}</code></pre>
               </Tabs.Panel>
             </Tabs>
             {s.caveats.length > 0 && (

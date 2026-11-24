@@ -314,6 +314,19 @@ export const SRC = {
     url: "https://doi.org/10.1093/biomet/80.1.27" },
   heinzeSchemper2002: { label: "Heinze & Schemper 2002, A solution to the problem of separation in logistic regression, Stat Med 21:2409",
     url: "https://doi.org/10.1002/sim.1047" },
+  // "What this means" of Wave 2 models (P-69). Log-linear (Poisson) models:
+  // exp(coefficient) is a rate ratio, the multiplicative change in the
+  // expected count per unit of exposure (McCullagh & Nelder, ch. 6).
+  mccullaghNelder1989: { label: "McCullagh & Nelder 1989, Generalized Linear Models, 2nd ed., chapter 6 (log-linear models)",
+    url: "https://doi.org/10.1007/978-1-4899-3242-6" },
+  // Quantal response: the ED50 (LD50) is the dose at which half of the
+  // subjects respond; probits are normal deviates of the response share.
+  bliss1934: { label: "Bliss 1934, The method of probits, Science 79:38",
+    url: "https://doi.org/10.1126/science.79.2037.38" },
+  // qPCR: 2^-ΔΔCq is the fold change of the target, normalised to the
+  // reference gene(s), relative to the calibrator group.
+  livakSchmittgen2001: { label: "Livak & Schmittgen 2001, Analysis of relative gene expression data using real-time quantitative PCR and the 2^-ΔΔCT method, Methods 25:402",
+    url: "https://doi.org/10.1006/meth.2001.1262" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

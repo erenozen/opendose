@@ -7,6 +7,9 @@ import { tableMatrix, toDelimited, DEFAULT_EXPORT } from "../project/exportTable
 import type { DataTableModel } from "../project/types.ts";
 import { longMatrix, tableToLong } from "./tidy.ts";
 import { projectWorkbook } from "../export/workbook.ts";
+import { statsCsv, statsWord, statsWorkbook } from "../export/statsExport.ts";
+import type { StatsRow } from "../report/statsTable.ts";
+import { analysisPy, analysisR, scriptCoverage, type ScriptEntry } from "../report/scripts.ts";
 
 export interface BundleInput {
   title: string;
@@ -40,6 +43,12 @@ export interface BundleInput {
   replayPlan?: Record<string, unknown>;
   /** The data tables as a .pzfx file (share/pzfx.ts), when any can be. */
   pzfx?: string;
+  /** One statistics table of every analysis (report/statsTable.ts, P-66). */
+  stats?: StatsRow[];
+  /** Every results sheet with its table, result and options, for
+   *  analysis.py and analysis.R (report/scripts.ts, P-67); `csv` is filled
+   *  in here with the name of its table's long CSV. */
+  scripts?: Omit<ScriptEntry, "csv">[];
 }
 
 export interface BundleFile { name: string; data: Uint8Array }
@@ -92,6 +101,21 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
         + "excluded values are kept, marked in the excluded column, with exclusion_reason." });
   });
 
+  // analysis.py and analysis.R: each results sheet re-run from these CSVs (P-67)
+  if (b.scripts?.length) {
+    const csvOf = new Map(b.tables.map((t, i) => [t.name, `data/${tStems[i]}.long.csv`]));
+    const entries = b.scripts.filter((e) => csvOf.has(e.dataName))
+      .map((e) => ({ ...e, csv: csvOf.get(e.dataName)! }));
+    const meta = { title: b.title, app: b.app, date: b.date };
+    const cov = scriptCoverage(entries);
+    const said = cov.commented.length ? `; ${cov.commented.length} other sheet${cov.commented.length === 1 ? "" : "s"} get a comment saying why not` : "";
+    files.push({ name: "analysis.py", text: analysisPy(entries, meta),
+      about: `Python (SciPy, statsmodels) re-running ${cov.run.length} results sheet${cov.run.length === 1 ? "" : "s"} from the long CSVs`
+        + ` with the closest standard call${said}; "Caveat:" comments say where it differs from OpenDose.` });
+    files.push({ name: "analysis.R", text: analysisR(entries, meta),
+      about: "The same in R (base R and CRAN packages named with ::), reading the same CSV files." });
+  }
+
   const rStems = uniq(b.results.map((r) => stem(r.name, "results")));
   b.results.forEach((r, i) => {
     files.push({ name: `results/${rStems[i]}.csv`, text: csv(r.matrix),
@@ -108,6 +132,21 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
         + (wb.renamed.length ? " and which sheet names were changed for Excel" : "") + ")." });
   } catch (e) {
     unmade.push(`workbook.xlsx: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`);
+  }
+
+  // one statistics table of every analysis (P-66)
+  if (b.stats?.length) {
+    files.push({ name: "statistics.csv", text: statsCsv(b.stats),
+      about: "Every comparison of every results sheet in one table: sheet, figure panel, test, n per group,"
+        + " statistic with df, exact P, adjustment and family, estimate and effect size with CIs." });
+    try {
+      files.push({ name: "statistics.xlsx", bytes: statsWorkbook(b.stats, { title: b.title, app: b.app, date: b.date }),
+        about: "The same statistics table as an Excel workbook (numbers stored as numbers)." });
+    } catch (e) {
+      unmade.push(`statistics.xlsx: ${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}.`);
+    }
+    files.push({ name: "statistics.html", text: statsWord(b.stats, `${b.title || "OpenDose project"}: statistics`).html,
+      about: "The same statistics table as a formatted table: open it in Word (or paste it) to put it in a manuscript." });
   }
 
   const gStems = uniq(b.graphs.map((g) => stem(g.name, "graph")));

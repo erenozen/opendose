@@ -2572,3 +2572,123 @@ sum-of-squares F(1, 68) is 218.3 and AICc (n ln(SS/n) + 2K + 2K(K+1)/(n -
 K - 1), K counting the variance) is 73.48 and -27.71, difference -101.19:
 the engine's 218.2638, 73.46265, -27.71851 and -101.1812 to the rounding
 of the printed sums of squares.
+
+## Feature validation: statistics table, analysis scripts, "What this means" for Wave 2 models (2026-11-24)
+
+These three features add no engine computation: every number they show is
+an engine result, written as its results sheet writes it. They are checked
+against native engine results (the fixture scripts run `opendose.api`
+in CPython, the code Pyodide runs) and, for the scripts, against SciPy and
+statsmodels.
+
+### P-66 One statistics table for the whole project
+
+`web/src/report/statsTable.ts`: one row per reported comparison (omnibus
+test, each post hoc comparison, each model term, each fitted midpoint)
+with the results sheet, the figure panel (layout and letter), the test, n
+per group, the statistic with its df, P as the sheet shows it and to four
+significant digits, the adjustment and its family, the estimate and the
+standardized effect size with CIs. A kind without a mapper, a failed or
+pending result gets one row whose Note says why (never dropped). File ›
+Export statistics table (.csv / .xlsx), Copy statistics table for Word,
+and `statistics.csv` / `.xlsx` / `.html` in the export bundle.
+
+Reference: `web/src/report/__tests__/stats-fixtures.py` (native engine
+results of 48 cases); `statsTable.test.ts` checks, per analysis kind
+(t tests and their rank and KS forms, one-way, Welch, RM and mixed-model
+RM ANOVA, Kruskal-Wallis, Friedman, two-way, three-way and RM two-way
+ANOVA, multiple t tests, correlation, contingency, McNemar, kappa, two
+proportions, two rates, survival, Cox, multiple, logistic, Poisson,
+quasi-Poisson, negative binomial and binomial regression, nested t and
+ANOVA, nested two-way, grouping-column and time-course mixed models,
+subject summaries, 4PL fits, linear regression, quantal fits, one-sample
+tests, estimation, Deming, ICC, ROC, Bland-Altman), that each cell equals
+the engine field through the results sheet's formatter (formatSig at the
+results precision, pformat.tableP). Pinned examples: unpaired t test
+t = -5.596, df 10, P 2.290e-4, difference -5.2 (95% CI -7.271 to -3.129),
+d = -3.231 (-4.996 to -1.403); one-way ANOVA F(2, 15) = 84.75, Tukey
+Control vs. Treated A q = 8.288, P 8.779e-5 (shown < 0.0001), family "3
+comparisons (all pairs of 3 groups)"; 4PL IC50 1.040e-7 (9.695e-8 to
+1.115e-7). e2e-share opens `e2e-fixtures/stage/stats-table.json` (a t
+test, a one-way ANOVA with Tukey and a 4PL fit, two of them on a layout)
+and checks every row against the numbers its results sheet shows, the
+figure panels (A, B), the Excel sheet (P exact as numbers), the Word
+table on the clipboard and that the bundle's `statistics.csv` is the
+same table.
+
+### P-67 Script export (R and Python)
+
+`web/src/report/scripts.ts`: `analysis.py` and `analysis.R` in the
+export bundle read the bundle's long CSVs (`data/<table>.long.csv`,
+excluded values dropped by their `excluded` column) and re-run each
+results sheet with the closest standard call (SciPy, statsmodels; base R
+and CRAN packages named with `::`); "Caveat:" comments say where the call
+differs (Dunnett by quasi-Monte Carlo, the log-rank variance form,
+AnovaRM without Geisser-Greenhouse, Wald CIs, mixedlm without containment
+df, ROUT and weighting not reproduced). Sheets with no standard call get a
+comment saying so, and no code. The report card's "Copy whole script"
+copies one sheet's script with its data in it; the snippets cover
+regression, logistic, Poisson, negative binomial, binomial, Cox, ROC,
+Bland-Altman and mixed models through the same code.
+
+Reference: `web/src/report/__tests__/script-fixtures.py` (tables and
+native engine results of 35 cases); `scripts.test.ts` writes the bundle's
+CSVs and `analysis.py`, runs it with Python (SciPy 1.18, statsmodels
+0.15) and compares every number:
+
+| Analysis | Compared | Tolerance (relative) |
+|---|---|---|
+| unpaired, Welch, paired t tests | t, df, P, difference, CI | 1e-9 |
+| Mann-Whitney, Wilcoxon, KS | U, P (exact), Hodges-Lehmann, D | 1e-9 (KS P 1e-6) |
+| one-way ANOVA, Kruskal-Wallis, Welch, Brown-Forsythe, RM ANOVA, Friedman | F, H, W, P | 1e-9 (RM P 1e-6) |
+| Tukey (SciPy tukey_hsd) | adjusted P | 1e-3 |
+| Dunnett (SciPy dunnett, quasi-Monte Carlo) | adjusted P | 2e-5 absolute; the engine's 6.0594e-5 equals a quadrature of the bivariate t to 1e-13, SciPy gives 5.0e-5 to 5.5e-5 by seed |
+| two-way ANOVA (statsmodels OLS, type III) | F of rows, columns, interaction | 1e-9 |
+| contingency, McNemar, kappa | chi-square, Fisher P, exact P, kappa | 1e-9 to 1e-12 |
+| log-rank (SciPy logrank) | chi-square and P (variance form, the engine's chi2_variance) | 1e-9 |
+| 4PL (curve_fit) | LogIC50, Top 1e-4; IC50, HillSlope 1e-3; Bottom 1e-2; LogIC50 CI 1e-3 | as listed |
+| linear, multiple regression | slope, coefficients, P | 1e-9 to 1e-12 |
+| logistic, Poisson, quasi-Poisson, negative binomial, binomial (statsmodels) | coefficients; Poisson P | 1e-7 to 1e-4 |
+| Cox (statsmodels PHReg, Efron) | hazard ratios, P | 1e-5, 1e-4 |
+| nested t, grouping-column and RM mixed models (mixedlm, REML) | fixed effects, unit variance | 1e-5, 1e-4 |
+| Bland-Altman, ROC | bias, AUC | 1e-12 |
+
+`analysis.R` is checked as text only (its calls, quotes and brackets
+balance): R is not installed in the test environment, so it was not run.
+e2e-share runs the exported bundle's `analysis.py` on the acceptance
+project: the t test (t and P to the table's four digits) and the 4PL
+(LogIC50 within 1e-3, IC50 within 0.5%) are reproduced.
+
+### P-69 "What this means" for every analysis
+
+`web/src/report/meaning.ts` gains readers for Poisson, quasi-Poisson and
+negative binomial regression (the rate ratio with its CI per unit of
+exposure; McCullagh & Nelder 1989 ch. 6, Wedderburn 1974, Venables &
+Ripley 2002), binomial regression (odds ratio; Warton & Hui 2011),
+three-way ANOVA (the highest-order interaction the data show; GraphPad
+three-way ANOVA guide), the nested two-way and grouping-column mixed
+models (n counts the units; Lazic 2010, Aarts et al. 2014), the
+time-course mixed model (Group × Time first, then the difference at the
+first and last time), one summary value per subject (tumour and
+time-course modules), quantal fits (the ED50 with its Fieller CI; Bliss
+1934) and the qPCR module (the 2^-ΔΔCq fold change of the sheet's row
+against the calibrator with its CI; Livak & Schmittgen 2001, MIQE 2.0).
+`meaningModels.test.ts` pins each sentence on native results, its
+non-significant form (never "no difference"), and its sources; e2e-results
+checks the quasi-Poisson sentence on the Ames revertant counts against its
+coefficient row, e2e-assays the qPCR sentence (IL6 11.71-fold, 95% CI
+8.218 to 16.69).
+
+Not covered yet: the other assay modules (standard curve, plate, flow,
+densitometry, luciferase, growth, wound, MIC, kinetics, synergy, AUC,
+volcano, cluster) have no "What this means" line; their results sheets
+are unchanged.
+
+Kinds merged from Wave 2 at hand-back: the general linear mixed model on
+a long table (`lmm`, P-87) has a statistics-table mapper (its F tests and
+comparisons) and a meaning (the grouping column as the unit), both pinned
+on a native result. Relative potency (`relative_potency`, P-100),
+comparing global and user-defined fits (`compare_global_fits`, P-99) and
+assay precision (`precision_study`, P-94) have neither yet: the
+statistics table lists each of them with a "Not tabulated" note, and
+their results sheets carry no "What this means" line.

@@ -35,6 +35,7 @@ import { projectWorkbook, renamedPhrase } from "../export/workbook";
 import { sourceDataWorkbook } from "../export/sourceData";
 import { readSourceData } from "../layout/sourceData";
 import { XLSX_MIME } from "../export/xlsx";
+import { projectScriptEntries, projectStatsTable } from "./statsTableExport";
 
 type Step = { kind: "results" | "graph" | "layout"; id: string };
 
@@ -148,7 +149,9 @@ export function useBundleExport() {
     };
     const finish = () => {
       if (job.mode === "xlsx") { finishXlsx(); return; }
-      const files = bundleFiles(job.input);
+      // every results sheet has its result by now (each step waited for it)
+      const files = bundleFiles({ ...job.input, stats: projectStatsTable(api.store.project, api.results).rows,
+        scripts: projectScriptEntries(api.store.project, api.results) });
       const zip = zipBundle(files);
       saveBlob(new Blob([zip as Uint8Array<ArrayBuffer>], { type: "application/zip" }),
         `${stem(job.input.title, "opendose-project")}-bundle.zip`);

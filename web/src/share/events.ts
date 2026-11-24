@@ -9,6 +9,7 @@ export type ShareRequest =
   | { kind: "link"; dataId?: string }      // share the project, or one family
   | { kind: "bundle" }                     // download the export bundle
   | { kind: "xlsx" }                       // tables and results as one Excel workbook
+  | { kind: "stats"; format: StatsFormat }  // one statistics table of every analysis (P-66)
   | { kind: "pzfx"; dataId?: string }      // data tables as a .pzfx file (all, or one)
   | { kind: "validation"; scope?: ValidationFor }  // open the validation page
   | { kind: "privacy" }                    // open "Your data and privacy"
@@ -34,6 +35,10 @@ export const openShareLink = (dataId?: string) => requestShare({ kind: "link", d
 export const exportBundle = () => requestShare({ kind: "bundle" });
 /** Every data table and results sheet as one .xlsx workbook (P-64). */
 export const exportWorkbook = () => requestShare({ kind: "xlsx" });
+/** The statistics table of every analysis as CSV, Excel or a Word table
+ *  on the clipboard (report/statsTable.ts, P-66). */
+export type StatsFormat = "csv" | "xlsx" | "word";
+export const exportStatsTable = (format: StatsFormat) => requestShare({ kind: "stats", format });
 export const exportPzfxFile = (dataId?: string) => requestShare({ kind: "pzfx", dataId });
 export const openValidation = (scope?: ValidationFor) =>
   requestShare(scope ? { kind: "validation", scope } : { kind: "validation" });

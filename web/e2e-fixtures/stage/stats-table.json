@@ -1,0 +1,284 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Statistics table",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r002",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Weights",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "23.1"
+       ],
+       [
+        "25.4"
+       ],
+       [
+        "21.8"
+       ],
+       [
+        "24.9"
+       ],
+       [
+        "22.6"
+       ],
+       [
+        "26"
+       ]
+      ]
+     },
+     {
+      "name": "Treated A",
+      "rows": [
+       [
+        "28.4"
+       ],
+       [
+        "30.2"
+       ],
+       [
+        "27.1"
+       ],
+       [
+        "31.5"
+       ],
+       [
+        "29"
+       ],
+       [
+        "28.8"
+       ]
+      ]
+     },
+     {
+      "name": "Treated B",
+      "rows": [
+       [
+        "35.2"
+       ],
+       [
+        "33.9"
+       ],
+       [
+        "37.4"
+       ],
+       [
+        "34.1"
+       ],
+       [
+        "36.6"
+       ],
+       [
+        "35.8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "d005",
+   "kind": "data",
+   "name": "Dose response",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "[Drug]",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "Response",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug A",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "98.2",
+        "101.5",
+        "99.1"
+       ],
+       [
+        "97.0",
+        "95.8",
+        "99.9"
+       ],
+       [
+        "93.4",
+        "90.1",
+        "92.7"
+       ],
+       [
+        "78.9",
+        "82.3",
+        "80.0"
+       ],
+       [
+        "51.2",
+        "48.7",
+        "50.9"
+       ],
+       [
+        "22.1",
+        "25.6",
+        "24.0"
+       ],
+       [
+        "8.9",
+        "10.2",
+        "7.5"
+       ],
+       [
+        "3.1",
+        "4.4",
+        "2.2"
+       ],
+       [
+        "1.0",
+        "0.5",
+        "2.1"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest"
+   },
+   "name": "t test of Weights"
+  },
+  {
+   "id": "r003",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "comparisons": "tukey"
+   },
+   "name": "One-way ANOVA of Weights"
+  },
+  {
+   "id": "r006",
+   "kind": "results",
+   "parentId": "d005",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl",
+    "autoFit": "requested"
+   },
+   "name": "Nonlin fit of Dose response"
+  },
+  {
+   "id": "g004",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r003",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": "Weight (g)"
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Weights"
+  },
+  {
+   "id": "g007",
+   "kind": "graph",
+   "parentId": "d005",
+   "resultsId": "r006",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response"
+  },
+  {
+   "id": "l008",
+   "kind": "layout",
+   "name": "Figure 1",
+   "graphIds": [
+    "g004",
+    "g007"
+   ],
+   "grid": {
+    "rows": 1,
+    "cols": 2
+   }
+  }
+ ]
+}

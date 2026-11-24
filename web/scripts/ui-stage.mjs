@@ -1391,6 +1391,19 @@ const scenes = [
     await row.first().evaluate((el) => el.scrollIntoView({ block: "center" }));
     await settle(s, 800);
   } },
+  { name: "results-whole-script", setup: async (s) => {
+    // P-67: the report card's code with "Copy whole script" beside the
+    // snippet's copy button (the t test of the statistics-table project)
+    await fixture(s, "stats-table.json", { live: true });
+    await selectSheet(s, "t test of Weights");
+    const sum = s.page.locator(".report-card .snippets summary");
+    await sum.waitFor({ timeout: 240000 });
+    await sum.click();
+    const btn = s.page.locator(".report-card .snippets").getByRole("button", { name: "Copy whole script" });
+    await btn.waitFor({ timeout: 30000 });
+    await btn.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
   { name: "results-icc", setup: async (s) => {
     // P-44: the six ICCs, the chosen form in the headline, the form select
     await fixture(s, "method-comparison.json", { live: true });
