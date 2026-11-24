@@ -3,6 +3,7 @@ import { useProject } from "../app/context";
 import { useAnalysisResult } from "../app/useAnalysisResult";
 import { findSheet } from "../project/ops";
 import { withExclusionsBlanked } from "../project/table";
+import { analysisTable } from "../project/leftOut";
 import type { DataSheet, DataTableModel, GraphSheet, ResultsSheet } from "../project/types";
 import { graphDef, tableDef } from "../sheets/registry";
 import { readFormat } from "../graph";
@@ -25,8 +26,11 @@ function LiveGraph({ graph }: { graph: GraphSheet }) {
     !graph.frozen && res?.kind === "results" ? res : null,
     data?.kind === "data" ? data.table : null);
   const snap = graph.frozen ? graph.snapshot : undefined;
+  // values left out of the bound analysis only (P-68) are not drawn
+  const leftOut = res?.kind === "results" ? res.leftOut : undefined;
   const table: DataTableModel | null = useMemo(() => (snap?.table
-    ?? (data?.kind === "data" ? withExclusionsBlanked(data.table) : null)), [snap, data]);
+    ?? (data?.kind === "data" ? withExclusionsBlanked(analysisTable(data.table, leftOut)) : null)),
+  [snap, data, leftOut]);
   const kind = data?.kind === "data" ? graphDef(data.table.type, graph.graphType) : undefined;
   const result = snap ? snap.result : live.result;
   const options = snap ? snap.options : live.options;

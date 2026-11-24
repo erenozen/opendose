@@ -187,8 +187,8 @@ export function NonlinMethods({ table, result, options }:
   );
 }
 
-export function XYPlot({ graph, table, result, options, titles, scheme, format, onFormatChange }:
-  PlotProps<OptionsState, AnalysisResult>) {
+export function XYPlot({ graph, table, result, options, titles, scheme, format, onFormatChange,
+  onPointPick }: PlotProps<OptionsState, AnalysisResult>) {
   // Dates / elapsed times: X ticks read as dates or h:mm:ss.
   const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
   // Waiting for a model: draw the points alone.
@@ -209,10 +209,22 @@ export function XYPlot({ graph, table, result, options, titles, scheme, format, 
   const yGap = format?.y?.gap ?? null;
   const caption = useMemo(() => (xs.caption === "figure"
     ? fitCaption(table, shown, options, xs, yGap) || undefined : undefined), [xs, table, shown, options, yGap]);
+  // A clicked point: the result's data set i is the table's data set of
+  // the same index when every one was analysed, else the one of its name.
+  const pick = useMemo(() => {
+    if (!onPointPick || !shown || !("datasets" in (shown as object))) return undefined;
+    const sets = (shown as AnalysisResult).datasets;
+    return (i: number, row: number) => {
+      const name = sets[i]?.name;
+      const byName = table.datasets.map((d, k) => (d.name === name ? k : -1)).filter((k) => k >= 0);
+      const dataset = sets.length === table.datasets.length ? i : byName.length === 1 ? byName[0] : -1;
+      if (dataset >= 0 && row >= 0 && row < table.x.length) onPointPick({ dataset, row });
+    };
+  }, [onPointPick, shown, table]);
   return (
     <PlotPanel result={shown} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
       xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
-      rowTitles={table.rowTitles} drop={drop} caption={caption} />
+      rowTitles={table.rowTitles} drop={drop} caption={caption} onPointClick={pick} />
   );
 }
 

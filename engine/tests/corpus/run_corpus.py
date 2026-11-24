@@ -4981,6 +4981,46 @@ q = 8.288185, P 8.778765e-5 from scipy.stats.studentized_range; an own
 Poisson IRLS with log(area) offset gives the rate ratio 2.5 (Wald 1.983
 to 3.153; the engine reports the profile interval 1.99 to 3.166); an own
 probit maximum-likelihood fit on log10 dose gives ED50 4.28195.
+
+## Feature validation: leaving a value out of one analysis (2026-11-24)
+
+### P-68 Leave a value out of one analysis
+
+`web/src/project/leftOut.ts`: a results sheet's `leftOut` names Y cells of
+its table, each with the value it held and the reason given (required).
+The analysis' input is built from the table with those cells excluded,
+exactly as excluding them in the table would (the same `excluded` keys and
+reasons), so no engine code is involved; the table, its other analyses and
+the graphs of other analyses keep the values. A cell that no longer holds
+its value (rows moved, the value edited) is not left out, and the
+Exclusions block says so. Values are only ever left out by the user, with
+a reason, and the results with them put back are always shown beside the
+sensitivity results (do-not-build 4).
+
+Identity (`leftOut.test.ts`): for the built-in "Two-group t test" table
+with Control row 3 (21.8) left out for "pipetting error noted", the table
+the analysis sees equals, key for key, the table with that cell excluded
+in the grid (Ctrl+E) with the same reason, so its engine payload and
+result fingerprint are the same. Migration: every project fixture saved
+before the key existed opens with no `leftOut`, its analyses see the very
+same table object and fingerprint, and saving it again writes no new key.
+
+Reference: `web/e2e-fixtures/reference/left_out_ttest.py`
+(`scipy.stats.ttest_ind`, Student, SciPy 1.18.1), Treated minus Control:
+
+| Data | t | df | P | Difference (95% CI) |
+|---|---|---|---|---|
+| Every value (the original analysis) | 5.596 | 10 | 2.290e-4 | 5.2 (3.129 to 7.271) |
+| Control row 3 (21.8) left out (the copy) | 5.245 | 9 | 5.313e-4 | 4.767 (2.711 to 6.823) |
+
+e2e-results drives the acceptance test: the template, Duplicate sheet,
+"Leave out of this analysis…" on the copy (data set, row, reason); the
+copy shows `t=-5.245, df=9` and Control n = 5, its Exclusions block
+(Control 6 entered, 1 excluded, 5 analysed) and the methods name the value
+and reason, and the results with it put back sit beside them; the original
+still shows `t=-5.596, df=10`; excluding the same cell in the table then
+gives the original exactly the copy's results table. A click on a point of
+the example dose-response graph opens the same dialog for that row.
 """
 
 

@@ -6,6 +6,7 @@ import { OffscreenLayout } from "../layout/OffscreenLayout";
 import { drawnLayoutLegend, placedGraphs } from "../layout/offscreenLegend";
 import { exportPage } from "../layout/pageExport";
 import { pageDims, panelLetters, resolveLayout, type ResolvedLayout } from "../project/layout";
+import { sheetTable } from "../project/leftOut";
 import { findSheet } from "../project/ops";
 import type { DataSheet, ExportPrefs, GraphSheet, LayoutSheet, Project } from "../project/types";
 import { legendFor } from "../report/legendFor";
@@ -44,7 +45,7 @@ function graphLegend(p: Project, g: GraphSheet, resultOf: (id: string) => unknow
     ? (bound.frozen ? bound.cached : resultOf(bound.id)) ?? null : null;
   try {
     return legendFor({
-      data, table: data.table, graph: g, result,
+      data, table: sheetTable(bound?.kind === "results" ? bound : null, data.table), graph: g, result,
       options: bound?.kind === "results" ? bound.options : null,
       prefs: reportPrefsOf(p.prefs), software: softwareLabel(), valuesAre: valuesPhrase(p, data),
       equivalence: familyEquivalence(p.sheets, g, (s) => resultOf(s.id)),

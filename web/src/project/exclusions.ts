@@ -190,6 +190,14 @@ function subLabel(t: DataTableModel, d: DataColumn, s: number): string {
   return d.subTitles?.[s]?.trim() || `Y${s + 1}`;
 }
 
+/** Where a Y cell sits, as the Exclusions block names it: "row 3",
+ *  "Day 1, Y2", "X = 0.1". */
+export function cellWhere(t: DataTableModel, dataset: number, row: number, sub: number): string {
+  const d = t.datasets[dataset];
+  const s = d ? subLabel(t, d, sub) : "";
+  return `${rowLabel(t, row)}${s ? `, ${s}` : ""}`;
+}
+
 /** Every excluded value that holds something (blank cells marked as
  *  excluded are not values), table order. X rows of an XY table come
  *  first, as one entry each. */

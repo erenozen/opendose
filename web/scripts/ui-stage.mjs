@@ -1030,6 +1030,33 @@ const scenes = [
     const d = dialog(s, "History");
     await d.locator(".history-reproduction").scrollIntoViewIfNeeded();
   } },
+  // P-68: leave a value out of one analysis (the dialog, filled in), and
+  // the Exclusions block of the sensitivity results with them put back
+  { name: "results-leave-out-dialog", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    const block = s.page.getByRole("region", { name: "Exclusions" });
+    await into(s, ".exclusions-card", "center");
+    await click(s, block.getByRole("button", { name: "Leave out of this analysis…" }));
+    const d = dialog(s, "Leave a value out of this analysis");
+    await d.getByLabel("Data set").selectOption({ label: "Treated" });
+    await d.getByLabel("Row", { exact: true }).fill("2");
+    await d.getByLabel("Reason").fill("pipetting error noted");
+    await settle(s, 400);
+  } },
+  { name: "results-left-out", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    const block = s.page.getByRole("region", { name: "Exclusions" });
+    await into(s, ".exclusions-card", "center");
+    await click(s, block.getByRole("button", { name: "Leave out of this analysis…" }));
+    const d = dialog(s, "Leave a value out of this analysis");
+    await d.getByLabel("Data set").selectOption({ label: "Treated" });
+    await d.getByLabel("Row", { exact: true }).fill("2");
+    await d.getByLabel("Reason").fill("pipetting error noted");
+    await d.getByRole("button", { name: "Leave out", exact: true }).click();
+    await block.locator(".exc-all").waitFor({ timeout: 60000 });
+    await into(s, ".exclusions-card", "start");
+    await settle(s, 800);
+  } },
 
   // ---- graphs
   { name: "graphs-contingency", setup: async (s) => {

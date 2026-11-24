@@ -8,6 +8,7 @@ import {
   findSheet, updateResultsOptions, updateSheet, updateTable,
 } from "../project/ops";
 import { withExclusionsBlanked } from "../project/table";
+import { analysisTable } from "../project/leftOut";
 import type {
   DataSheet, DataTableModel, GraphSheet, Project, ResultsSheet, Sheet,
 } from "../project/types";
@@ -41,6 +42,7 @@ import GraphLegend from "../report/GraphLegend";
 import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
 import ExclusionsCard from "../report/ExclusionsCard";
+import LeaveOutDialog from "../report/LeaveOutDialog";
 import NotesStrip from "./NotesStrip";
 import { ResultsEmptyLinks } from "./ResultsLinks";
 import ResultsAnswer from "./ResultsAnswer";
@@ -66,11 +68,18 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const graph = api.activeGraph(data.id);
   const aDef = resSheet ? analysisDef(data.table.type, resSheet.analysis) : undefined;
 
-  const { result, options, formOptions, status: resStatus } = useAnalysisResult(resSheet, data.table);
+  // What the analysis sees: values left out of it only (P-68) excluded;
+  // the table itself when it leaves none out.
+  const leftOut = resSheet?.leftOut;
+  const aTable = useMemo(() => analysisTable(data.table, leftOut), [data.table, leftOut]);
+  const { result, options, formOptions, status: resStatus } = useAnalysisResult(resSheet, aTable);
   // A graph may draw from a results sheet other than the active one.
   const graphRes = graph?.resultsId && graph.resultsId !== resSheet?.id
     ? findSheet(project, graph.resultsId) as ResultsSheet | undefined : undefined;
-  const other = useAnalysisResult(graphRes ?? null, graphRes ? data.table : null);
+  const otherLeftOut = graphRes?.leftOut;
+  const otherTable = useMemo(() => analysisTable(data.table, otherLeftOut),
+    [data.table, otherLeftOut]);
+  const other = useAnalysisResult(graphRes ?? null, graphRes ? otherTable : null);
 
   // The engine-ready reveal animates once per session.
   const reveal = engineReady && !api.switchedRef.current ? " reveal" : "";
@@ -121,6 +130,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const largeTable = useMemo(() => cellCount(data.table) > LARGE_TABLE_CELLS, [data.table]);
   const graphData = useMemo(() => (settledTable === data.table ? data
     : { ...data, table: settledTable }), [data, settledTable]);
+  // The same for the readers of the active analysis.
+  const settledATable = useMemo(() => analysisTable(settledTable, leftOut), [settledTable, leftOut]);
+  const answerData = useMemo(() => (settledATable === graphData.table ? graphData
+    : { ...graphData, table: settledATable }), [graphData, settledATable]);
 
   return (
     <main ref={mainRef} className="workspace">
@@ -163,7 +176,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                     <PaneBoundary resetKey={resSheet.id}>
                       <Suspense fallback={<Pending />}>
                         <NumberRefs value={infoRef}>
-                          <Controls sheet={resSheet} table={data.table} options={formOptions}
+                          <Controls sheet={resSheet} table={aTable} options={formOptions}
                             readOnly={!!resSheet.frozen || shared}
                             onChange={(o) => apply((p) => {
                               const prev = findSheet(p, resSheet.id);
@@ -207,7 +220,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             reading and the Checks row, above the graph and the table. */}
         {resSheet && Results && (
           <>
-            <ResultsAnswer sheet={resSheet} data={graphData} result={result} options={options}
+            <ResultsAnswer sheet={resSheet} data={answerData} result={result} options={options}
               status={resStatus} readOnly={readOnly} />
             <HSplitter />
           </>
@@ -236,7 +249,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
                 : <ResultsSkeleton />) : (
                 <PaneBoundary resetKey={result}>
                   <Suspense fallback={<Pending />}>
-                    <Results sheet={resSheet} table={data.table} options={options} result={result} />
+                    <Results sheet={resSheet} table={aTable} options={options} result={result} />
                   </Suspense>
                 </PaneBoundary>
               )}
@@ -245,12 +258,13 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             </ResultsExport>
             {/* The readers below pass over the whole table: they follow
                 edits once they pause, as the graph does. */}
-            <NotesStrip analysisId={resSheet.analysis} table={settledTable} options={options}
+            <NotesStrip analysisId={resSheet.analysis} table={settledATable} options={options}
               result={result} />
             <DifferNote analysisId={resSheet.analysis} tableType={data.table.type}
-              table={settledTable} options={options} result={result} />
-            <ExclusionsCard sheet={resSheet} table={data.table} options={options} result={result} />
-            <ReportCard sheet={resSheet} table={settledTable} options={options} result={result} />
+              table={settledATable} options={options} result={result} />
+            <ExclusionsCard sheet={resSheet} table={data.table} analysed={aTable} options={options}
+              result={result} />
+            <ReportCard sheet={resSheet} table={settledATable} options={options} result={result} />
           </div>
         )}
         {resSheet && Methods && (
@@ -259,7 +273,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             <div className="pane pane-methods">
               <PaneBoundary resetKey={result}>
                 <Suspense fallback={null}>
-                  <Methods sheet={resSheet} table={data.table} options={options} result={result} />
+                  <Methods sheet={resSheet} table={aTable} options={options} result={result} />
                 </Suspense>
               </PaneBoundary>
 
@@ -344,8 +358,14 @@ function GraphCard({ graph, data, result, options }: {
   const def = tableDef(data.table.type);
   const Plot = kind?.PlotPanel ?? def.PlotPanel;
   const snap = graph.frozen ? graph.snapshot : undefined;
+  // A graph of an analysis that leaves values out of itself (P-68) draws
+  // without them, as it would without values excluded in the table.
+  const bound = graph.resultsId ? findSheet(project, graph.resultsId) : undefined;
+  const boundRes = bound?.kind === "results" ? bound : undefined;
+  const boundLeftOut = boundRes?.leftOut;
   const table: DataTableModel = useMemo(
-    () => snap?.table ?? withExclusionsBlanked(data.table), [snap, data.table]);
+    () => snap?.table ?? withExclusionsBlanked(analysisTable(data.table, boundLeftOut)),
+    [snap, data.table, boundLeftOut]);
   const res = snap ? snap.result : result;
   const opts = snap ? snap.options : options;
   const auto = kind ? kind.autoTitles(table, opts) : { x: "", y: "" };
@@ -356,8 +376,10 @@ function GraphCard({ graph, data, result, options }: {
   };
   // Kinds this graph can switch to: same group, drawing the raw table or
   // the analysis the graph is bound to.
-  const bound = graph.resultsId ? findSheet(project, graph.resultsId) : undefined;
-  const boundAnalysis = bound?.kind === "results" ? bound.analysis : null;
+  const boundAnalysis = boundRes ? boundRes.analysis : null;
+  // A point clicked on the graph can be left out of that analysis only.
+  const [leaveAt, setLeaveAt] = useState<{ dataset: number; row: number } | null>(null);
+  const pickable = !!boundRes && !boundRes.frozen && !graph.frozen && !shared;
   const siblings = kind ? def.graphs.filter((g) => g.group === kind.group
     && (g.analysis === null || g.analysis === boundAnalysis || g.id === kind.id)) : [];
   const edit = (fn: (g: GraphSheet) => GraphSheet, key: string) =>
@@ -428,10 +450,15 @@ function GraphCard({ graph, data, result, options }: {
           <Suspense fallback={<div className="plot-pending" aria-busy="true" />}>
             <Plot graph={graph} table={table} options={opts} result={res}
               titles={resolved} scheme={graph.settings.scheme} format={plotFormat}
-              onFormatChange={graph.frozen || shared ? undefined : plotDrag} />
+              onFormatChange={graph.frozen || shared ? undefined : plotDrag}
+              onPointPick={pickable ? setLeaveAt : undefined} />
           </Suspense>
         </PaneBoundary>
       ) : <div className="plot empty-hint">No plot available for this graph type.</div>}
+      {leaveAt && boundRes && (
+        <LeaveOutDialog sheet={boundRes} table={data.table} initial={leaveAt}
+          onClose={() => setLeaveAt(null)} />
+      )}
       <ExportPanel filename={fileStem(graph.name, kind?.exportName ?? "graph")} graphId={graph.id}
         scheme={graph.settings.scheme} leading={graph.frozen || shared ? undefined : (
         <GraphSettings

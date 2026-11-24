@@ -1371,6 +1371,140 @@ const analyzeWith = async (re) => {
     await page.locator(".pane-results .compare-headline.potency-unsupported").count() === 1);
 }
 
+// --- P-68: leave a value out of one analysis -----------------------------
+// The plan's acceptance test: duplicate the example t test (the built-in
+// "Two-group t test" template), leave Control row 3 (21.8) out of the
+// copy for "pipetting error noted": the copy's n drops by one and its
+// Exclusions block and methods name it; the original is unchanged.
+// Numbers: e2e-fixtures/reference/left_out_ttest.py (scipy ttest_ind).
+// Identity: excluding the same value in the table gives the same numbers.
+const axeOn = (sel) => page.evaluate(async ([src, s]) => {
+  // eslint-disable-next-line no-eval
+  if (!window.axe) (0, eval)(src);
+  const el = document.querySelector(s);
+  if (!el) return [`${s}: missing`];
+  // eslint-disable-next-line no-undef
+  const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+  return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+}, [readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"), sel]);
+{
+  const ref = JSON.parse(readFileSync(join(here, "..", "e2e-fixtures", "reference", "left_out_ttest.json"), "utf8"));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const tRow = (r) => `t=-${sig(r.t)}, df=${r.df}`;
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.getByRole("radio", { name: "From a template" }).check();
+  await nd.getByRole("radio", { name: /Two-group t test/ }).check();
+  await nd.getByLabel("Table name").fill("Pipetting");
+  await nd.getByRole("button", { name: "Create from template" }).click();
+  const original = await liveResults(new RegExp(tRow(ref.all_values)), 120000);
+  expect(`P-68 the t test of every value: ${tRow(ref.all_values)} (scipy)`, original);
+  const block = page.getByRole("region", { name: "Exclusions" });
+  expect("P-68 with nothing excluded the Exclusions block offers Leave out of this analysis…",
+    await appears(block.getByRole("button", { name: "Leave out of this analysis…" })));
+  // duplicate the results sheet; the copy opens
+  const navItem = (name) => page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row");
+  await navItem("t test of Pipetting").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Duplicate sheet" }).click();
+  await navItem("t test of Pipetting copy").click();
+  await liveResults(new RegExp(tRow(ref.all_values)), 60000);
+  await block.getByRole("button", { name: "Leave out of this analysis…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Leave a value out of this analysis" });
+  await dlg.waitFor({ timeout: 10000 });
+  await dlg.getByLabel("Data set").selectOption({ label: "Control" });
+  await dlg.getByLabel("Row", { exact: true }).fill("3");
+  expect("P-68 the dialog shows the value it will leave out",
+    /Value: 21\.8 \(Control, row 3\)/.test(await dlg.locator(".leave-out-value").innerText()));
+  // a reason is required
+  await dlg.getByRole("button", { name: "Leave out", exact: true }).click();
+  expect("P-68 no reason, nothing left out: the dialog asks for one",
+    await appears(dlg.getByText("Enter why this value is left out"), 5000) && await dlg.isVisible());
+  const axDlg = await axeOn('dialog[open]');
+  expect("P-68 axe-core: the Leave out dialog passes", axDlg.length === 0, axDlg.join(" | "));
+  await dlg.getByLabel("Reason").fill("pipetting error noted");
+  await dlg.getByRole("button", { name: "Leave out", exact: true }).click();
+  await dlg.waitFor({ state: "detached", timeout: 10000 });
+  const copied = await liveResults(new RegExp(tRow(ref.left_out)), 60000);
+  const resText = await page.locator(".pane-results .results-table").first().innerText();
+  expect(`P-68 the copy leaves 21.8 out: ${tRow(ref.left_out)}, Control n = 5 (scipy)`,
+    copied && /Mean of Control[\s\S]*\(n=5\)/.test(resText), resText.replace(/\s+/g, " ").slice(0, 300));
+  const row = await block.locator(".exc-groups tbody tr", { hasText: "Control" }).innerText();
+  expect("P-68 the Exclusions block: Control 6 entered, 1 excluded, 5 analysed, pipetting error noted",
+    /Control\s+6\s+1\s+5\s+pipetting error noted/.test(row), row.replace(/\s+/g, " "));
+  expect("P-68 the block lists it under Left out of this analysis only",
+    /Control, row 3: 21\.8\s*pipetting error noted/.test(await block.locator(".exc-left").innerText()));
+  const clause = "1 value left out of this analysis only, as a sensitivity analysis (it stays in the "
+    + "table and in the other analyses): Control, row 3 (21.8; pipetting error noted)";
+  const methods = await page.locator(".stats-methods p").innerText();
+  expect("P-68 the methods name it, with n enrolled and analysed",
+    methods.includes("Exclusions: Control, n = 6 enrolled, 5 analysed (1 excluded: pipetting error noted); "
+      + `no exclusions in Treated; ${clause}.`), methods);
+  // reported with and without, at once
+  const both = block.getByRole("group", { name: "Results with the left-out values put back" });
+  await both.locator(".exc-all").waitFor({ timeout: 60000 }).catch(() => {});
+  const pOf = (s) => (s.match(/P\s*[=<]\s*([\d.e-]+)/) ?? [])[1] ?? "";
+  const asIs = pOf(await both.locator(".exc-as-is").innerText().catch(() => ""));
+  const all = pOf(await both.locator(".exc-all").innerText().catch(() => ""));
+  expect("P-68 the results with it put back show next to these (another P)",
+    !!asIs && !!all && asIs !== all, `as analysed ${asIs}, put back ${all}`);
+  expect("P-68 the numbers that change include n (Control): 5 → 6",
+    /n \(Control\): 5 → 6/.test(await both.locator(".exc-changes").innerText().catch(() => "")));
+  const axBlock = await axeOn(".exclusions-card");
+  expect("P-68 axe-core: the Exclusions block passes", axBlock.length === 0, axBlock.join(" | "));
+  // the original is unchanged, and the value stays in the table
+  await navItem("t test of Pipetting").click();
+  expect("P-68 the original analysis is unchanged",
+    await liveResults(new RegExp(tRow(ref.all_values)), 60000)
+    && await page.locator(".exclusions-card.exclusions-none").count() === 1);
+  const cell = page.locator('.data-table input[aria-label="Control, row 3"]');
+  expect("P-68 the value stays in the table (not struck through)",
+    (await cell.inputValue()) === "21.8" && !/Excluded/.test(await cell.getAttribute("title") ?? ""));
+  // identity: the same value excluded in the table gives the same numbers
+  const copyText = resText.replace(/\s+/g, " ");
+  await cell.click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  await prompt.getByLabel("Other reason for excluding").fill("pipetting error noted");
+  await prompt.getByRole("button", { name: "Save reason" }).click();
+  await liveResults(new RegExp(tRow(ref.left_out)), 60000);
+  const tableLevel = (await page.locator(".pane-results .results-table").first().innerText()).replace(/\s+/g, " ");
+  expect("P-68 identity: excluding 21.8 in the table gives the copy's numbers, every row",
+    tableLevel === copyText, `${tableLevel.slice(0, 200)} / ${copyText.slice(0, 200)}`);
+  // the copy now says the value is excluded in the table itself
+  await navItem("t test of Pipetting copy").click();
+  expect("P-68 the copy says the value is now excluded in the table itself",
+    await appears(block.getByText(/Now excluded in the table itself/), 20000));
+}
+
+// --- P-68: click a point of an XY graph to leave it out of that fit -------
+{
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  // the first point of data set 1 at its drawn position (a real click)
+  const at = await page.evaluate(() => {
+    const gd = document.querySelector(".pane-plot .js-plotly-plot");
+    const tr = gd?._fullData?.find((t) => t.meta?.odTag?.role === "points" && t.meta.odTag.ds === 0);
+    if (!tr) return null;
+    const xa = gd._fullLayout.xaxis;
+    const ya = gd._fullLayout.yaxis;
+    const box = gd.getBoundingClientRect();
+    const i = 2;
+    return { x: box.left + xa._offset + xa.l2p(tr.x[i]), y: box.top + ya._offset + ya.l2p(tr.y[i]),
+      row: tr.meta.odTag.rows[i] };
+  });
+  if (at) await page.mouse.click(at.x, at.y);
+  const dlg = page.getByRole("dialog", { name: "Leave a value out of this analysis" });
+  const opened = await appears(dlg, 10000);
+  expect("P-68 a click on a point of the dose-response graph opens Leave out for that row",
+    opened && (await dlg.getByLabel("Row", { exact: true }).inputValue()) === String((at?.row ?? -9) + 1),
+    JSON.stringify(at));
+  if (opened) {
+    const v = await dlg.locator(".leave-out-value").innerText();
+    expect("P-68 the clicked point's value and X are named", /Value: .+ \(.+, X = /.test(v), v);
+    await dlg.getByRole("button", { name: "Cancel" }).click();
+  }
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

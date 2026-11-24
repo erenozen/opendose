@@ -12,6 +12,7 @@ import {
 import { copyText, saveBlob } from "../export/download";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
+import { sheetTable } from "../project/leftOut";
 import type { DataSheet, Project } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { hasShareLink, locationHash } from "./boot";
@@ -45,7 +46,7 @@ function withResolvedOptions(p: Project): Project {
       const data = findSheet(p, s.parentId) as DataSheet | undefined;
       if (!data || data.kind !== "data") return s;
       const def = analysisDef(data.table.type, s.analysis);
-      return { ...s, options: resolveOptions(def, s.options, data.table, p.prefs) };
+      return { ...s, options: resolveOptions(def, s.options, sheetTable(s, data.table), p.prefs) };
     }),
   };
 }

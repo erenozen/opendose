@@ -21,6 +21,7 @@ import {
   compareResults, sameBuild, savedWithOf, type ReproductionReport, type ReproductionSource,
   type SavedWith, type SheetCheck,
 } from "../project/reproduce";
+import { sheetTable } from "../project/leftOut";
 import type { DataSheet, Project, ResultsSheet } from "../project/types";
 import { analysisDef } from "../sheets/registry";
 import { resolveOptions, resultKey, type ResultsCache } from "./analysis";
@@ -89,8 +90,9 @@ function inputKeys(project: Project): Map<string, { key: string; dataId: string;
     if (!data || data.kind !== "data") continue;
     const def = analysisDef(data.table.type, s.analysis);
     if (!def) continue;
-    const options = resolveOptions(def, s.options, data.table, project.prefs);
-    out.set(s.id, { key: resultKey(s.analysis, options, data.table), dataId: data.id, sheet: s });
+    const table = sheetTable(s, data.table);
+    const options = resolveOptions(def, s.options, table, project.prefs);
+    out.set(s.id, { key: resultKey(s.analysis, options, table), dataId: data.id, sheet: s });
   }
   return out;
 }
