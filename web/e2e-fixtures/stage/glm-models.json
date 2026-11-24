@@ -9,10 +9,10 @@
   "scheme": "default",
   "digits": 4
  },
- "selected": "r161",
+ "selected": "r166",
  "sheets": [
   {
-   "id": "d160",
+   "id": "d165",
    "kind": "data",
    "name": "Trial",
    "table": {
@@ -270,9 +270,9 @@
    }
   },
   {
-   "id": "r161",
+   "id": "r166",
    "kind": "results",
-   "parentId": "d160",
+   "parentId": "d165",
    "analysis": "mv_ancova",
    "options": {
     "outcome": "Follow-up",
@@ -284,7 +284,7 @@
    "name": "ANCOVA of Trial"
   },
   {
-   "id": "d162",
+   "id": "d167",
    "kind": "data",
    "name": "Dishes",
    "table": {
@@ -580,9 +580,9 @@
    }
   },
   {
-   "id": "r163",
+   "id": "r168",
    "kind": "results",
-   "parentId": "d162",
+   "parentId": "d167",
    "analysis": "mv_binomial",
    "options": {
     "outcome": "Positive",
@@ -600,7 +600,7 @@
    "name": "Binomial regression of Dishes"
   },
   {
-   "id": "d164",
+   "id": "d169",
    "kind": "data",
    "name": "Ames TA98",
    "table": {
@@ -836,9 +836,9 @@
    }
   },
   {
-   "id": "r165",
+   "id": "r170",
    "kind": "results",
-   "parentId": "d164",
+   "parentId": "d169",
    "analysis": "mv_negbin",
    "options": {
     "outcome": "Revertants",
@@ -855,7 +855,7 @@
    "name": "Negative binomial regression of Ames TA98"
   },
   {
-   "id": "d166",
+   "id": "d171",
    "kind": "data",
    "name": "Dose study",
    "table": {
@@ -1047,9 +1047,9 @@
    }
   },
   {
-   "id": "r167",
+   "id": "r172",
    "kind": "results",
-   "parentId": "d166",
+   "parentId": "d171",
    "analysis": "mv_logistic",
    "options": {
     "outcome": "Response",
@@ -1068,9 +1068,9 @@
    "name": "Logistic regression of Dose study"
   },
   {
-   "id": "r168",
+   "id": "r173",
    "kind": "results",
-   "parentId": "d166",
+   "parentId": "d171",
    "analysis": "mv_logistic",
    "options": {
     "outcome": "Response",
@@ -1089,7 +1089,7 @@
    "name": "Firth logistic regression of Dose study"
   },
   {
-   "id": "d169",
+   "id": "d174",
    "kind": "data",
    "name": "Histology",
    "table": {
@@ -1523,9 +1523,9 @@
    }
   },
   {
-   "id": "r170",
+   "id": "r175",
    "kind": "results",
-   "parentId": "d169",
+   "parentId": "d174",
    "analysis": "mv_ordinal",
    "options": {
     "outcome": "Score",

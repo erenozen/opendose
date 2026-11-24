@@ -2197,6 +2197,168 @@
     "namedTitle": true
    },
    "name": "Normalize of Viability"
+  },
+  {
+   "id": "d160",
+   "kind": "data",
+   "name": "Absorbance",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "OD 450",
+    "rowTitles": [
+     "Sample A",
+     "Sample B",
+     "Sample C"
+    ],
+    "datasets": [
+     {
+      "name": "OD",
+      "rows": [
+       [
+        "0.412",
+        "0.398",
+        "0.405"
+       ],
+       [
+        "0.731",
+        "0.752",
+        "0.744"
+       ],
+       [
+        "0.12",
+        "0.131",
+        "0.126"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r161",
+   "kind": "results",
+   "parentId": "d160",
+   "analysis": "remove_baseline",
+   "options": {
+    "baseline": "value",
+    "baselineDataset": 0,
+    "k": "2",
+    "value": "0.0513",
+    "operation": "subtract",
+    "replicates": "mean",
+    "pairs": "total_first",
+    "linearBaseline": false,
+    "propagate": false,
+    "valueSd": "",
+    "valueN": ""
+   },
+   "name": "Remove baseline of Absorbance"
+  },
+  {
+   "id": "r162",
+   "kind": "results",
+   "parentId": "d160",
+   "analysis": "remove_baseline",
+   "options": {
+    "baseline": "value",
+    "baselineDataset": 0,
+    "k": "2",
+    "value": "0.0513",
+    "operation": "subtract",
+    "replicates": "mean",
+    "pairs": "total_first",
+    "linearBaseline": false,
+    "propagate": true,
+    "valueSd": "0.0035",
+    "valueN": "3"
+   },
+   "name": "Blank-corrected Absorbance with errors"
+  },
+  {
+   "id": "d163",
+   "kind": "data",
+   "name": "Dose series",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "0",
+     "1",
+     "3",
+     "10",
+     "30"
+    ],
+    "datasets": [
+     {
+      "name": "Response",
+      "rows": [
+       [
+        "2.1",
+        "1.8",
+        "2.4"
+       ],
+       [
+        "5.2",
+        "4.7",
+        "5.9"
+       ],
+       [
+        "21",
+        "18.5",
+        "23.1"
+       ],
+       [
+        "48.2",
+        "51",
+        "46.3"
+       ],
+       [
+        "61.5",
+        "58.9",
+        "63"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r164",
+   "kind": "results",
+   "parentId": "d163",
+   "analysis": "normalize",
+   "options": {
+    "zeroMode": "first",
+    "zeroValue": "0",
+    "hundredMode": "last",
+    "hundredValue": "100",
+    "asPercent": true,
+    "subcolumns": "mean",
+    "namedTitle": true
+   },
+   "name": "Normalize of Dose series"
   }
  ]
 }

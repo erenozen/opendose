@@ -13,7 +13,8 @@
 // quasi-Poisson (P-46), partial and compared correlations (P-48), the
 // survival difference at a chosen time (P-28) and the references behind
 // a Normalize (P-57); the general linear mixed model on a long table
-// (P-87); interaction contrasts in RM designs and custom contrasts (P-83).
+// (P-87); interaction contrasts in RM designs and custom contrasts (P-83);
+// uncertainty carried through Remove baseline and Normalize (P-98).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -1790,6 +1791,61 @@ const axeOn = (sel) => page.evaluate(async ([src, s]) => {
   expect("P-85 ART-C of every cell: 120 pairs, Tukey over 16 cell means (statsmodels)",
     cells.length === 120 && cells[0].startsWith(`${cc.pair} ${sig4(cc.difference)} `)
       && cells[0].includes(` ${pTxt(cc.p_tukey)} `), `${cells.length}: ${cells[0]}`);
+}
+
+// --- P-98: uncertainty carried through Remove baseline and Normalize -------
+{
+  // engine/tests/reference/propagation.py (Python uncertainties, Monte
+  // Carlo, hand derivation): Sample A (0.412, 0.398, 0.405) less a blank
+  // mean 0.0513 (SD 0.0035, n = 3): 0.3537, SD sqrt(0.007² + 0.0035²/3) =
+  // 0.007286, SEM 0.004518, of which the blank 0.002021
+  const ref = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/propagation.json"), "utf8"));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "../e2e-fixtures/stage/derived-numbers.json"));
+  const openSheet = (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await openSheet("Remove baseline of Absorbance");
+  const controls = page.locator(".pane-controls");
+  const carry = controls.getByLabel("Carry the baseline's uncertainty into each row (propagated SD and SEM)");
+  await carry.waitFor({ timeout: 180000 }).catch(() => {});
+  await carry.check();
+  await controls.getByLabel("SD of the baseline").fill("0.0035");
+  await controls.getByLabel("n of the baseline").fill("3");
+  const region = page.getByRole("region", { name: "Propagated uncertainty" });
+  const s0 = ref.subtract_value[0];
+  const a = `OD “Sample A” 3 ${sig(s0.value)} ${sig(s0.sd)} ${sig(s0.se)} ${sig(s0.from_baseline)}`;
+  const got = await page.waitForFunction((want) => [...document.querySelectorAll(
+    '[role="region"][aria-label="Propagated uncertainty"] tbody tr')].some((tr) =>
+    tr.innerText.replace(/\s+/g, " ").trim() === want), a, { timeout: 60000 }).then(() => true, () => false);
+  const rows = (await region.locator("tbody tr").allInnerTexts().catch(() => [])).map((x) => x.replace(/\s+/g, " ").trim());
+  expect(`P-98 acceptance: a blank mean (SD 0.0035, n = 3) taken from samples carries propagated SDs (${a})`,
+    got && rows[0] === a, rows.join(" | "));
+  await openChecks();
+  const pane = (await page.locator(".pane-answer").innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect("P-98 acceptance: a note points to analysing the raw values with the control as a block",
+    /Propagated SDs are not replicates/.test(pane) && /analyse the raw values with the control \(blank\) as a block/
+      .test(pane), pane.slice(0, 400));
+  const methods = await page.locator(".methods-text").first().innerText().catch(() => "");
+  expect("P-98 the methods text says the blank's uncertainty was propagated",
+    /The baseline's uncertainty \(SD 0\.0035, n = 3\) was propagated to each value by the first-order delta method/
+      .test(methods), methods.slice(0, 300));
+
+  // Normalize first row to last: the reference rows are exactly 0% and
+  // 100% with SEM 0; the row "1" is 5.364 (SD 1.064, SEM 0.6607)
+  await openSheet("Normalize of Dose series");
+  const carryRefs = controls.getByLabel("Carry the 0% and 100% references' uncertainty into each row (propagated SD and SEM)");
+  await carryRefs.waitFor({ timeout: 60000 }).catch(() => {});
+  await carryRefs.check();
+  const n1 = ref.normalize_first_last[1];
+  const want = `Response “1” 3 ${sig(n1.value)} ${sig(n1.sd)} ${sig(n1.se)}`;
+  const ok = await page.waitForFunction((w) => [...document.querySelectorAll(
+    '[role="region"][aria-label="Propagated uncertainty"] tbody tr')].some((tr) =>
+    tr.innerText.replace(/\s+/g, " ").trim().startsWith(w)), want, { timeout: 60000 }).then(() => true, () => false);
+  const nrows = (await region.locator("tbody tr").allInnerTexts().catch(() => [])).map((x) => x.replace(/\s+/g, " ").trim());
+  expect(`P-98 normalize: the references' error reaches each row (${want}), the reference rows have SEM 0`,
+    ok && nrows[1].startsWith(want) && /^Response “0” 3 0 0\.4149 0 /.test(nrows[0])
+      && /^Response “30” 3 100 2\.869 0 /.test(nrows[4]), nrows.join(" | "));
 }
 
 // ------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import type { DataTableModel, TableType } from "../../project/types";
 import { maxOf } from "../../lib/extent.ts";
 import { outputTitle } from "./normalizeTitle.ts";
 import { baselineText, normalizeReferenceRows } from "./references.ts";
+import { propagationRows, typedBaselineError } from "./propagation.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -348,11 +349,17 @@ export interface BaselineOptions {
   replicates: "mean" | "each";
   pairs: "total_first" | "baseline_first";
   linearBaseline: boolean;
+  /** Carry the baseline's uncertainty to each derived row (P-98). */
+  propagate: boolean;
+  /** SD and number of replicates behind a typed baseline ("" = exact). */
+  valueSd: string;
+  valueN: string;
 }
 
 export const DEFAULT_BASELINE: BaselineOptions = {
   baseline: "first_row", baselineDataset: 0, k: "2", value: "0",
   operation: "subtract", replicates: "mean", pairs: "total_first", linearBaseline: false,
+  propagate: false, valueSd: "", valueN: "",
 };
 
 export function runBaseline(engine: EngineBridge, table: DataTableModel,
@@ -370,6 +377,8 @@ export function runBaseline(engine: EngineBridge, table: DataTableModel,
         replicates: o.replicates,
         pairs: o.pairs,
         linear_baseline: o.linearBaseline && table.type === "xy",
+        ...(o.propagate ? { propagate: true,
+          ...(o.baseline === "value" ? typedBaselineError(o.valueSd ?? "", o.valueN ?? "") : {}) } : {}),
       },
     });
     const notes: string[] = [];
@@ -381,7 +390,10 @@ export function runBaseline(engine: EngineBridge, table: DataTableModel,
       name: d.name, baseline: d.baseline ?? null }));
     return { x: r.x, datasets: r.datasets.map((d: ApiDataset) => ({ name: d.name, ys: d.ys })), notes,
       extra: { ...(r.baseline_lines ? { baselineLines: r.baseline_lines } : {}),
-        baselines: baselines.map((b) => ({ dataset: b.name, text: baselineText(b.baseline as never, table) })) } };
+        baselines: baselines.map((b) => ({ dataset: b.name, text: baselineText(b.baseline as never, table) })),
+        // the propagated SD and SEM of each row (P-98)
+        ...(r.propagation ? { propagation: propagationRows(r.propagation, baselines.map((b) => b.name), table) }
+          : {}) } };
   });
 }
 
@@ -398,6 +410,8 @@ export interface NormalizeOptions {
    *  normalizeTitle.ts). Set on sheets made since P-55; absent on older
    *  ones, which keep "Normalized response (%)". */
   namedTitle?: boolean;
+  /** Carry the references' uncertainty to each row (P-98). */
+  propagate?: boolean;
 }
 
 export const DEFAULT_NORMALIZE: NormalizeOptions = {
@@ -419,6 +433,7 @@ export function runNormalize(engine: EngineBridge, table: DataTableModel,
         hundred_value: o.hundredMode === "value" ? num(o.hundredValue, "100%") : 100,
         as_percent: o.asPercent,
         subcolumns: o.subcolumns,
+        ...(o.propagate ? { propagate: true } : {}),
       },
     });
     // the 0% and 100% each data set used (P-57), shown with the results
@@ -426,7 +441,10 @@ export function runNormalize(engine: EngineBridge, table: DataTableModel,
       name: d.name, references: d.references ?? null }));
     return { x: data.x, datasets: r.datasets.map((d: ApiDataset) => ({ name: d.name, ys: d.ys })), notes: [],
       yTitle: outputTitle(o, table),
-      extra: { references: normalizeReferenceRows(refs as { name: string; references: never }[], table) } };
+      extra: { references: normalizeReferenceRows(refs as { name: string; references: never }[], table),
+        // the propagated SD and SEM of each row (P-98)
+        ...(r.propagation ? { propagation: propagationRows(r.propagation, refs.map((x) => x.name), table) }
+          : {}) } };
   });
 }
 

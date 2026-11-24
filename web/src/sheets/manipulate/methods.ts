@@ -71,7 +71,10 @@ export function baselineMethods(o: BaselineOptions, t: DataTableModel): string {
   };
   return `A baseline taken from ${where[o.baseline]}`
     + `${o.linearBaseline ? " (smoothed by linear regression against X)" : ""}`
-    + ` was ${OP_TEXT[o.operation]}.`;
+    + ` was ${OP_TEXT[o.operation]}.`
+    + (o.propagate ? ` The baseline's uncertainty${o.baseline === "value" && o.valueSd?.trim()
+      ? ` (SD ${o.valueSd}, n = ${o.valueN})` : ""} was propagated to each value by the first-order delta method `
+      + "(JCGM 100:2008, section 5.1)." : "");
 }
 
 export function normalizeMethods(o: NormalizeOptions): string {
@@ -81,7 +84,9 @@ export function normalizeMethods(o: NormalizeOptions): string {
     sum: "the sum of all values", value: `${o.hundredValue}` }[o.hundredMode];
   return `Data were normalized so that 0% is ${zero} and 100% is ${hundred}`
     + `, reported as ${o.asPercent ? "percentages" : "fractions"}`
-    + `${o.subcolumns === "mean" ? " (scale set from the row means)" : " (each subcolumn separately)"}.`;
+    + `${o.subcolumns === "mean" ? " (scale set from the row means)" : " (each subcolumn separately)"}.`
+    + (o.propagate && o.subcolumns === "mean" ? " The uncertainty of the 0% and 100% references was propagated "
+      + "to each value by the first-order delta method (JCGM 100:2008, section 5.1)." : "");
 }
 
 export function transposeMethods(o: TransposeOptions): string {

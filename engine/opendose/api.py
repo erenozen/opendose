@@ -25,7 +25,7 @@ from . import (anova, columnstats, contingency, correlation, descriptive,
                prism_project, pzfx, repeated, schild, survival, transform,
                ttests, twoway)
 from . import multivar, ordinal, partsofwhole
-from . import formulas, manipulate, simulate
+from . import formulas, manipulate, propagate, simulate
 from . import summary
 from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
@@ -490,7 +490,8 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
 def _normalize(data, options):
     """Normalize every data set (normalize.normalize_dataset). Each output
     data set also carries "references": the 0% and 100% values it used,
-    their rule and row (normalize.normalize_references)."""
+    their rule and row (normalize.normalize_references). options.propagate
+    adds "propagation": the references' error carried to each row."""
     out = []
     for ds in data["datasets"]:
         out.append({
@@ -513,7 +514,18 @@ def _normalize(data, options):
                 subcolumns=options.get("subcolumns", "mean"),
             ),
         })
-    return {"analysis": "normalize", "x": data["x"], "datasets": out}
+    result = {"analysis": "normalize", "x": data["x"], "datasets": out}
+    if options.get("propagate"):
+        # the references' error carried to each row (propagate.normalize)
+        result["propagation"] = propagate.normalize(
+            data["datasets"],
+            zero_mode=options.get("zero_mode", "smallest"),
+            zero_value=options.get("zero_value"),
+            hundred_mode=options.get("hundred_mode", "largest"),
+            hundred_value=options.get("hundred_value"),
+            as_percent=options.get("as_percent", True),
+            subcolumns=options.get("subcolumns", "mean"))
+    return result
 
 
 def _transform(data, options):
@@ -2539,17 +2551,25 @@ def _remove_baseline(data, options):
     "operation": "subtract"|"divide"|"fraction_difference"|
     "percent_difference"|"percent_of_baseline"|"add"|"multiply",
     "replicates": "mean"|"each", "pairs": "total_first"|"baseline_first",
-    "linear_baseline": bool}. Returns {"x", "datasets",
-    "baseline_lines"?} (baseline data sets omitted)."""
-    return {"analysis": "remove_baseline", **manipulate.remove_baseline(
-        data["x"], data["datasets"],
-        baseline=options.get("baseline", "column"),
-        baseline_dataset=options.get("baseline_dataset", 0),
-        k=options.get("k", 1), value=options.get("value"),
-        operation=options.get("operation", "subtract"),
-        replicates=options.get("replicates", "mean"),
-        pairs=options.get("pairs", "total_first"),
-        linear_baseline=options.get("linear_baseline", False))}
+    "linear_baseline": bool, "propagate"?: bool, "value_sd"?, "value_n"?}.
+    Returns {"x", "datasets", "baseline_lines"?} (baseline data sets
+    omitted); with propagate, "propagation": the delta-method SD and SE of
+    each derived row (propagate.remove_baseline; value_sd and value_n
+    describe a typed baseline's replicates)."""
+    kw = dict(baseline=options.get("baseline", "column"),
+              baseline_dataset=options.get("baseline_dataset", 0),
+              k=options.get("k", 1), value=options.get("value"),
+              operation=options.get("operation", "subtract"),
+              replicates=options.get("replicates", "mean"),
+              pairs=options.get("pairs", "total_first"),
+              linear_baseline=options.get("linear_baseline", False))
+    out = {"analysis": "remove_baseline", **manipulate.remove_baseline(
+        data["x"], data["datasets"], **kw)}
+    if options.get("propagate"):
+        out["propagation"] = propagate.remove_baseline(
+            data["x"], data["datasets"], value_sd=options.get("value_sd"),
+            value_n=options.get("value_n"), **kw)
+    return out
 
 
 def _transpose(data, options):

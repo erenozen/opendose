@@ -5602,6 +5602,66 @@ and one group). e2e-models reads the wine acceptance values (2.503,
 proportional-odds check P 0.3654 and 0.904), the histology odds ratio
 0.01825 (0.002086 to 0.1006) with the experiment block, and the wizard
 route; ui-stage scenes results-ordinal and results-ordinal-table.
+
+## Feature validation: uncertainty carried through Remove baseline and Normalize (2026-11-24)
+
+### P-98 Error propagation through baseline and normalize
+
+`propagate.remove_baseline` and `propagate.normalize` (api options
+`propagate`, plus `value_sd` and `value_n` for a typed baseline) carry the
+error of an estimated baseline or of the 0% and 100% references to every
+derived row by first-order propagation (the delta method; GUM, JCGM
+100:2008, section 5.1) over the individual replicate values, each with
+its own row's sample variance (the baseline pool's for a baseline from
+rows of the same column). Working on the replicates keeps the
+correlations exact: a reference row normalized against itself is exactly
+0% (or 100%) with SEM 0, a baseline row minus its own mean keeps only the
+scatter about that mean. Each derived row reports n, the derived row
+mean, the propagated SD of one derived value, the SEM of the derived
+mean, and the SEM from the baseline (or references) alone. The derived
+table itself is unchanged. The results, the Checks row ("Propagated SDs
+are not replicates"), the methods text and the derived table's note say
+the values share the baseline's error and point to analysing the raw
+values with the control (blank) as a block (Curtis et al. 2018, Br J
+Pharmacol 175:987).
+
+Not propagated, each with a note: a baseline matched replicate by
+replicate (the differences are already independent), a baseline smoothed
+by linear regression, Normalize of each subcolumn separately, a
+baseline or reference row with one value (unknown, never 0). A smallest
+or largest row picked as a reference gets a note that the selection
+biases it outward.
+
+R (propagate) is not installed. References in
+`engine/tests/reference/propagation.py`: Python `uncertainties` 3.2.3
+(installed for the reference script only, outside the project's .venv),
+one independent variable per replicate so the correlations are tracked;
+a Monte Carlo of 100000 draws; and the hand derivation of the acceptance
+test. `engine/tests/test_propagation.py`:
+
+| Input | Reference | Engine |
+|---|---|---|
+| Sample A 0.412, 0.398, 0.405 less a blank mean 0.0513 (SD 0.0035, n = 3) (the plan's acceptance test) | hand: SD sqrt(0.007^2 + 0.0035^2 / 3) = 0.007286, SEM sqrt(0.007^2 / 3 + 0.0035^2 / 3) = 0.004518; uncertainties the same; Monte Carlo 0.007290 and 0.004505 | 0.3537, SD 0.007286, SEM 0.004518, from the blank 0.002021 (to 1e-9) |
+| the same three samples over the blank (divide) and as percent difference | uncertainties: Sample A 7.895 (SD 0.3396, SEM 0.3208) and 689.5% (SD 33.96) | the same to 1e-9 |
+| the samples less a blank data set of three wells per row | uncertainties: Sample A SD 0.007288, SEM 0.004522 | the same to 1e-9 |
+| a dose series less its first row (same column) | uncertainties: row 1 0 (SEM 0, SD 0.2449), row 2 3.167 (SD 0.6272, SEM 0.3887) | the same; the first row's SEM exactly 0, also when divided |
+| the dose series normalized first row to last | uncertainties: row "1" 5.364% (SD 1.064, SEM 0.6607), the reference rows 0% and 100% with SEM 0; Monte Carlo within 3% | the same to 1e-9 |
+| normalized to 0 and the sum of the row means | uncertainties: row 1 1.523% (SD 0.2180, SEM 0.1263) | the same to 1e-9 |
+
+Also tested: units scaled by 1e-12 and 1e12 scale the SDs and SEMs, the
+order of the replicates does not matter, a typed baseline without SD and
+n is exact (only the samples' own SD), one value per row gives only the
+baseline's share, a one-well blank row gives no SD (never 0), a negative
+SD is refused with a sentence; propagate off leaves the output unchanged.
+
+Web: `src/sheets/manipulate/__tests__/propagation.test.ts` (the typed
+baseline's SD and n, the rows as shown, the banner, the derived table's
+note). e2e-results switches the propagation on for the acceptance data
+and reads "OD “Sample A” 3 0.3537 0.007286 0.004518 0.002021", the Checks
+row note pointing to the blocked analysis and the methods sentence, then
+the normalized dose series (row "1" 5.364, SD 1.064, SEM 0.6607; reference
+rows SEM 0); ui-stage scenes results-propagation and
+results-propagation-note.
 """
 
 

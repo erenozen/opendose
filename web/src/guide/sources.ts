@@ -336,6 +336,14 @@ export const SRC = {
     url: "https://doi.org/10.2307/2347760" },
   christensenOrdinal: { label: "Christensen, Cumulative link models for ordinal regression with the R package ordinal (CRAN vignette)",
     url: "https://cran.r-project.org/package=ordinal" },
+  // Uncertainty carried through Remove baseline and Normalize (P-98): the
+  // first-order propagation law, and why normalised or baseline-corrected
+  // values are not independent replicates. Crossref: Br J Pharmacol
+  // 175(7):987-993, read 2026-11-24.
+  gum2008: { label: "JCGM 100:2008, Evaluation of measurement data: Guide to the expression of uncertainty in measurement (GUM), section 5.1",
+    url: "https://www.bipm.org/en/committees/jc/jcgm/publications" },
+  curtis2018: { label: "Curtis et al. 2018, Experimental design and analysis and their reporting II, Br J Pharmacol 175:987",
+    url: "https://doi.org/10.1111/bph.14153" },
   // Quantal response: the ED50 (LD50) is the dose at which half of the
   // subjects respond; probits are normal deviates of the response share.
   bliss1934: { label: "Bliss 1934, The method of probits, Science 79:38",

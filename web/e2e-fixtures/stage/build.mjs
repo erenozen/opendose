@@ -700,7 +700,9 @@ const longData = (name, names, rows, categorical) => data(name, {
 // controlling for Age and an XY table comparing X vs. SBP with X vs. BMI
 // (P-48; partial_compare_corr.py); survival::lung by sex at 365 days
 // (P-28; survival_difference.py); the P-55 normalize example and its
-// references (P-57)
+// references (P-57); OD of three samples in triplicate less a blank of
+// three wells, and a dose series normalized first row to last, for the
+// propagated uncertainty (P-98; propagation.py)
 {
   const ref = (f) => JSON.parse(readFileSync(join(here, "../../../engine/tests/reference", f), "utf8"));
   const qp = ref("quasi_poisson.json").data;
@@ -738,8 +740,20 @@ const longData = (name, names, rows, categorical) => data(name, {
   const nt = data("Viability", src);
   const rn = results(nt, "normalize", { zeroMode: "smallest", zeroValue: "0", hundredMode: "last",
     hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Viability");
-  write("derived-numbers.json", project("Derived numbers", [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn],
-    { selected: rp.id }));
+  const pg = ref("propagation.json").data;
+  const od = data("Absorbance", table("grouped", { yTitle: "OD 450", rowTitles: ["Sample A", "Sample B", "Sample C"],
+    datasets: [{ name: "OD", rows: pg.samples.map((r) => r.map(String)) }] }));
+  const rb = results(od, "remove_baseline", { baseline: "value", baselineDataset: 0, k: "2", value: "0.0513",
+    operation: "subtract", replicates: "mean", pairs: "total_first", linearBaseline: false, propagate: false,
+    valueSd: "", valueN: "" }, "Remove baseline of Absorbance");
+  const rbp = results(od, "remove_baseline", { ...rb.options, propagate: true, valueSd: "0.0035", valueN: "3" },
+    "Blank-corrected Absorbance with errors");
+  const ds = data("Dose series", table("grouped", { rowTitles: ["0", "1", "3", "10", "30"],
+    datasets: [{ name: "Response", rows: pg.dose.map((r) => r.map(String)) }] }));
+  const rd = results(ds, "normalize", { zeroMode: "first", zeroValue: "0", hundredMode: "last",
+    hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Dose series");
+  write("derived-numbers.json", project("Derived numbers",
+    [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn, od, rb, rbp, ds, rd], { selected: rp.id }));
 }
 
 // glm-models.json (wave 2 models): two groups of 10 with baseline and

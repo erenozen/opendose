@@ -1282,6 +1282,27 @@ const scenes = [
     await refs.evaluate((el) => el.scrollIntoView({ block: "center" }));
     await settle(s, 800);
   } },
+  // P-98: a blank mean with its SD and n taken from samples: the
+  // propagated SD and SEM per row
+  { name: "results-propagation", setup: async (s) => {
+    await fixture(s, "derived-numbers.json", { live: true });
+    await selectSheet(s, "Blank-corrected Absorbance with errors");
+    const block = s.page.getByRole("region", { name: "Propagated uncertainty" }).first();
+    await block.waitFor({ timeout: 240000 });
+    await block.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
+  // P-98: the Checks row's note that propagated SDs are not replicates,
+  // and the uncertainty settings
+  { name: "results-propagation-note", setup: async (s) => {
+    await fixture(s, "derived-numbers.json", { live: true });
+    await selectSheet(s, "Blank-corrected Absorbance with errors");
+    await s.page.getByRole("region", { name: "Propagated uncertainty" }).first().waitFor({ timeout: 240000 });
+    const checks = s.page.locator(".pane-answer details.checks").first();
+    await click(s, checks.locator("summary"));
+    await into(s, ".pane-answer details.checks", "center");
+    await settle(s, 800);
+  } },
   // P-82: the adjusted difference as the answer, the equal-slopes check open
   { name: "results-ancova", setup: async (s) => {
     await fixture(s, "glm-models.json", { live: true });

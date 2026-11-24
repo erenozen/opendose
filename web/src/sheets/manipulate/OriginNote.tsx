@@ -11,6 +11,7 @@ import { analysisDef } from "../registry";
 import { DiceIcon, LinkIcon } from "./LinkIcon";
 import { openSimulate, withSimulation } from "./simulateApi";
 import { randomSeed, simulateTable, simulationSentence, type SimForm } from "./simulate";
+import { sharedErrorNote } from "./propagation";
 import "./manipulate.css";
 
 export default function OriginNote({ data }: { data: DataSheet }) {
@@ -26,6 +27,8 @@ function DerivedNote({ data }: { data: DataSheet }) {
   const source = chain[chain.length - 2]?.data;
   const producer = me?.producer;
   const pDef = producer && source ? analysisDef(source.table.type, producer.analysis) : undefined;
+  // P-98: baseline-corrected or normalized values share their reference's error
+  const shared = producer ? sharedErrorNote(producer.analysis, producer.options as Record<string, unknown>) : null;
   return (
     <div className="origin-note" role="note">
       <LinkIcon size={14} />
@@ -35,6 +38,7 @@ function DerivedNote({ data }: { data: DataSheet }) {
           {pDef ? <> by <strong>{pDef.short}</strong></> : null}. It updates on its own;
           edit the source table or the {pDef?.short ?? "analysis"} settings to change it.
         </p>
+        {shared && <p>{shared}</p>}
         {chain.length > 2 && (
           <nav className="chain-crumbs" aria-label="Chain of analyses">
             {chain.map((c, i) => (
