@@ -453,3 +453,8 @@ means and SDs of the first three doses (numpy: 99.6, 97.567, 92.067; SD
 1.7059, 2.1079, 1.7388) within 1e-12; then the three readers of
 `scripts/xlsx-readback.py`, and the eLife item met. `scripts/e2e-share.mjs`
 finds the bundle's layout workbook with sheets A and B.
+
+Independent check of P-64/P-65 (2026-11-24, by the lead): scipy
+`ttest_ind([1, 2, 3, 4], [2, 4, 6])` gives |t| = 1.21800, P = 0.277561,
+and numpy's SD (ddof 1) of 1, 2, 3, 4 is 1.2909944487358056: the values
+the source-data stage fixture's sheet a and its t test show.
