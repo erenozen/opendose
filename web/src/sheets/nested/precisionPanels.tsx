@@ -46,7 +46,9 @@ export function NestedPrecisionResults({ table, result: r }: ResultsProps<Nested
   return (
     <div className="result-card precision-results">
       <h3>Precision (variance components)</h3>
-      <PrecisionReport p={r} unit={table.yTitle?.trim() || "units"} />
+      <PrecisionReport p={r} unit={table.yTitle?.trim() || "units"}
+        intro={r.layout === "runs" ? "Each column is a run, its replicates down the rows."
+          : "Each column is a day, its subcolumns the runs of that day."} />
     </div>
   );
 }

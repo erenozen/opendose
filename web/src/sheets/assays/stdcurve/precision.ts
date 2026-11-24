@@ -5,7 +5,6 @@
 // repeatability, between-run, between-day and total CV with CIs, CLSI
 // EP05-A3 / VCA; recovery against the Concentration typed on its rows,
 // ICH M10). Pure: unit-tested in __tests__/stdcurve.test.ts.
-import { formatSig } from "../../../types.ts";
 import type { StdRow } from "./model.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -69,12 +68,4 @@ export function precisionSamples(rows: StdRow[], plates: { plate: string; res: a
     }
   }
   return { samples, notes };
-}
-
-/** "8.2% (95% CI 6.6 to 10.8)". */
-export function cvText(c: any, digits = 3): string {
-  if (!c || typeof c.cv_percent !== "number") return "n/a";
-  const r = (v: number) => formatSig(v, digits);
-  const ci = Array.isArray(c.cv_ci) ? ` (${r(c.cv_ci[0])} to ${r(c.cv_ci[1])})` : "";
-  return `${r(c.cv_percent)}%${ci}`;
 }

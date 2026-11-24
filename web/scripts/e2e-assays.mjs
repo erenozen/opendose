@@ -887,9 +887,9 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
     const row = await qcRow(name);
     expect(`P-94 Precision report: ${name}, repeatability ${sig3(r.cv_repeatability)}%, total ${sig3(r.cv_total)}%, `
       + `recovery ${String(Number(r.recovery_percent.toPrecision(4)))}%`,
-      row.startsWith(`${name} 4 (2 days) `) && row.includes(` ${sig3(r.cv_repeatability)}% (`)
-      && row.includes(` ${sig3(r.cv_total)}% (`)
-      && row.includes(` ${String(Number(r.recovery_percent.toPrecision(4)))}% (`) && row.endsWith("Pass"), row);
+      row.startsWith(`${name} 4 (2 days) `) && row.includes(` ${sig3(r.cv_repeatability)}% `)
+      && row.includes(` ${sig3(r.cv_total)}% `)
+      && row.includes(` ${String(Number(r.recovery_percent.toPrecision(4)))}% `) && row.endsWith("Pass"), row);
   }
   const mid = page.locator(".precision-detail", { hasText: /^QC mid/ }).first();
   await mid.locator("summary").click();
@@ -919,8 +919,8 @@ const OPEN_INPUT = 'input[aria-label="Open an OpenDose project or a Prism file"]
     .replace(/\s+/g, " ").trim();
   expect(`P-94 acceptance: dataEP05A2_1 as a nested table, CVs from VCA's components: repeatability `
     + `${cv(pub.error)}%, between-run ${cv(pub.run)}%, between-day ${cv(pub.day)}%, total ${cv(pub.total)}%`,
-    ep.startsWith("mg/dL 40 (20 days) 24.99 ") && ep.includes(` ${cv(pub.error)}% (`) && ep.includes(` ${cv(pub.run)}% (`)
-      && ep.includes(` ${cv(pub.day)}% (`) && ep.includes(` ${cv(pub.total)}% (`), ep);
+    ep.startsWith("mg/dL 40 (20 days) 24.99 ") && ep.includes(` ${cv(pub.error)}% `) && ep.includes(` ${cv(pub.run)}% `)
+      && ep.includes(` ${cv(pub.day)}% `) && ep.includes(` ${cv(pub.total)}% `), ep);
   const detail = page.locator(".precision-results .precision-detail").first();
   await detail.locator("summary").click();
   const totalRow = (await detail.locator("tbody tr", { hasText: /^Within laboratory/ }).innerText())

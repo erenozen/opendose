@@ -166,7 +166,7 @@ def variance_components(values, runs, days=None, *, ci_level=0.95) -> dict:
             method = f"chi-square on {df_e} df"
         else:
             lo, hi = max(v_raw - z * se, 0.0), max(v_raw + z * se, 0.0)
-            method = "Wald (V +- z SE), truncated at 0"
+            method = "Wald (V ± z SE), truncated at 0"
         comps[nm] = {"variance": v, "variance_raw": v_raw, "se": se,
                      "negative": v_raw < 0, "ci_method": method,
                      "variance_ci": [float(lo), float(hi)]}

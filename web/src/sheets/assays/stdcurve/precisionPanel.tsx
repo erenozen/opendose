@@ -5,7 +5,7 @@
 // for every sample measured on two or more plates. Numbers from the
 // engine (precision_study); pure parts in precision.ts.
 import { formatSig } from "../../../types";
-import { cvText } from "./precision";
+import "./precision.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -26,7 +26,29 @@ function Verdict({ rec }: { rec: any }) {
     !rec.precision_accepted && "CV"].filter(Boolean).join(", ")})`}</>;
 }
 
-export function PrecisionReport({ p, unit }: { p: any; unit: string }) {
+/** A CV with its CI on a second, quieter line (keeps the table narrow). */
+function Cv({ c }: { c: any }) {
+  if (!c || typeof c.cv_percent !== "number") return <>n/a</>;
+  return (
+    <>{formatSig(c.cv_percent, 3)}%
+      {Array.isArray(c.cv_ci) && (
+        <span className="precision-ci">{formatSig(c.cv_ci[0], 3)} to {formatSig(c.cv_ci[1], 3)}</span>
+      )}</>
+  );
+}
+
+function Recovery({ rec }: { rec: any }) {
+  if (!rec || rec.error || typeof rec.recovery_percent !== "number") return <>—</>;
+  return (
+    <>{formatSig(rec.recovery_percent, 4)}%
+      {Array.isArray(rec.recovery_ci) && (
+        <span className="precision-ci">{formatSig(rec.recovery_ci[0], 4)} to {formatSig(rec.recovery_ci[1], 4)}</span>
+      )}</>
+  );
+}
+
+/** intro: what a run is in this layout (the standard curve: a plate). */
+export function PrecisionReport({ p, unit, intro }: { p: any; unit: string; intro?: string }) {
   if (!p) return null;
   if (p.error) return <p className="results-error">Precision report: {String(p.error)}</p>;
   const samples: any[] = Array.isArray(p.samples) ? p.samples : [];
@@ -36,8 +58,8 @@ export function PrecisionReport({ p, unit }: { p: any; unit: string }) {
     <section className="precision-report" aria-label="Precision and recovery">
       <h4>Precision and recovery</h4>
       <p className="hint-block">
-        Samples measured on two or more plates: each plate is a run{days ? ", within its day" : ""}.
-        CVs with {level} CIs; recovery = mean / nominal, accepted within ±{formatSig(p.recovery_limit_percent)}%
+        {intro ?? `Samples measured on two or more plates: each plate is a run${days ? ", within its day" : ""}.`}
+        {" "}CVs with their {level} CI below them; recovery = mean / nominal, accepted within ±{formatSig(p.recovery_limit_percent)}%
         with within-run and total CV at most {formatSig(p.cv_limit_percent)}% (ICH M10).
       </p>
       <div className="results-scroll">
@@ -56,14 +78,11 @@ export function PrecisionReport({ p, unit }: { p: any; unit: string }) {
                 {s.error ? <td colSpan={days ? 8 : 7}>{s.error}</td> : <>
                   <td>{s.n_runs}{s.n_days ? ` (${s.n_days} days)` : ""}</td>
                   <td>{formatSig(s.mean)}</td>
-                  <td>{cvText(s.components?.repeatability)}</td>
-                  <td>{cvText(s.components?.between_run)}</td>
-                  {days && <td>{s.components?.between_day ? cvText(s.components.between_day) : "—"}</td>}
-                  <td>{cvText(s.components?.total)}</td>
-                  <td>{s.recovery && !s.recovery.error
-                    ? `${formatSig(s.recovery.recovery_percent, 4)}%${Array.isArray(s.recovery.recovery_ci)
-                      ? ` (${formatSig(s.recovery.recovery_ci[0], 4)} to ${formatSig(s.recovery.recovery_ci[1], 4)})` : ""}`
-                    : "—"}</td>
+                  <td><Cv c={s.components?.repeatability} /></td>
+                  <td><Cv c={s.components?.between_run} /></td>
+                  {days && <td>{s.components?.between_day ? <Cv c={s.components.between_day} /> : "—"}</td>}
+                  <td><Cv c={s.components?.total} /></td>
+                  <td><Recovery rec={s.recovery} /></td>
                   <td><Verdict rec={s.recovery} /></td>
                 </>}
               </tr>

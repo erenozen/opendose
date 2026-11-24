@@ -1,0 +1,8 @@
+/* The precision report (P-94): a CI on a quieter second line under its
+   value keeps the summary table narrow. Tokens only. */
+
+.precision-report { margin-top: var(--space-16); }
+.precision-ci {
+  display: block; font-size: var(--text-body-s); color: var(--muted); white-space: nowrap;
+}
+.precision-detail summary { cursor: pointer; font-size: var(--text-body-s); color: var(--ink-2); }
