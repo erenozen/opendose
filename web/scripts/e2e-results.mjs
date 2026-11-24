@@ -13,7 +13,7 @@
 // quasi-Poisson (P-46), partial and compared correlations (P-48), the
 // survival difference at a chosen time (P-28) and the references behind
 // a Normalize (P-57); the general linear mixed model on a long table
-// (P-87).
+// (P-87); interaction contrasts in RM designs and custom contrasts (P-83).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-results.mjs [http://localhost:5173/]
@@ -1157,6 +1157,85 @@ const analyzeWith = async (re) => {
     return r.violations.map((v) => v.id);
   }, readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"));
   expect("P-87 axe: the mixed model controls have names", axe.length === 0, axe.join(", "));
+}
+
+// --- P-83: interaction contrasts in RM designs, custom contrasts -----------
+{
+  // engine/tests/reference/rm_contrasts.py: the 2 x 2 difference of
+  // differences equals the pooled t test of the per-mouse drug effects
+  // (scipy) and t^2 the mixed ANOVA's interaction F (pingouin); custom
+  // contrasts from statsmodels OLS t_test, Scheffe's P from scipy
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/rm_contrasts.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "contrasts.json"));
+  const block = page.locator(".pane-results .interaction-block").first();
+  const shown = await appears(block.locator(".interaction-dod"), 180000);
+  const mx = REF.mixed_2x2;
+  const dod = (await block.locator(".interaction-dod").innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect("P-83 acceptance: RM 2 x 2, the drug effect in KO minus the drug effect in WT with its CI "
+    + "(the t test of the per-mouse drug effects)",
+    shown && dod.includes(`is ${sig4(mx.effect_wt)} in WT and ${sig4(mx.effect_ko)} in KO: the difference between `
+      + `these effects is ${sig4(mx.difference)} (95% CI ${sig4(mx.ci[0])} to ${sig4(mx.ci[1])}), P = 0.028`), dod);
+  const test = (await block.locator(".interaction-test").innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect("P-83 its t^2 is the RM ANOVA's interaction F(1, 10) = 6.642 (pingouin)",
+    test.includes(`F(1, 10) = ${sig4(mx.interaction_F_pingouin)}`), test);
+  const simple = (await block.getByRole("table", { name: "Simple effects: Drug within each Genotype" })
+    .innerText().catch(() => "")).replace(/\s+/g, " ");
+  const ko = mx.drug_within_genotype.KO;
+  expect("P-83 simple effects: the drug effect within KO on the mice's own differences",
+    simple.includes(`KO Drug − Vehicle ${sig4(ko.difference)}`), simple);
+  expect("P-83 the block says the contrasts need no sphericity",
+    /tested on the subjects' contrast scores, variance pooled across the 2 groups/.test(await block.innerText()));
+
+  // one-way ANOVA: a planned and a post hoc contrast
+  await page.getByRole("treeitem", { name: "One-way ANOVA of Three groups", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const cc = page.locator(".pane-results .custom-contrasts-results").first();
+  await appears(cc, 120000);
+  const rows = async () => (await cc.locator("tbody tr").allInnerTexts().catch(() => []))
+    .map((t) => t.replace(/\s+/g, " ").trim());
+  const [c1, c2] = REF.oneway_custom.contrasts;
+  const got = await rows();
+  expect("P-83 planned contrast: −2 × Vehicle + Drug A + Drug B, estimate, SE and t interval as statsmodels",
+    got[0]?.startsWith(`Drugs vs vehicle: −2 × Vehicle + Drug A + Drug B planned ${sig4(c1.estimate)} ${sig4(c1.se)} `
+      + `${sig4(c1.ci_planned[0])} to ${sig4(c1.ci_planned[1])}`) && got[0].endsWith("none (planned)"), got[0]);
+  expect("P-83 post hoc contrast: Scheffé's simultaneous interval and P on (2, 15) df",
+    got[1]?.startsWith(`A vs B: Drug A − Drug B post hoc ${sig4(c2.estimate)} ${sig4(c2.se)} `
+      + `${sig4(c2.ci_scheffe[0])} to ${sig4(c2.ci_scheffe[1])}`) && got[1].endsWith("Scheffé (2, 15 df)"), got[1]);
+  // type a new contrast in the dialog
+  const controls = page.locator(".pane-controls");
+  await controls.getByRole("button", { name: "Custom contrast…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Custom contrast" });
+  await dlg.getByLabel("Name").fill("Drug A vs vehicle");
+  await dlg.getByLabel("Coefficient: Vehicle").fill("-1");
+  await dlg.getByLabel("Coefficient: Drug A").fill("2");
+  await dlg.getByRole("button", { name: "Add contrast" }).click();
+  expect("P-83 coefficients that do not add up to 0 are refused with what to do",
+    /Make the coefficients add up to 0 \(they add up to 1\)/.test(await dlg.locator('.contrast-status[role="status"]').innerText()));
+  await dlg.getByLabel("Coefficient: Drug A").fill("1");
+  await dlg.getByRole("button", { name: "Add contrast" }).click();
+  await dlg.waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  const g = REF.oneway_custom.groups;
+  const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+  await page.waitForFunction(() => document.querySelectorAll(".custom-contrasts-results tbody tr").length === 3,
+    null, { timeout: 60000 }).catch(() => {});
+  const third = (await rows())[2] ?? "";
+  expect("P-83 the typed contrast is added as planned: Drug A − Vehicle",
+    third.startsWith(`Drug A vs vehicle: −Vehicle + Drug A planned ${sig4(mean(g["Drug A"]) - mean(g.Vehicle))} `), third);
+
+  // two-way ANOVA: a post hoc contrast over the cells
+  await page.getByRole("treeitem", { name: "Two-way ANOVA of Genotype by drug", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const cc2 = page.locator(".pane-results .custom-contrasts-results").first();
+  await appears(cc2, 120000);
+  const tw = REF.twoway_custom;
+  const row2 = ((await cc2.locator("tbody tr").first().innerText().catch(() => "")).replace(/\s+/g, " ")).trim();
+  expect("P-83 two-way: WT / Vehicle − WT / Drug − KO / Vehicle + KO / Drug, Scheffé on (3, 12) df",
+    row2.startsWith(`Difference of differences: WT / Vehicle − WT / Drug − KO / Vehicle + KO / Drug post hoc `
+      + `${sig4(tw.estimate)} ${sig4(tw.se)} ${sig4(tw.ci_scheffe[0])} to ${sig4(tw.ci_scheffe[1])}`)
+      && row2.endsWith("Scheffé (3, 12 df)"), row2);
 }
 
 // ------------------------------------------------------------------------

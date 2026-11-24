@@ -51,7 +51,7 @@ test("the sentence and its plain reading", () => {
   assert.match(contrastReading(wide), /cannot tell whether the effect differs/);
 });
 
-test("no contrasts: repeated measures, older results, one value per cell", () => {
+test("no contrasts: older results, one value per cell", () => {
   assert.equal(interactionSummary({ sources: {} }), null);
   const one = interactionSummary({ interaction_contrasts: { withheld: true, contrasts: [],
     notes: ["one value per cell: there is no within-cell residual"] } })!;
@@ -72,4 +72,25 @@ test("the no-interaction note belongs to the additive model only", () => {
   assert.equal(isAdditiveTwoWay({ model: "main effects only (additive)" }), true);
   assert.equal(isAdditiveTwoWay({}), false);
   assert.equal(isAdditiveTwoWay(null), false);
+});
+
+// P-83: the engine's mixed RM ANOVA of engine/tests/reference/
+// rm_contrasts.py's 2 x 2 (genotype between, drug within, 6 mice each):
+// the difference of differences 2.165 (95% CI 0.2932 to 4.037), P =
+// 0.02755, is the pooled t test of the per-mouse drug effects (scipy)
+// and its t^2 the interaction F = 6.642 (pingouin.mixed_anova)
+test("repeated measures: the contrasts are on the subjects' scores", () => {
+  const rm = JSON.parse(readFileSync(join(here, "rm-interaction.json"), "utf8"));
+  const s = interactionSummary(rm)!;
+  assert.ok(s);
+  assert.ok(Math.abs(s.test!.F! - 6.6416950521490214) < 1e-9);
+  assert.equal(s.test!.dfd, 10);
+  const c = s.contrasts[0];
+  assert.equal(c.label, "(Drug − Vehicle) in KO minus (Drug − Vehicle) in WT");
+  assert.ok(Math.abs(c.difference - 2.165) < 1e-12);
+  assert.ok(Math.abs(c.ci![0] - 0.2931946405221766) < 1e-12);
+  assert.ok(Math.abs(c.p! - 0.02755074138156306) < 1e-12);
+  assert.ok(c.isInteraction);
+  assert.match(s.repeatedError ?? "", /^the subjects' contrast scores, variance pooled across the 2 groups/);
+  assert.equal(interactionSummary(result)!.repeatedError, null);
 });

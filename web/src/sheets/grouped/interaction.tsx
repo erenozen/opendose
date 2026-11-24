@@ -1,4 +1,4 @@
-// The Interaction block of an ordinary two-way ANOVA (need
+// The Interaction block of a two-way ANOVA, ordinary or repeated measures (need
 // `interaction-question`): first when the analysis was opened to ask
 // whether the treatment effect differs between groups, otherwise folded
 // under the ANOVA. The interaction P, the difference of the two effects
@@ -116,12 +116,15 @@ function Body({ result, table, factors }: {
         rows={s.colEffects} ciLevel={s.ciLevel} />
       {(s.rowEffects.length > 0 || s.colEffects.length > 0) && (
         <p className="hint-block">
-          Simple effects use the pooled residual of the two-way ANOVA; their P values are not
-          adjusted (the corrected comparisons are in the multiple comparisons above). Read them
-          after the interaction, as description.
+          {s.repeatedError
+            ? `The contrasts and simple effects are tested on ${s.repeatedError}: each has its own `
+              + "error term, so none of them assumes sphericity (Maxwell & Delaney 2004, ch. 12 to 14). "
+            : "Simple effects use the pooled residual of the two-way ANOVA. "}
+          Their P values are not adjusted (the corrected comparisons are in the multiple comparisons
+          above). Read them after the interaction, as description.
         </p>
       )}
-      {s.notes.filter((n) => !/^2 x 2 design/.test(n)).map((n) => (
+      {s.notes.filter((n) => !/^2 x 2 design/.test(n) && !/need no sphericity\.$/.test(n)).map((n) => (
         <p key={n} className="hint-block">{n}</p>
       ))}
       <Suspense fallback={null}>

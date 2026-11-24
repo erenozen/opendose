@@ -12,6 +12,7 @@ import { FDR_METHODS, twoWayFactorNames } from "./options.ts";
 import { groupedPayload, hasMissingRM } from "./stats.ts";
 import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 import { ddfOf } from "../common/ddf.ts";
+import { contrastsOption } from "../common/customContrasts.ts";
 
 type Result = Record<string, unknown>;
 
@@ -84,7 +85,8 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
   if (o.design === "none") {
     const r = analyze(engine, {
       analysis: "two_way_anova", data,
-      options: { ...factors, comparisons, direction, row_names: rowNames, ...model },
+      options: { ...factors, comparisons, direction, row_names: rowNames, ...model,
+        ...contrastsOption(o.customContrasts) },
     });
     if (r.error || !allCells || o.comparisons === "none" || additive) return withNames(r);
     const mc = allCellsComparisons(engine, {

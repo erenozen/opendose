@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import traceback
 
 from . import (anova, columnstats, contingency, correlation, descriptive,
@@ -1152,6 +1153,16 @@ def _anova(data, options):
                 [c for c in cols if len(c) > 0], nonempty_names)
         except ValueError as exc:
             result["trend"] = {"error": str(exc)}
+    if options.get("custom_contrasts"):
+        # P-83: contrasts typed as coefficients (planned: t test;
+        # post hoc: Scheffe), on the ANOVA's pooled residual
+        t = result["table"]
+        result["custom_contrasts"] = twoway_contrasts.custom_contrasts(
+            [(math.fsum(float(v) for v in c) / len(c)) if len(c) else None
+             for c in cols],
+            [len(c) for c in cols], t["ms_within"], t["df_within"],
+            options["custom_contrasts"], names=names,
+            ci_level=options.get("ci_level", 0.95))
     method = options.get("comparisons")
     if method:
         result["multiple_comparisons"] = anova.multiple_comparisons(
@@ -1457,6 +1468,24 @@ def _two_way_anova(data, options):
             ci_level=options.get("ci_level", 0.95),
             rows=options.get("interaction_rows"),
             cols=options.get("interaction_cols")))
+    if options.get("custom_contrasts"):
+        # P-83: coefficients over the cells, row by row (row 1 / every
+        # column, then row 2 ...), on the within-cell residual
+        means, ns, ss_w, df_w = twoway_contrasts.cell_summaries(cells)
+        rn = options.get("row_names") or [
+            f"Row {i + 1}" for i in range(len(cells))]
+        cn = [nm or f"Column {j + 1}" for j, nm in enumerate(names)]
+        if df_w >= 1 and ss_w > 0:
+            result["custom_contrasts"] = twoway_contrasts.custom_contrasts(
+                [m for row in means for m in row],
+                [n for row in ns for n in row], ss_w / df_w, df_w,
+                options["custom_contrasts"],
+                names=[f"{r} / {c}" for r in rn for c in cn],
+                ci_level=options.get("ci_level", 0.95))
+        else:
+            result["custom_contrasts"] = {
+                "contrasts": [], "error": "custom contrasts need replicate "
+                "values within the cells (a within-cell residual)"}
     method = options.get("comparisons")  # tukey | sidak | bonferroni
     if method:
         row_names = options.get("row_names") or [
@@ -1860,11 +1889,27 @@ def _rm_two_way(data, options):
                       for ds in data["datasets"]])
     row_names = options.get("row_names") or [
         f"Row {i + 1}" for i in range(n_rows)]
-    if options.get("design", "mixed") == "both":
-        return repeated.rm_two_way_both(cells, row_names=row_names,
-                                        col_names=names)
-    return repeated.rm_two_way_mixed(cells, row_names=row_names,
-                                     col_names=names)
+    design = options.get("design", "mixed")
+    if design == "both":
+        result = repeated.rm_two_way_both(cells, row_names=row_names,
+                                          col_names=names)
+    else:
+        result = repeated.rm_two_way_mixed(cells, row_names=row_names,
+                                           col_names=names)
+    if options.get("interaction_contrasts", True):
+        # P-83: difference of differences and simple effects on the
+        # subjects' own contrast scores (repeated.rm_contrasts)
+        try:
+            result.update(repeated.rm_contrasts(
+                cells, design=design, row_names=result["row_names"],
+                col_names=[nm or f"Column {j + 1}"
+                           for j, nm in enumerate(names)],
+                ci_level=options.get("ci_level", 0.95),
+                rows=options.get("interaction_rows"),
+                cols=options.get("interaction_cols")))
+        except ValueError as exc:
+            result["contrast_notes"] = [str(exc)]
+    return result
 
 
 def _ec50_shift(data, options):

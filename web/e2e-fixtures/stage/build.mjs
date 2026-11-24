@@ -757,3 +757,31 @@ const longData = (name, names, rows, categorical) => data(name, {
     mixedDdf: "kenward_roger" }, "Mixed model of Patch clamp");
   write("lmm.json", project("Mixed models", [st, sr, at, ar], { selected: sr.id }));
 }
+
+// contrasts.json (P-83; engine/tests/reference/rm_contrasts.py): the 2 x 2
+// mixed design (drug within, genotype between, 6 mice each) under two-way
+// RM ANOVA with the Interaction block first; three groups under one-way
+// ANOVA with a planned and a post hoc custom contrast; a 2 x 2 ordinary
+// two-way ANOVA with a post hoc contrast over its cells
+{
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/rm_contrasts.json"), "utf8"));
+  const mx = ref.mixed_2x2.records;
+  const rm = data("Drug by genotype", table("grouped", { rowTitles: ["Vehicle", "Drug"], yTitle: "Response",
+    datasets: ["WT", "KO"].map((g) => ({ name: g,
+      rows: ["Vehicle", "Drug"].map((lev) => mx.filter((r) => r.genotype === g).map((r) => String(r[lev]))) })) }));
+  const rr = results(rm, "grouped_two_way", { design: "rm_rows", rowFactor: "Drug", colFactor: "Genotype",
+    interactionFocus: true }, "Two-way RM ANOVA of Drug by genotype");
+  const ow = ref.oneway_custom.groups;
+  const three = data("Three groups", table("column", { datasets: Object.entries(ow).map(([nm, v]) => col(nm, v)) }));
+  const r3 = results(three, "column", { analysis: "anova", anovaKind: "parametric", comparisons: "none",
+    customContrasts: [{ name: "Drugs vs vehicle", coefficients: [-2, 1, 1], planned: true },
+      { name: "A vs B", coefficients: [0, 1, -1], planned: false }] }, "One-way ANOVA of Three groups");
+  const tw = ref.twoway_custom.records;
+  const two = data("Genotype by drug", table("grouped", { rowTitles: ["WT", "KO"], datasets: ["Vehicle", "Drug"]
+    .map((c) => ({ name: c, rows: ["WT", "KO"].map((r) => tw.filter((x) => x.row === r && x.col === c)
+      .map((x) => String(x.y))) })) }));
+  const r2 = results(two, "grouped_two_way", { design: "none", rowFactor: "Genotype", colFactor: "Drug",
+    customContrasts: [{ name: "Difference of differences", coefficients: [1, -1, -1, 1], planned: false }] },
+  "Two-way ANOVA of Genotype by drug");
+  write("contrasts.json", project("Contrasts", [rm, rr, three, r3, two, r2], { selected: rr.id }));
+}

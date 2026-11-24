@@ -1,0 +1,16 @@
+/* Custom contrasts (P-83): the list in the controls, the dialog's
+   coefficient fields and the status line. Tokens only. */
+
+.custom-contrasts { display: grid; gap: var(--space-6); margin-top: var(--space-8); justify-items: start; }
+.custom-contrasts-head { margin: 0; font-size: var(--text-label); font-weight: var(--weight-semibold); color: var(--muted); }
+.custom-contrast-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-4); width: 100%; }
+.custom-contrast-list li {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-8);
+  font-size: var(--text-body-s); color: var(--ink-2);
+}
+.contrast-coefficients { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--space-8) var(--space-12); }
+.contrast-status { min-height: 18px; margin: 0; font-size: var(--text-body-s); color: var(--ink-2); }
+.contrast-status[data-problem] { color: var(--danger); }
+.custom-contrasts-results { margin-top: var(--space-16); }
+.custom-contrasts-results h4 { margin: 0 0 var(--space-8); font-size: var(--text-body); color: var(--ink); }
+.custom-contrasts-results .hint-block { max-width: 80ch; }

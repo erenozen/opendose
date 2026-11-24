@@ -1174,6 +1174,36 @@ const scenes = [
     await cov.evaluate((el) => el.scrollIntoView({ block: "start" }));
     await settle(s, 800);
   } },
+  // P-83: the Interaction block of a two-way RM ANOVA (2 x 2, drug within)
+  { name: "results-rm-interaction", setup: async (s) => {
+    await fixture(s, "contrasts.json", { live: true });
+    const block = s.page.locator(".pane-results .interaction-block").first();
+    await block.locator(".interaction-dod").waitFor({ timeout: 240000 });
+    await block.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-83: planned and post hoc (Scheffé) custom contrasts after one-way ANOVA
+  { name: "results-custom-contrasts", setup: async (s) => {
+    await fixture(s, "contrasts.json", { live: true });
+    await selectSheet(s, "One-way ANOVA of Three groups");
+    const card = s.page.locator(".pane-results .custom-contrasts-results").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-83: the "Custom contrast…" dialog with a sum that is not 0
+  { name: "dialog-custom-contrast", setup: async (s) => {
+    await fixture(s, "contrasts.json", { live: true });
+    await selectSheet(s, "One-way ANOVA of Three groups");
+    const controls = s.page.locator(".pane-controls").first();
+    await click(s, await reveal(s, controls.getByRole("button", { name: "Custom contrast…" })));
+    const d = dialog(s, "Custom contrast");
+    await d.getByLabel("Coefficient: Vehicle").fill("-1");
+    await d.getByLabel("Coefficient: Drug A").fill("2");
+    await click(s, d.getByRole("button", { name: "Add contrast" }));
+    await d.locator(".contrast-status[data-problem]").waitFor();
+    await settle(s, 500);
+  } },
   { name: "results-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     const card = s.page.locator(".schild-card");

@@ -4521,6 +4521,48 @@ factors the interaction F is the square of the 2 x 2 difference of
 differences' t. e2e (`e2e-results.mjs`): sleepstudy pasted as a long
 table gives the lmerTest numbers, then the random slope's; Pastes with
 the nested level gives lme4's.
+
+### P-83 Interaction contrasts for RM designs and custom contrasts
+
+`repeated.rm_contrasts` (merged into `rm_two_way` results; the grouped
+sheet's two-way RM ANOVA now shows the Interaction block): every 2 x 2
+difference of differences and the simple effects tested on the
+subjects' own contrast scores (Maxwell & Delaney 2004, ch. 12 to 14; a
+separate error term per contrast, no sphericity assumed; the estimates,
+SEs and df of emmeans on afex's multivariate model). Mixed design (rows
+repeated, columns groups): variance of the scores pooled across groups,
+df = subjects - groups; both factors repeated: one-sample t of the
+scores, df = subjects - 1. `twoway_contrasts.custom_contrasts` (API
+option `custom_contrasts` of `anova` and `two_way_anova`): coefficients
+over the group or cell means on the pooled residual; planned contrasts
+unadjusted, post hoc contrasts by Scheffe's method (P from F = t^2 /
+(k - 1) on (k - 1, df), simultaneous interval sqrt((k - 1) F_crit) SE;
+Scheffe 1953, Biometrika 40:87). Coefficients that do not add up to 0,
+a wrong count, all zeros, an empty group and no scatter are stated.
+
+Reference: `engine/tests/reference/rm_contrasts.py` (scipy t tests of
+the per-subject scores, pingouin 0.7 mixed_anova / rm_anova,
+statsmodels OLS and t_test; R is not installed).
+`engine/tests/test_rm_contrasts.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 2 x 2, genotype between, drug within, 6 mice per genotype (acceptance) | drug effect 4.2733 (WT), 6.4383 (KO); difference 2.165, SE 0.84008, t(10) = 2.5771, P = 0.027551, 95% CI 0.29319 to 4.0368 = the pooled t test of the per-mouse differences (scipy); t^2 = 6.6417 = the interaction F (pingouin, P 0.027551) | 1e-12 (P 1e-10) |
+| same, simple effects | drug within KO 6.4383, SE 0.59402; genotype within Drug 3.21, SE 1.3454, P 0.038229 (statsmodels OLS of the scores) | 1e-10 |
+| 2 x 2, both within, 8 subjects | difference 2.3888, SE 0.49169, t(7) = 4.8582, P = 0.0018388 (scipy one-sample t); F = 23.603 (pingouin) | 1e-12 |
+| 3 x 2 mixed (3 times, 5 + 7 subjects) | (T0, T1) 4.8091, SE 0.86196, P 0.00023434; (T0, T2) 7.202, SE 1.1957; (T1, T2) 2.3929, P 0.06236, all on 10 df (statsmodels OLS) | 1e-10 |
+| one-way, 3 groups, (-2, 1, 1) and (0, 1, -1) | estimate 7.7706, SE 2.2549, t(15) = 3.4461, planned P 0.0036006 (statsmodels t_test); Scheffe F and P on (2, 15) df and simultaneous intervals (scipy) | 1e-10 |
+| two-way 2 x 2 cells, (1, -1, -1, 1) post hoc | statsmodels t_test estimate and SE; Scheffe on (3, 12) df | 1e-10 |
+
+Also tested: the contrast c_i = n_i (m_i - mean) gives a Scheffe F equal
+to the one-way ANOVA F and its P (Scheffe's property); the planned 2 x 2
+cell contrast's t^2 is the two-way interaction F; swapping the groups
+flips the sign only; x 1000 units scale the difference and keep t; an
+incomplete subject is left out as in the ANOVA; scores without scatter
+give no t or P and say so. e2e (`e2e-results.mjs`): the RM 2 x 2 above
+in the grouped sheet's Interaction block, the one-way contrasts and a
+contrast typed in the "Custom contrast…" dialog, and the two-way cell
+contrast.
 """
 
 

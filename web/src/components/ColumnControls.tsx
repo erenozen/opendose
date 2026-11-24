@@ -18,6 +18,7 @@ import RmPosthocControls from "../sheets/column/rmPosthocControls";
 import { OrderedTrendOption } from "../sheets/column/OrderedTrend";
 import { SubjectRoleSelect } from "../sheets/column/RmCorr";
 import { CompareCorrelations } from "../sheets/column/CompareCorr";
+import { CustomContrastsControl } from "../sheets/common/CustomContrasts";
 import { isFdrMethod, P_STACK_METHODS, type PStackMethod } from "../sheets/column/pStack";
 import "../sheets/column/logScale.css";
 
@@ -312,6 +313,11 @@ export default function ColumnControls({ options, datasetNames, onChange, summar
                 pickDataset("Control group", options.controlIndex, "controlIndex")}
               <ComparisonsPicker options={options} datasetNames={datasetNames}
                 onChange={onChange} summaryData={summaryData} />
+              {!summaryData && (
+                <CustomContrastsControl names={datasetNames.map((n, i) => n || `Dataset ${i + 1}`)}
+                  value={options.customContrasts ?? []}
+                  onChange={(v) => set({ customContrasts: v })} />
+              )}
               {!summaryData && (
                 <label className="check-row">
                   <input type="checkbox" checked={!!options.anovaTrend}

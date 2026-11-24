@@ -1,5 +1,6 @@
 // Option objects of the grouped-table analyses and graphs, with defaults
 // and normalizers for options read from older files. Pure (no React).
+import { normalizeContrasts, type CustomContrast } from "../common/customContrasts.ts";
 import { ddfOf, type DdfMethod } from "../common/ddf.ts";
 import type { TwoWayComparisons, TwoWayDirection, TwoWayModel } from "../../types.ts";
 import type { ErrorKind, HeatPalette } from "./stats.ts";
@@ -59,6 +60,9 @@ export interface TwoWayOptions {
   /** The mixed model's denominator df (sheets/common/ddf.ts); absent =
    *  containment (sheets saved before the setting). */
   mixedDdf?: DdfMethod;
+  /** Custom contrasts over the cells, row by row (P-83, ordinary design;
+   *  sheets/common/customContrasts.ts). */
+  customContrasts?: CustomContrast[];
 }
 
 export const DEFAULT_TWO_WAY: TwoWayOptions = {
@@ -99,6 +103,8 @@ export function normalizeTwoWay(raw: unknown): TwoWayOptions {
     model: pick(o.model, ["full", "additive"] as const, d.model),
     ...(o.interactionFocus === true ? { interactionFocus: true } : {}),
     ...(o.mixedDdf === undefined ? {} : { mixedDdf: ddfOf(o.mixedDdf) }),
+    ...(normalizeContrasts(o.customContrasts).length
+      ? { customContrasts: normalizeContrasts(o.customContrasts) } : {}),
   };
 }
 
