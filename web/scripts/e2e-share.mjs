@@ -868,6 +868,37 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   }
 }
 
+// --- P-66 for the kinds merged after it: the meta-analysis of the BCG trials
+// (e2e-fixtures/stage/meta-bcg.json, REML with the Hartung-Knapp CI) gets
+// its pooled rows in the statistics table, equal to its results card;
+// before, one "Not tabulated" row
+{
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "meta-bcg.json"));
+  await page.getByRole("treeitem", { name: "Combined experiments of BCG trials", exact: true }).first()
+    .locator(":scope > .nav-row").click({ timeout: 30000 });
+  await page.waitForFunction(() => /Random effects \(REML/.test(document.querySelector(".pane-results .meta-results")
+    ?.textContent ?? ""), null, { timeout: 120000 }).catch(() => {});
+  const cardText = (await page.locator(".pane-results .meta-results").first().innerText().catch(() => "")).replace(/\s+/g, " ");
+  const shown = /Random effects \(REML, Hartung-Knapp\) \S+ \S+ (\S+) (\S+) to (\S+)/.exec(cardText) ?? [];
+  await fileMenu.click();
+  const st = await Promise.all([
+    page.waitForEvent("download", { timeout: 60000 }),
+    page.getByRole("menuitem", { name: "Export statistics table (.csv)" }).click(),
+  ]).then(async ([d]) => readFileSync(await d.path(), "utf8"));
+  const rows = parseCsv(st.replace(/^﻿/, ""));
+  const body = rows.slice(1).map((r) => Object.fromEntries(rows[0].map((h, i) => [h, r[i] ?? ""])));
+  const pooled = body.find((r) => r.Comparison === "Pooled (random effects, REML)");
+  expect("P-66 meta-analysis row: pooled ratio and Hartung-Knapp CI equal the results card (0.4894)",
+    !!pooled && pooled.Estimate === "Pooled ratio" && pooled["Estimate value"] === "0.4894"
+    && pooled["Estimate value"] === shown[1] && `${pooled["CI lower"]} to ${pooled["CI upper"]}` === `${shown[2]} to ${shown[3]}`
+    && pooled["n per group"] === "13 studies" && /I² = 92\.22%/.test(pooled.Note),
+    JSON.stringify({ pooled, shown: shown.slice(1) }));
+  expect("P-66 meta-analysis: the heterogeneity Q row is there, no Not tabulated note",
+    body.some((r) => r.Statistic === "Q" && r.Comparison === "Between studies")
+    && !body.some((r) => /Not tabulated/.test(r.Note)), body.map((r) => r.Comparison).join(" / "));
+}
+
 // --- P-126: an exercise link for teaching. The plan's acceptance test:
 // create an exercise link hiding the test and P; opening it shows the
 // data and the task; after choosing a test, the results appear. Numbers:

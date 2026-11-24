@@ -1,11 +1,12 @@
-// "What this means" (P-69) for the assay modules, beside
-// report/meaning.ts (whose dispatcher calls assayMeaning first). The same rules hold: every number
+// "What this means" (P-69) for the assay modules and for the result kinds
+// merged after P-66, beside report/meaning.ts (whose dispatcher calls
+// assayMeaning and kindMeaning first). The same rules hold: every number
 // is read from the module's or the engine's own result fields and written
 // as the results sheet writes it (formatSig); nothing is recomputed; P
 // above 0.05 is never "no difference" (Amrhein et al. 2019); each reader
 // says what the headline number means, how it is most often misread, and
 // cites its sources from guide/sources.ts. Pure (no React); pinned in
-// __tests__/meaningAssays.test.ts.
+// __tests__/meaningAssays.test.ts and meaningKinds.test.ts.
 import { formatSig } from "../types.ts";
 import { formatPValue, type PStyle } from "./pformat.ts";
 import type { Meaning, MeaningTable } from "./meaning.ts";
@@ -346,6 +347,163 @@ export function assayMeaning(analysisId: string | undefined, r: R, o: R, t: Mean
     case "xy_auc": return aucMeaning(r, style);
     case "volcano_table": return volcanoMeaning(r, o);
     case "cluster_heatmap": return clusterMeaning(r, o);
+    default: return undefined;
+  }
+}
+
+// ------------------------------------------------- kinds after P-66
+
+/** Relative potency from parallel curves, with the parallelism test. */
+function relPotencyMeaning(r: R, style: PStyle): Meaning | null {
+  const pot = r.potency;
+  if (!pot || !num(pot.ratio)) return null;
+  const ref = String(r.reference ?? pot.reference?.name ?? "the reference");
+  const tst = String(r.test ?? pot.test?.name ?? "the test");
+  const lin = String(pot.linear ?? "EC50");
+  const ci = ci2(pot.ci);
+  const F = r.f_test;
+  const par = F && num(F.p) ? (F.p < ALPHA
+    ? `; but the curves are not parallel (F test ${P(F.p, style)}), so one ratio does not describe every response level`
+    : `; the data do not show that the curves differ in shape (F test of parallelism ${P(F.p, style)})`) : "";
+  return mk(`${tst} is ${fmt(pot.ratio)} times as potent as ${ref} (the ${lin} of ${ref} divided by the ${lin} of ${tst}`
+    + `${ci ? `; ${ciText(ci, pot.ci_level, "Fieller CI")}` : ""})${par}.`,
+  [SRC.fieller1954, SRC.ritz2015, SRC.gpGlobalFit, ...(F && num(F.p) ? sigSources(F.p) : [])],
+  "a relative potency from curves that are not parallel. One ratio needs the curves to be horizontal shifts of each other; and a parallelism P above 0.05 does not prove they are, since a test on few points rarely rejects.",
+  `Relative potency: ${String(r.label ?? "the model")} fitted to both curves with ${Array.isArray(r.parallel_fit?.shared) ? list(r.parallel_fit.shared.map(String)) : "the shape parameters"} shared.`);
+}
+
+/** Two global models compared by the extra sum-of-squares F test and AICc. */
+function globalCompareMeaning(r: R, style: PStyle): Meaning | null {
+  const F = r.f_test, aicc = r.aicc;
+  const a = String(r.model_1?.label ?? "model 1"), b = String(r.model_2?.label ?? "model 2");
+  const prefer = aicc?.prefer === 1 ? a : aicc?.prefer === 2 ? b : null;
+  const aiccT = prefer && num(aicc.delta) ? ` AICc also prefers ${prefer} (difference ${fmt(aicc.delta)}).` : "";
+  const mis = "the preferred model as the true mechanism. The test says which of these two models describes these data better; a model not compared may fit better still.";
+  const test = "Extra sum-of-squares F test: does the more complex model reduce the scatter more than its extra parameters would by chance?";
+  if (F && num(F.F) && num(F.p)) {
+    const simple = F.simpler_model === 2 ? b : a, complex = F.simpler_model === 2 ? a : b;
+    const s = F.p < ALPHA
+      ? `${complex} fits better than ${simple} (F(${F.dfn}, ${F.dfd}) = ${fmt(F.F)}, ${P(F.p, style)}): a reduction in scatter this large would be unusual if the simpler model were right.`
+      : `The data do not show that ${complex} fits better than ${simple} (F(${F.dfn}, ${F.dfd}) = ${fmt(F.F)}, ${P(F.p, style)}), so the simpler model is kept.`;
+    return mk(`${s}${aiccT}`, [SRC.gpCompareCurves, SRC.gpGlobalFit, ...sigSources(F.p)], mis, test);
+  }
+  if (!prefer) return null;
+  return mk(`AICc prefers ${prefer} (difference ${fmt(aicc.delta)}${num(aicc.probability_1) && num(aicc.probability_2)
+    ? `; probability ${fmt(aicc.prefer === 1 ? aicc.probability_1 : aicc.probability_2)} that it is the better of the two` : ""}); the models are not nested, so there is no F test.`,
+  [SRC.gpCompareCurves, SRC.gpGlobalFit], mis);
+}
+
+/** Precision study: repeatability, within-laboratory CV and recovery. */
+function precisionMeaning(r: R): Meaning | null {
+  const s = (Array.isArray(r.samples) ? r.samples : []).find((x: R) => num(x?.components?.repeatability?.cv_percent));
+  if (!s) return null;
+  const c = s.components;
+  const l = s.ci_level ?? r.ci_level;
+  const cv = (k: string, label: string) => (c[k] && num(c[k].cv_percent)
+    ? `${label} CV is ${fmt(c[k].cv_percent)}%${ci2(c[k].cv_ci) ? ` (${ciText(ci2(c[k].cv_ci), l)})` : ""}` : "");
+  const parts = [cv("repeatability", "the repeatability"), cv("total", "the within-laboratory (total)")].filter(Boolean);
+  const rec = s.recovery;
+  const recT = rec && num(rec.recovery_percent) ? `; recovery is ${fmt(rec.recovery_percent)}% of the nominal ${fmt(rec.nominal)}`
+    + `${ci2(rec.recovery_ci) ? ` (${ciText(ci2(rec.recovery_ci), l)})` : ""}`
+    + `${typeof rec.accepted === "boolean" ? `, ${rec.accepted ? "within" : "outside"} the acceptance limits` : ""}` : "";
+  const more = (Array.isArray(r.samples) ? r.samples.length : 0) > 1 ? " (first sample shown)" : "";
+  return mk(`For ${String(s.name ?? "the sample")}${more}, ${list(parts)}, from ${s.n} values in ${s.n_runs ?? "?"} runs${recT}.`,
+    [SRC.blandAltman1996, SRC.ichM10],
+    "the repeatability CV as the assay's precision. Repeatability is the scatter within one run; results from different runs or days also vary between runs, which the within-laboratory CV includes.",
+    `Precision study: ${String(r.method ?? "variance components of the nested random model")}.`);
+}
+
+/** Competing risks: Gray's test of each cause's cumulative incidence. */
+function competingMeaning(r: R, style: PStyle): Meaning | null {
+  const causes: R[] = Array.isArray(r.causes) ? r.causes.filter((c: R) => num(c?.gray?.p)) : [];
+  if (!causes.length) return null;
+  const groups: string[] = Array.isArray(r.group_names) ? r.group_names.map(String) : [];
+  const g = groups.length ? list(groups) : "the groups";
+  const each = causes.map((c) => `cause ${c.code} ${P(c.gray.p, style)}`);
+  const sig = causes.filter((c) => c.gray.p < ALPHA);
+  const s = sig.length
+    ? `The cumulative incidence of ${list(sig.map((c) => `cause ${c.code}`))} differs between ${g}: a difference this large would be unusual if the groups did not differ (Gray's test: ${each.join(", ")}).`
+    : `The data do not show that the cumulative incidence of any cause differs between ${g} (Gray's test: ${each.join(", ")}).`;
+  return mk(s, [SRC.gray1988, SRC.fineGray1999, sig.length ? SRC.greenland2016 : SRC.amrhein2019],
+    "1 − Kaplan-Meier as the risk of one cause. Censoring the other causes treats those subjects as if they could still have this event, which overstates its risk; the cumulative incidence counts each subject once, under the event that came first.",
+    "Cumulative incidence (Aalen-Johansen) per cause and group, compared by Gray's test.");
+}
+
+/** Parametric (AFT) survival: the time ratio of the first group. */
+function parametricMeaning(r: R, style: PStyle): Meaning | null {
+  const tr = (Array.isArray(r.time_ratios) ? r.time_ratios : []).find((x: R) => num(x?.value));
+  if (!tr) return null;
+  const ci = ci2(tr.ci);
+  const dir = tr.value >= 1 ? "longer" : "shorter";
+  const pT = num(tr.p) ? (tr.p < ALPHA ? `; a ratio this far from 1 would be unusual (${P(tr.p, style)}) if the groups did not differ`
+    : `; the data do not show a difference (${P(tr.p, style)})${ci && ci[0] < 1 && ci[1] > 1 ? ", and the CI includes 1" : ""}`) : "";
+  return mk(`Under the ${String(r.label ?? r.dist ?? "fitted")} model, survival times in ${String(tr.group)} are ${fmt(tr.value)} times those in `
+    + `${String(tr.reference)} (time ratio, ${dir} in ${String(tr.group)}${ci ? `; ${ciText(ci, r.ci_level)}` : ""})${pT}.`,
+  [SRC.wei1992, ...sigSources(tr.p)],
+  "a time ratio as a hazard ratio. A time ratio above 1 means longer survival (the opposite direction of a hazard ratio above 1); and it holds only as far as the chosen distribution fits the data (compare the models' AIC).",
+  `Accelerated failure time model (${String(r.label ?? r.dist ?? "")}): the groups stretch or shrink the time scale.`);
+}
+
+/** Meta-analysis: the pooled estimate, I² and the prediction interval. */
+function metaMeaning(r: R, style: PStyle): Meaning | null {
+  const m = r.random ?? r.fixed;
+  if (!m || !num(m.estimate)) return null;
+  const ratio = r.scale === "ratio" || r.scale === "log_ratio";
+  const est = ratio ? m.ratio : m.estimate;
+  const ci = ci2(ratio ? m.ratio_ci : m.ci);
+  const h = r.heterogeneity;
+  const pr = r.prediction;
+  const prCi = ci2(ratio ? pr?.ratio_ci : pr?.ci);
+  const model = r.random ? `random effects, ${String(m.method ?? r.method ?? "")}`.replace(/, $/, "") : "common effect";
+  const pT = num(m.p) ? (m.p < ALPHA ? `; a ${ratio ? "ratio this far from 1" : "pooled effect this far from 0"} would be unusual (${P(m.p, style)}) if the true ${ratio ? "ratio were 1" : "effect were 0"}`
+    : `; the data do not show an effect (${P(m.p, style)})`) : "";
+  return mk(`Combined over ${r.k} studies, the pooled ${ratio ? "ratio" : "estimate"} is ${fmt(est)} (${model}${ci ? `; ${ciText(ci, r.ci_level)}` : ""})${pT}`
+    + `${num(h?.I2) ? `; I² = ${fmt(h.I2)}% of the variation between studies is beyond chance` : ""}`
+    + `${prCi ? `, and the true effect of a new study is expected between ${fmt(prCi[0])} and ${fmt(prCi[1])} (95% prediction interval)` : ""}.`,
+  [SRC.derSimonianLaird1986, SRC.higginsThompson2002, SRC.riley2011, ...sigSources(m.p)],
+  "the pooled estimate as the effect in every study. Under random effects it is the mean of a spread of true effects; with a large I² the studies' effects differ, and the prediction interval shows how widely.",
+  "Inverse-variance meta-analysis of each study's estimate and SE.");
+}
+
+/** Smoothing: what the curve is, and that it has no model CI. */
+function smoothMeaning(r: R, t: MeaningTable | null | undefined): Meaning | null {
+  const d = (Array.isArray(r.datasets) ? r.datasets : []).find((x: R) => x?.fit && !x.error);
+  if (!d) return null;
+  const fit = d.fit;
+  const df = num(fit.df) ? ` with ${fmt(fit.df)} effective degrees of freedom${fit.chosen_by === "gcv" ? " chosen by generalized cross-validation" : ""}` : "";
+  const span = fit.method === "lowess" && num(fit.span) ? ` with a span of ${fmt(fit.span)} of the points` : "";
+  return mk(`The curve through ${String(d.name ?? t?.yTitle ?? "the data")} is a ${lower(String(fit.label ?? "smooth"))}${df}${span}: `
+    + "it describes the shape of the data and has no parameters, so it gives no model-based confidence interval.",
+  [SRC.cleveland1979, SRC.cravenWahba1978],
+  "a smoothed curve as a fitted model. A smooth follows the data as closely as its span or penalty allows; it has no parameters to report or compare, and its shape near the ends of the X range rests on few points.",
+  "Smoothing: a curve that follows the local shape of the points, not a model chosen in advance.");
+}
+
+/** Uncertainty carried through Normalize or Remove baseline (P-98). */
+function propagationMeaning(r: R): Meaning | null {
+  const pr = r.propagation;
+  if (!pr || typeof pr !== "object") return null;
+  const what = r.analysis === "normalize" ? "normalised" : "baseline-corrected";
+  return mk(`Each ${what} value carries an SD and SE propagated from the scatter of its own replicates and of the reference values (${String(pr.method ?? "first-order propagation")}).`,
+    [SRC.gum2008, SRC.curtis2018],
+    typeof pr.warning === "string" ? `the propagated SDs as replicates. ${pr.warning.replace(/^Propagated SDs and SEs describe/, "They describe")}` : undefined);
+}
+
+/**
+ * The "What this means" line of a kind merged after P-66, or undefined
+ * when the result is not one of them (meaning.ts goes on).
+ */
+export function kindMeaning(r: R, t: MeaningTable | null | undefined, style: PStyle): Meaning | null | undefined {
+  switch (r.analysis) {
+    case "relative_potency": return relPotencyMeaning(r, style);
+    case "compare_global_fits": return globalCompareMeaning(r, style);
+    case "precision_study": return precisionMeaning(r);
+    case "competing_risks": return competingMeaning(r, style);
+    case "parametric_survival": return parametricMeaning(r, style);
+    case "meta_analysis": return metaMeaning(r, style);
+    case "smooth_xy": return smoothMeaning(r, t);
+    case "normalize":
+    case "remove_baseline": return r.propagation ? propagationMeaning(r) : undefined;
     default: return undefined;
   }
 }

@@ -491,8 +491,9 @@ function doseRows(ctx: Ctx, r: R): StatsRow[] {
     }
     const n = num(fit.goodness?.n_points) ? `${name} ${fit.goodness.n_points} points` : "";
     const flags = fit.range_flags ?? {};
-    const note = fit.status && fit.status !== "ok" && fit.status !== "converged" ? `Fit: ${String(fit.status)}`
+    const status = fit.status && fit.status !== "ok" && fit.status !== "converged" ? `Fit: ${String(fit.status)}`
       : flags.ec50_above_range || flags.ec50_below_range ? `${mid ?? "midpoint"} outside the concentrations tested` : "";
+    const note = [status, bootstrapNote(fit)].filter(Boolean).join("; ");
     if (mid) {
       out.push(finish(ctx, { test: `nonlinear regression (${String(fit.label ?? fit.model ?? "curve fit")})`,
         comparison: name, n, estimate: mid, estimateValue: f(params[mid].value), ci: ci2(params[mid].ci95), level: 0.95, note }));
@@ -509,6 +510,16 @@ function doseRows(ctx: Ctx, r: R): StatsRow[] {
       statistic: "F", value: f(cmp.F), df: dfPair(cmp.dfn ?? cmp.df_num, cmp.dfd ?? cmp.df_den), pValue: cmp.p, adjustment: SINGLE }));
   }
   return out;
+}
+
+/** "CI by bootstrap (case resampling, 500 resamples, percentile)" for a
+ *  fit whose CIs were bootstrapped (P-101), else "". */
+export function bootstrapNote(fit: R | null | undefined): string {
+  const b = fit?.bootstrap;
+  if (fit?.ci_method !== "bootstrap" || !b) return "";
+  const how = b.method === "residual" ? "residual resampling" : b.method === "case" ? "case resampling" : String(b.method ?? "");
+  return `CI by bootstrap (${[how, num(b.resamples) ? `${b.resamples} resamples` : "", String(b.interval ?? "")]
+    .filter(Boolean).join(", ")})`;
 }
 
 function linregRows(ctx: Ctx, r: R): StatsRow[] {
@@ -653,13 +664,159 @@ function simpleRows(ctx: Ctx, r: R): StatsRow[] {
   }
 }
 
+// ------------------------------------------------- kinds merged after P-66
+
+/** Relative potency (parallel-line global fit): the parallelism F test,
+ *  then the potency ratio with its Fieller CI. */
+function relPotencyRows(ctx: Ctx, r: R): StatsRow[] {
+  const ref = String(r.reference ?? r.potency?.reference?.name ?? "reference");
+  const tst = String(r.test ?? r.potency?.test?.name ?? "test");
+  const out: StatsRow[] = [];
+  const F = r.f_test;
+  if (F && num(F.F)) {
+    out.push(finish(ctx, { test: "extra sum-of-squares F test (parallel vs. separate curves)",
+      comparison: `${tst} vs. ${ref}: parallel curves`, statistic: "F", value: f(F.F), df: dfPair(F.dfn, F.dfd),
+      pValue: F.p, adjustment: SINGLE, note: "a small P says the curves are not parallel" }));
+  }
+  const pot = r.potency;
+  if (pot && num(pot.ratio)) {
+    const lin = String(pot.linear ?? "EC50");
+    out.push(finish(ctx, { comparison: `${tst} vs. ${ref}`, estimate: `Relative potency (${lin} of ${ref} / ${lin} of ${tst})`,
+      estimateValue: f(pot.ratio), ci: ci2(pot.ci), level: pot.ci_level, note: String(pot.method ?? "") }));
+  }
+  return out;
+}
+
+/** Two global models compared by the extra sum-of-squares F test and AICc. */
+function globalCompareRows(ctx: Ctx, r: R): StatsRow[] {
+  const a = String(r.model_1?.label ?? "Model 1"), b = String(r.model_2?.label ?? "Model 2");
+  const F = r.f_test, aicc = r.aicc;
+  const prefer = aicc?.prefer === 1 ? a : aicc?.prefer === 2 ? b : "";
+  const aiccNote = num(aicc?.delta) ? `AICc difference ${f(aicc.delta)}${prefer ? `; AICc prefers ${prefer}` : ""}` : "";
+  if (F && num(F.F)) {
+    return [finish(ctx, { test: "extra sum-of-squares F test (global models)", comparison: `${a} vs. ${b}`,
+      n: num(r.n_points) ? `${r.n_points} points` : "", statistic: "F", value: f(F.F), df: dfPair(F.dfn, F.dfd),
+      pValue: F.p, adjustment: SINGLE, note: aiccNote })];
+  }
+  return aiccNote ? [finish(ctx, { test: "AICc (global models, not nested)", comparison: `${a} vs. ${b}`,
+    n: num(r.n_points) ? `${r.n_points} points` : "", note: aiccNote })] : [];
+}
+
+/** Precision study: repeatability and total CV with their CIs, and the
+ *  recovery against the nominal value. No test, so no P. */
+function precisionRows(ctx: Ctx, r: R): StatsRow[] {
+  const out: StatsRow[] = [];
+  for (const s of (Array.isArray(r.samples) ? r.samples : []) as R[]) {
+    const name = String(s?.name ?? "Sample");
+    const n = num(s.n) ? `${s.n} values${num(s.n_runs) ? ` in ${s.n_runs} runs` : ""}` : "";
+    const c: R = s.components ?? {};
+    const comp = (key: string, label: string) => {
+      if (c[key] && num(c[key].cv_percent)) {
+        out.push(finish(ctx, { test: "precision study (variance components)", comparison: name, n,
+          estimate: `${label} CV (%)`, estimateValue: f(c[key].cv_percent), ci: ci2(c[key].cv_ci), level: s.ci_level ?? r.ci_level,
+          note: String(c[key].ci_method ?? "") }));
+      }
+    };
+    comp("repeatability", "Repeatability");
+    comp("between_run", "Between-run");
+    comp("between_day", "Between-day");
+    comp("total", "Total (within-laboratory)");
+    const rec = s.recovery;
+    if (rec && num(rec.recovery_percent)) {
+      out.push(finish(ctx, { test: "precision study (recovery)", comparison: `${name} vs. nominal ${f(rec.nominal)}`, n,
+        estimate: "Recovery (%)", estimateValue: f(rec.recovery_percent), ci: ci2(rec.recovery_ci), level: s.ci_level ?? r.ci_level,
+        note: typeof rec.accepted === "boolean" ? `${rec.accepted ? "accepted" : "not accepted"} (limits ±${f(rec.limit_percent)}% recovery, ${f(rec.cv_limit_percent)}% CV)` : "" }));
+    }
+  }
+  return out;
+}
+
+/** Competing risks: Gray's test of each cause's cumulative incidence. */
+function competingRows(ctx: Ctx, r: R): StatsRow[] {
+  const names: string[] = Array.isArray(r.group_names) ? r.group_names.map(String) : [];
+  return (Array.isArray(r.causes) ? r.causes : []).filter((c: R) => c?.gray && num(c.gray.chi2)).map((c: R) =>
+    finish(ctx, { test: "Gray's test (cumulative incidence)", comparison: `Cause ${c.code}: ${names.join(" vs. ")}`,
+      statistic: "χ²", value: f(c.gray.chi2), df: dfText(c.gray.df), pValue: c.gray.p,
+      adjustment: "not adjusted (one test per cause)" }));
+}
+
+/** Parametric (AFT) survival: the likelihood-ratio test of the groups and
+ *  each group's time ratio against the reference. */
+function parametricRows(ctx: Ctx, r: R): StatsRow[] {
+  const test = `parametric survival regression (${String(r.label ?? r.dist ?? "AFT")} AFT)`;
+  const n = num(r.n) ? `${r.n} subjects, ${r.n_events ?? "?"} events` : "";
+  const out: StatsRow[] = [];
+  const lr = r.lr_test;
+  if (lr && num(lr.chi2)) {
+    out.push(finish(ctx, { test, comparison: "Among all groups (likelihood ratio)", n, statistic: "χ²", value: f(lr.chi2),
+      df: dfText(lr.df), pValue: lr.p, adjustment: "none (omnibus test)" }));
+  }
+  const coefs: R[] = Array.isArray(r.coefficients) ? r.coefficients : [];
+  for (const t of (Array.isArray(r.time_ratios) ? r.time_ratios : []) as R[]) {
+    const c = coefs.find((x) => x.name === `Group: ${t.group}`);
+    out.push(finish(ctx, { test, comparison: `${t.group} vs. ${t.reference}`, n, statistic: c && num(c.z) ? "z" : "",
+      value: f(c?.z), pValue: t.p, adjustment: PER_TERM, estimate: "Time ratio (acceleration factor)",
+      estimateValue: f(t.value), ci: ci2(t.ci), level: r.ci_level }));
+  }
+  return out;
+}
+
+/** Meta-analysis: the pooled estimate (random and common effect) and the
+ *  heterogeneity test; ratios on their own scale. */
+function metaRows(ctx: Ctx, r: R): StatsRow[] {
+  const ratio = r.scale === "ratio" || r.scale === "log_ratio";
+  const n = num(r.k) ? `${r.k} studies` : "";
+  const out: StatsRow[] = [];
+  const pooled = (m: R | undefined, label: string, test: string, note = "") => {
+    if (!m || !num(m.estimate)) return;
+    out.push(finish(ctx, { test, comparison: label, n, statistic: String(m.stat_name ?? (num(m.z) ? "z" : "")),
+      value: f(m.stat ?? m.z), df: dfText(m.df), pValue: m.p, adjustment: SINGLE,
+      estimate: ratio ? "Pooled ratio" : "Pooled estimate", estimateValue: f(ratio ? m.ratio : m.estimate),
+      ci: ci2(ratio ? m.ratio_ci : m.ci), level: r.ci_level, note }));
+  };
+  const h = r.heterogeneity;
+  const rnd = r.random;
+  pooled(rnd, `Pooled (random effects, ${String(rnd?.method ?? r.method ?? "")})`.replace(", )", ")"),
+    "meta-analysis (random effects)",
+    num(rnd?.tau2) ? `τ² = ${f(rnd.tau2)}${num(h?.I2) ? `, I² = ${f(h.I2)}%` : ""}` : "");
+  pooled(r.fixed, "Pooled (common effect, inverse variance)", "meta-analysis (common effect)");
+  if (h && num(h.Q)) {
+    out.push(finish(ctx, { test: "Cochran's Q (heterogeneity)", comparison: "Between studies", n, statistic: "Q",
+      value: f(h.Q), df: dfText(h.df), pValue: h.p, adjustment: SINGLE }));
+  }
+  return out;
+}
+
+/** Custom contrasts (one-way, two-way) and the interaction contrasts of a
+ *  repeated-measures two-way design, after the kind's own rows. */
+function contrastRows(ctx: Ctx, r: R): StatsRow[] {
+  const out: StatsRow[] = [];
+  const cc = r.custom_contrasts;
+  for (const c of (Array.isArray(cc?.contrasts) ? cc.contrasts : []) as R[]) {
+    if (!num(c?.estimate)) continue;
+    out.push(finish(ctx, { test: `${ctx.test}: custom contrast (${String(c.kind ?? "")})`.replace(" ()", ""),
+      comparison: `${String(c.name ?? "")}${c.label ? `: ${String(c.label)}` : ""}`, statistic: "t", value: f(c.t),
+      df: dfText(c.df ?? cc.df_residual), pValue: c.p, adjustment: String(c.adjustment ?? ""),
+      estimate: "Contrast", estimateValue: f(c.estimate), ci: ci2(c.ci), level: cc.ci_level }));
+  }
+  const ic = r.interaction_contrasts;
+  for (const c of (Array.isArray(ic?.contrasts) ? ic.contrasts : []) as R[]) {
+    if (!num(c?.difference)) continue;
+    out.push(finish(ctx, { test: `${ctx.test}: interaction contrast`, comparison: String(c.label ?? ""),
+      statistic: "t", value: f(c.t), df: dfText(c.df ?? ic.df_residual), pValue: c.p,
+      adjustment: String(ic.p_adjustment ?? ""), estimate: "Difference of the two effects", estimateValue: f(c.difference),
+      ci: ci2(c.ci), level: ic.ci_level }));
+  }
+  return out;
+}
+
 /** Analyses that report no test and no estimate with a CI. */
 const DESCRIPTIVE = new Set([
   "descriptive", "normalize", "transform", "frequency_distribution", "row_means", "fraction_of_total",
   "fraction_of_total_table", "formula_transform", "transform_concentrations", "remove_baseline",
   "transpose", "prune_rows", "simulate_xy", "simulate_column", "simulate_contingency",
   "multivar_descriptive", "pca", "mv_rearrange", "growth_transform", "summary_convert", "randomize",
-  "power", "residuals_column", "superplot",
+  "power", "residuals_column", "superplot", "smooth_xy", "curve_ops",
 ]);
 
 const MAPPERS: Record<string, (ctx: Ctx, r: R) => StatsRow[]> = {
@@ -708,6 +865,12 @@ const MAPPERS: Record<string, (ctx: Ctx, r: R) => StatsRow[]> = {
   rate_compare: simpleRows,
   roc: simpleRows,
   bland_altman: simpleRows,
+  relative_potency: relPotencyRows,
+  compare_global_fits: globalCompareRows,
+  precision_study: precisionRows,
+  competing_risks: competingRows,
+  parametric_survival: parametricRows,
+  meta_analysis: metaRows,
 };
 
 /** Names of the tests describe.ts does not name (regression models and
@@ -725,6 +888,12 @@ function modelName(r: R): string | null {
     case "deming": return "Deming regression";
     case "icc": return "intraclass correlation";
     case "rate_compare": return "comparison of two event rates (Poisson)";
+    case "relative_potency": return "relative potency (parallel-line global fit)";
+    case "compare_global_fits": return "comparison of two global models";
+    case "precision_study": return "precision study";
+    case "competing_risks": return "competing risks (cumulative incidence)";
+    case "parametric_survival": return "parametric survival regression";
+    case "meta_analysis": return "meta-analysis";
     default: return null;
   }
 }
@@ -765,6 +934,8 @@ export function statsRows(entry: StatsEntry, opts: { style?: PStyle; prefs?: Pic
   try { rows = map(ctx, r); } catch (e) {
     return only(`Not tabulated: the result could not be read (${e instanceof Error ? e.message : String(e)}); see its results sheet.`);
   }
+  // custom and interaction contrasts follow the kind's own rows
+  rows = [...rows, ...contrastRows(ctx, r)];
   if (!rows.length) return only("No comparison or estimate in this result; see its results sheet.");
   // P-84: the log scale from means and SDs is approximate; say so on every row
   if (r.log_scale && typeof r.log_scale === "object" && r.log_scale.approximate === true) {

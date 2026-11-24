@@ -1631,6 +1631,14 @@ const analyzeWith = async (re) => {
   // REF.ci_z is -1.066898 to -0.362167, metafor's printed -1.0669 to -0.3622
   expect("P-92 z interval: SE 0.1798, RR CI exp(-1.0669) to exp(-0.3622) (metafor)", z
     && Math.abs(REF.ci_z[0] + 1.0669) < 5e-5 && Math.abs(REF.ci_z[1] + 0.3622) < 5e-5, (await card()).slice(0, 1600));
+  // P-69: "What this means" reads the pooled ratio, its CI, I² and the
+  // prediction interval from the same result (metafor: 0.49, 0.34 to 0.70)
+  const metaMeaning = (await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect("P-69 meta-analysis meaning: pooled ratio 0.4894 (REML; 95% CI 0.3441 to 0.6962), I² 92.22%, prediction interval",
+    metaMeaning.includes("Combined over 13 studies, the pooled ratio is 0.4894 (random effects, REML; 95% CI 0.3441 to 0.6962)")
+    && metaMeaning.includes("I² = 92.22% of the variation between studies is beyond chance")
+    && metaMeaning.includes("(95% prediction interval)"), metaMeaning);
   await openChecks();
   const checks = (await page.locator(".pane-answer details.checks").first().innerText().catch(() => "")).replace(/\s+/g, " ");
   expect("P-92 the checks say the experiments disagree (I² 92.2%)", checks.includes("I² 92.2%"), checks.slice(0, 300));

@@ -32,7 +32,7 @@ import { ratioClause } from "./ratioToControl.ts";
 import { withheldInfo } from "../sheets/common/withheld.ts";
 import { SRC, type Source } from "../guide/sources.ts";
 import { REF_SOURCES } from "../sheets/assays/qpcr/refs.ts";
-import { assayMeaning } from "./meaningMore.ts";
+import { assayMeaning, kindMeaning } from "./meaningMore.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -618,7 +618,11 @@ function doseMeaning(r: R, t: MeaningTable | null | undefined): Meaning | null {
     const top = params.Top?.value, bottom = params.Bottom?.value;
     const unit = t?.xUnit ?? "";
     const c = ci2(mid.ci95);
-    const ci = c ? ` (95% CI ${conc(c[0], unit)} to ${conc(c[1], unit)})` : "";
+    // bootstrapped CIs (P-101) say so: "95% bootstrap CI (case resampling, 500 resamples)"
+    const boot = fit.ci_method === "bootstrap" && fit.bootstrap ? fit.bootstrap : null;
+    const bootT = boot ? [boot.method === "residual" ? "residual resampling" : boot.method === "case" ? "case resampling" : "",
+      num(boot.resamples) ? `${boot.resamples} resamples` : ""].filter(Boolean).join(", ") : "";
+    const ci = c ? ` (95% ${boot ? "bootstrap " : ""}CI ${conc(c[0], unit)} to ${conc(c[1], unit)}${bootT ? `; ${bootT}` : ""})` : "";
     const name = String(ds.name ?? "The curve");
     const span = num(top) && num(bottom) ? ` (Bottom ${fmt(bottom)}, Top ${fmt(top)})` : "";
     const flags = fit.range_flags;
@@ -637,7 +641,7 @@ function doseMeaning(r: R, t: MeaningTable | null | undefined): Meaning | null {
     }
     const more = sets.filter((d) => d?.fit?.params?.[midKey]).length > 1 ? " (first data set shown)" : "";
     return meaning(`${name}${more} gives a response halfway between its plateaus${span} at ${conc(mid.value, unit)}, its ${midKey}${ci}${steep}.`,
-    [S.gpEc50, S.gpHillSlope, SRC.gpRelAbsIc50],
+    [S.gpEc50, S.gpHillSlope, SRC.gpRelAbsIc50, ...(boot ? [SRC.efron1987] : [])],
     `the ${midKey} as the concentration that gives a response of 50 (or 50% inhibition). It is relative: halfway between this curve's own Bottom and Top.`,
     "Nonlinear regression: fits the dose-response curve by least squares.");
   }
@@ -1209,9 +1213,11 @@ export function meaningOf(input: MeaningInput): Meaning | null {
   const t = input.table ?? null;
   try {
     if (withheldInfo(r)) return withheldMeaning();
-    // the assay modules (meaningMore.ts)
+    // the assay modules and the kinds merged after P-66 (meaningMore.ts)
     const assay = assayMeaning(input.analysisId, r, o, t, style);
     if (assay !== undefined) return assay;
+    const kind = kindMeaning(r, t, style);
+    if (kind !== undefined) return kind;
     if (input.analysisId === "cox" || input.analysisId === "mv_cox" || r.analysis === "cox") return coxMeaning(r, style);
     switch (r.analysis) {
       case "ttest": return ttestMeaning(r, t, style);
