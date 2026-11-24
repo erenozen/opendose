@@ -88,6 +88,9 @@ export interface OptionsState {
   ciMethod: FitCIMethod;
   /** ciMethod "bootstrap": its settings (sheets/xy/bootstrap.ts). */
   bootstrap?: BootstrapState;
+  /** The two parameters whose joint confidence region the fit traces
+   *  (P-102, sheets/xy/fitRegion.ts); absent = none. */
+  jointRegion?: [string, string];
   /** "robust": robust nonlinear regression, best-fit values only (no SE,
    *  CI or bands). Absent = least squares. */
   fitMethod?: "least_squares" | "robust";
@@ -209,6 +212,15 @@ export interface FitResult {
   /** Bootstrap CIs (P-101, engine fitboot): how they were made, each
    *  value's bootstrap SE, bias and asymptotic CI, or why there are none. */
   bootstrap?: BootstrapResult;
+  /** The asymptotic covariance of the free parameters and its
+   *  correlations (P-102, engine fitregion.covariance_block). */
+  covariance?: {
+    params: string[];
+    matrix: (number | null)[][];
+    correlation: (number | null)[][];
+  } | null;
+  /** The joint confidence region of two parameters (P-102). */
+  joint_region?: JointRegionResult;
   /** "robust": best-fit values only (engine nlfit.robust_model_fit). */
   fit_method?: "least_squares" | "robust";
   note?: string;
@@ -262,6 +274,25 @@ export interface BootstrapResult {
     undefined?: number;
   }>;
   warnings?: string[];
+}
+
+/** Engine fitregion.JointRegion: the profile-likelihood region's
+ *  boundary (null where a ray leaves it open) and the linear
+ *  approximation's ellipse, or why there is none. */
+export interface JointRegionResult {
+  params: string[];
+  error?: string;
+  level?: number;
+  df?: [number, number];
+  f_crit?: number;
+  ss_min?: number;
+  threshold?: number;
+  estimate?: [number, number];
+  contour?: { x: (number | null)[]; y: (number | null)[] };
+  ellipse?: { x: number[]; y: number[] };
+  open?: boolean;
+  rays?: number;
+  refits?: number;
 }
 
 export interface ErrorBar {

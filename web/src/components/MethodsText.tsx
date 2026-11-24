@@ -110,7 +110,14 @@ export default function MethodsText({ result, options, xUnit }: Props) {
       return `${d.name}: ${label} = ${formatSig(e.value)} ${xUnit}${ci}`;
     });
 
-  const text = parts.join(", ") + ". " +
+  // the joint region (P-102), said only when one was traced
+  const region = result.datasets.map((d) => d.fit?.joint_region).find((j) => j && !j.error);
+  const regionText = region
+    ? ` The joint 95% confidence region of ${region.params[0]} and ${region.params[1]} was traced by `
+      + "profile likelihood, the other parameters refitted at each point (Bates and Watts, 1988)."
+    : "";
+
+  const text = parts.join(", ") + "." + regionText + " " +
     softwareSentence(getRuntimeVersions()) +
     (ic50s.length ? " " + ic50s.join("; ") + "." : "");
 

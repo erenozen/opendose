@@ -3128,3 +3128,57 @@ steps without retiring the worker (`engineWorker.test.ts`). e2e
 above in the table and "(bootstrap)" in the headline), the asymptotic
 CI kept in the details fold, Cancel during 10,000 resamples, the same
 CIs again after it, and no worker restart.
+
+### P-102 Parameter covariance and joint confidence region
+
+Every least-squares curve fit now returns the covariance its standard
+errors come from, s^2 (J'J)^-1 of the free parameters, and its
+correlations (cov2cor); the results show both in a fold under the
+parameters. "Plot the region" traces the joint 95% confidence region of
+two parameters by profile likelihood (Bates & Watts 1988, chapters 2 and
+6; the others refitted at every point, S~(a, b) <= S_min [1 + 2/(n - p)
+F(2, n - p)]) on its own graph, next to the linear approximation's
+ellipse. Engine: `engine/opendose/fitregion.py` (72 rays from the
+estimate through the ellipse, the crossing bracketed and found by
+Brent's method; a ray that does not cross within 12 ellipse radii leaves
+the region open). R (vcov, cov2cor, nlstools::nlsContourRSS) is not
+installed: the oracles are in `engine/tests/reference/fit_region.py`,
+tested in `engine/tests/test_fit_region.py`. nlsContourRSS, the plan's
+reference, draws Beale's region with the other parameters fixed at their
+estimates (a slice of the 4-dimensional region), not this profile region.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| the example 4PL: covariance and correlation (acceptance: the folded table) | scipy curve_fit pcov with the 4PL's analytic Jacobian; cov2cor by hand: corr(HillSlope, Top) 0.6008, (HillSlope, Bottom) -0.6060, (HillSlope, LogIC50) 0.009504, (Bottom, Top) -0.2684; var(LogIC50) 2.165e-4 | 2e-6 relative (matrix), 1e-7 (correlation); each SE equals the square root of the diagonal bit for bit |
+| the joint region of LogIC50 and HillSlope (acceptance: the region plot) | the exact profile sum of squares (Top and Bottom by linear least squares, no optimiser) along the same 72 rays by brentq: LogIC50 -7.021 to -6.944, HillSlope -1.212 to -1.005; F(0.95; 2, 23) = 3.4221 (printed tables); threshold 77.3117 | 1e-4 of the region's width per point |
+| the same region on a 600 x 600 grid of exact profile sums of squares | the area inside the threshold, 0.012470 | the engine polygon's area within 1% |
+| Michaelis-Menten on R's Puromycin (treated), Vmax and Km (no other parameter: Beale's region) | the region on a 700 x 700 grid of direct sums of squares: area 1.0256, Vmax 193.16 to 234.27, Km 0.04279 to 0.09352; F(0.95; 2, 10) = 4.1028 | area within 1%, extremes within 2 grid cells |
+
+Also tested: parameters held constant are left out of the matrix (3PL,
+Bottom = 0); a robust fit has none; a singular matrix gives n/a
+correlations; the region reaches past each parameter's own 95% CI; the
+bootstrap and the region in one stepped job report both kinds of
+progress; a pair with one parameter twice, an unknown parameter, a
+constant, one name only, ROUT and robust fits are refused with a
+sentence and cost the fit nothing; Michaelis-Menten measured only far
+below Km gives an open region, reported open with the line broken where
+rays do not close; a range constraint (Bottom >= 0.5) cuts the region at
+the limit; 1/Y^2 weighting works, and mean / SD / n gives exactly the
+region of the replicates; doses in nM shift the LogIC50 side of the
+region by exactly 9. Web: the option, the pair offered first, the
+matrices as table rows, the region view and its sentence
+(`fitRegion.test.ts`). e2e (`e2e-results.mjs`): the correlation matrix
+and the covariance row of LogIC50 in the fold, "Plot the region" making
+a graph with the region (73 points, the extremes above), the ellipse and
+the best fit on axes titled LogIC50 and HillSlope, the card's F(2, 23) =
+3.422, and one undo removing graph and option.
+
+Independent check values (for the lead): the example ("Dose response",
+`/?example=1`), curve fit with Confidence intervals "Bootstrap
+percentile" (Advanced fold), case resampling, 2,000 resamples, seed 1:
+LogIC50 95% CI -7.012 to -6.947, IC50 9.734e-8 to 1.129e-7 M (results
+table, CI column headed "bootstrap percentile"); "Parameter correlation
+and covariance" fold under the same table: corr(HillSlope, Top) 0.6008;
+"Joint confidence region" card, Plot the region (LogIC50, HillSlope):
+the graph's solid line spans LogIC50 -7.021 to -6.944, HillSlope -1.212
+to -1.005.

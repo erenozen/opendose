@@ -49,7 +49,7 @@ from . import logscale, rm_posthoc, twoway_contrasts
 from . import art
 from . import compare_models, compare_params, flow, qpcr_refs, relpotency
 from . import potency
-from . import fitboot
+from . import fitboot, fitregion
 
 
 def _expand(x_col, replicate_rows):
@@ -128,7 +128,7 @@ def _drain(gen):
 
 
 def _relay(gen, offset, total, what):
-    """Run a fitboot step generator, reporting its steps as
+    """Run a fitboot / fitregion step generator, reporting its steps as
     {"done", "total", "what"} of the whole job; returns its summary."""
     while True:
         try:
@@ -185,8 +185,16 @@ def _dose_response_steps(data, options):
     an ambiguous fit, too many failed refits), and then keeps the
     asymptotic CIs. Bands and interpolated values stay asymptotic.
 
-    This generator yields {"done", "total", "what": "bootstrap"} between
-    chunks of refits."""
+    Every least-squares fit carries "covariance" {params, matrix,
+    correlation} (P-102, fitregion.covariance_block): the asymptotic
+    covariance of the free parameters its SEs come from. options.
+    joint_region [a, b] adds "joint_region" (fitregion.JointRegion:
+    params, level, df, f_crit, ss_min, threshold, estimate, contour {x,
+    y} with null where a ray leaves the region open, ellipse {x, y},
+    open, rays, refits; or {params, error}).
+
+    This generator yields {"done", "total", "what": "bootstrap" |
+    "region"} between chunks of refits."""
     if options.get("user_equation"):
         return (yield from _user_equation_steps(data, options))
     model = options.get("model", "log_inhibitor_vs_response_4pl")
@@ -204,8 +212,15 @@ def _dose_response_steps(data, options):
     if ci_method == "bootstrap":
         boot_opt = fitboot.read_options(options.get("bootstrap"))
         ci_method = "asymptotic"  # the fit's own CIs, replaced below
-    # steps per data set, for progress: the resamples
+    # options.joint_region [a, b] (P-102): the joint confidence region of
+    # two free parameters of every data set (fitregion.JointRegion)
+    region_opt = options.get("joint_region") or None
+    if region_opt is not None and (not isinstance(region_opt, (list, tuple))
+                                   or len(region_opt) != 2):
+        raise ValueError("the joint region needs two parameters")
+    # steps per data set, for progress: resamples, then rays
     n_boot = boot_opt["resamples"] if boot_opt is not None else 0
+    n_rays = fitregion.RAYS if region_opt is not None else 0
     rout_q = options.get("rout_q")  # e.g. 0.01 turns on ROUT
     # fit_method "robust": nlfit.robust_model_fit, best-fit values only
     fit_method = options.get("fit_method", "least_squares")
@@ -336,7 +351,7 @@ def _dose_response_steps(data, options):
             if abs_level is not None:
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
                     fit, float(abs_level), x_lo, x_hi)
-            per_set = n_boot
+            per_set = n_boot + n_rays
             fit_kw = dict(constraints=constraints, weighting=weighting,
                           weight_source=options.get("weight_source",
                                                     "predicted"),
@@ -350,9 +365,20 @@ def _dose_response_steps(data, options):
                     fit_kw=fit_kw,
                     abs_ic50=(None if abs_level is None else
                               (float(abs_level), x_lo, x_hi)))
+            if not robust:
+                # P-102: the covariance behind the SEs, and its correlations
+                fit["covariance"] = fitregion.covariance_block(
+                    spec, fit.get("_cov"))
+            if region_opt is not None:
+                yield from _region_steps(
+                    fit, xs, ys, region_opt, fit_kw=dict(fit_kw, **s_kw),
+                    offset=i_set * per_set + n_boot, total=n_sets * per_set,
+                    refusal=_region_refusal(fit, robust=robust,
+                                            rout=bool(rout_q)))
             if per_set:
                 yield {"done": (i_set + 1) * per_set,
-                       "total": n_sets * per_set, "what": "bootstrap"}
+                       "total": n_sets * per_set,
+                       "what": "region" if n_rays else "bootstrap"}
             fit.pop("_cov", None)  # internal; keep the JSON payload lean
             entry["residual_check"] = _fit_residual_check(
                 fit.pop("_residuals", None), entry["name"], robust=robust,
@@ -456,6 +482,43 @@ def _bootstrap_steps(fit, xs, ys, spec, boot_opt, *, offset, total,
         fit["bootstrap"] = {"error": f"Bootstrap failed: {exc}"}
         return
     _apply_bootstrap(fit, summary_)
+
+
+def _region_steps(fit, xs, ys, pair, *, fit_kw, offset, total, refusal):
+    """The joint confidence region of two parameters of one fitted data
+    set (fitregion.JointRegion), as fit["joint_region"]; a failure is
+    reported there and costs nothing else."""
+    if refusal:
+        fit["joint_region"] = {"params": list(pair), "error": refusal}
+        return
+    try:
+        setup = nlfit.fit_setup(xs, ys, fit["model"], **fit_kw)
+        g = fit["goodness"]
+        ss_min = (g["ss_res_weighted"] if g.get("ss_res_weighted") is not None
+                  else g["ss_res"])
+        region = fitregion.JointRegion(
+            setup, fit["fitted_values"], fit["_cov"], str(pair[0]),
+            str(pair[1]), weighting=fit_kw["weighting"],
+            weight_source=fit_kw["weight_source"], ss_min=ss_min)
+        fit["joint_region"] = yield from _relay(region.steps(), offset, total,
+                                                "region")
+    except Exception as exc:
+        fit["joint_region"] = {"params": list(pair),
+                               "error": f"No joint region: {exc}"}
+
+
+def _region_refusal(fit, *, robust, rout):
+    """Why a fit gets no joint confidence region, or None."""
+    if robust:
+        return ("No joint region for a robust fit, which reports best-fit "
+                "values only")
+    if rout:
+        return ("No joint region with ROUT: it would not repeat the outlier "
+                "removal")
+    if fit.get("status") == "ambiguous":
+        return ("No joint region: the fit is ambiguous, so its parameters "
+                "are not determined by the data")
+    return None
 
 
 def _bootstrap_refusal(fit, *, robust, rout, summary_fmt):

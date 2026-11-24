@@ -1,4 +1,4 @@
-import { ANALYSIS_NONLIN, GRAPH_SCHILD, GRAPH_XY } from "../../project/builtin";
+import { ANALYSIS_NONLIN, GRAPH_FIT_REGION, GRAPH_SCHILD, GRAPH_XY } from "../../project/builtin";
 import { emptyTable } from "../../project/table";
 import type { AnalysisResult, OptionsState } from "../../types";
 import { DEFAULT_XY_OPTIONS } from "../../types";
@@ -22,6 +22,7 @@ import { POTENCY_OUTPUT, potencyTable } from "./experiments";
 import { PARAMETERS_OUTPUT, parametersTable } from "./fitSummary";
 import { SCHILD_OUTPUT, schildTable } from "./schild";
 import { SchildPlot } from "./SchildPlot";
+import { FitRegionPlot } from "./FitRegionPlot";
 import { concentrationUnit } from "./rangeReport";
 import {
   ANALYSIS_LINREG, DEFAULT_LINREG, GRAPH_LINREG, normalizeLinreg, runLinreg, type LinregOptions,
@@ -93,6 +94,22 @@ export const schildGraph = defineGraph<OptionsState, AnalysisResult>({
   exportName: "schild-plot",
   PlotPanel: SchildPlot,
   formatDatasets: () => ["log(DR − 1)"],
+  formatFeatures: { points: true, lines: true },
+});
+
+// The joint confidence region of two fitted parameters (P-102): the pair
+// is the fit's own option (jointRegion), chosen on its results.
+export const fitRegionGraph = defineGraph<OptionsState, AnalysisResult>({
+  id: GRAPH_FIT_REGION,
+  label: "Joint confidence region of two fitted parameters",
+  group: "xy",
+  analysis: ANALYSIS_NONLIN,
+  autoTitles: (_table, options) => {
+    const pair = (options as OptionsState | null | undefined)?.jointRegion;
+    return { x: pair?.[0] ?? "Parameter", y: pair?.[1] ?? "Parameter" };
+  },
+  exportName: "joint-region",
+  PlotPanel: FitRegionPlot,
   formatFeatures: { points: true, lines: true },
 });
 
@@ -259,6 +276,6 @@ export const xyTable: TableTypeDef = {
   EditorAside: PlateAside,
   analyses: [nonlinAnalysis, linregAnalysis, compareAnalysis, demingAnalysis, methodRegressionAnalysis,
     quantalAnalysis, columnAnalysis, rowMeansAnalysis, rocAnalysis, blandAltmanAnalysis],
-  graphs: [xyGraph, schildGraph, linregGraph, compareGraph, demingGraph, methodRegressionGraph, quantalGraph,
+  graphs: [xyGraph, schildGraph, fitRegionGraph, linregGraph, compareGraph, demingGraph, methodRegressionGraph, quantalGraph,
     ...xyGroupedGraphs, ...columnGraphs, rocGraph, blandAltmanGraph],
 };

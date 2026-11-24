@@ -68,7 +68,7 @@ export type WorkerResponse =
   }
   | { type: "bootError"; message: string }
   /** A stepped analysis's progress: `done` of `total` steps (bootstrap
-   *  resamples); `what` names the work. */
+   *  resamples, rays of a joint region); `what` names the work. */
   | { type: "jobProgress"; id: number; done: number; total: number; what?: string }
   /** ok: json is the result text; not ok: message is why the call threw. */
   | { type: "result"; id: number; ok: true; json: string; ms: number }

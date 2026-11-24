@@ -5,6 +5,7 @@ import type { EngineBridge } from "../../lib/engine";
 import { numericData, parseCell } from "../../project/table";
 import { curveOptions } from "./curveRange";
 import { bootstrapOption } from "./bootstrap";
+import { regionOption } from "./fitRegion";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types";
 import { engineWeighting, type AnalysisResult, type OptionsState } from "../../types";
 import { modelMeta, USER_MODEL_ID } from "../../lib/modelLibrary";
@@ -248,6 +249,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       ...weightSourceOption(options, summary),
       ci_method: options.ciMethod,
       ...bootstrapOption(options),
+      ...regionOption(options),
       rout_q: options.routEnabled
         ? (parseCell(options.routQ) ?? 1) / 100 : null,
       bands: options.bands === "none" ? null : options.bands,
@@ -310,6 +312,7 @@ function runUserEquation(engine: EngineBridge, _table: DataTableModel,
       ...weightSourceOption(options, Object.keys(summaryOptions).length > 0),
       ci_method: options.ciMethod,
       ...bootstrapOption(options),
+      ...regionOption(options),
       rout_q: options.routEnabled
         ? (parseCell(options.routQ) ?? 1) / 100 : null,
       bands: options.bands === "none" ? null : options.bands,

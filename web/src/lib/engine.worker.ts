@@ -275,8 +275,9 @@ function ensureReader(runtime: Py, format: WorkbookFormat): Promise<void> {
 let workbookReader: ((path: string, format: string) => string) | null = null;
 
 /** Requests that run in steps (opendose.api.StepJob): a curve fit with
- *  bootstrap CIs. Every other request is one call. */
-const STEPPED = /"ci_method":\s*"bootstrap"/;
+ *  bootstrap CIs or a joint confidence region. Every other request is
+ *  one call. */
+const STEPPED = /"ci_method":\s*"bootstrap"|"joint_region":\s*\[/;
 /** Jobs the page asked to stop: checked between two steps. */
 const stops = new Set<number>();
 let current: number | null = null;

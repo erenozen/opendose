@@ -4,6 +4,7 @@ import { MODELS_META, formatSig, weightingLabel } from "../types";
 import { RangeNote, RangeValueCell } from "../sheets/xy/rangeFlags";
 import { FitStarts } from "../sheets/xy/FitStarts";
 import { BootstrapNote } from "../sheets/xy/BootstrapNote";
+import { CovarianceFold } from "../sheets/xy/Covariance";
 import { ciMethodWords } from "../sheets/xy/bootstrap";
 import { AMBIGUOUS_NOTE, ciText, extrapolationNote, seText } from "../sheets/xy/fitCells";
 import { paramLabel } from "./answer/keyFacts";
@@ -165,6 +166,7 @@ function FitCard({ ds, xUnit, options }: { ds: DatasetResult; xUnit: string; opt
             </table>
             <RangeNote fit={fit} />
             <BootstrapNote name={ds.name} fit={fit} />
+            <CovarianceFold name={ds.name} fit={fit} />
             {fit.notes?.map((n) => (
               <p key={n} className="model-line fit-note"><NumText text={n} /></p>
             ))}

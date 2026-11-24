@@ -189,7 +189,8 @@ export function AnalysisBusy({ status, engine }: {
   const long = elapsed >= LONG_JOB_S && !progress;
   const waiting = engine.phase === "booting" || engine.phase === "restarting";
   const text = waiting ? "Waiting for the analysis engine…"
-    : progress ? "Resampling for the bootstrap CIs…"
+    : progress ? (progress.what === "region" ? "Tracing the joint confidence region…"
+      : "Resampling for the bootstrap CIs…")
       : long ? "This is taking unusually long." : "Computing…";
   return (
     <div className={`analysis-busy${long ? " long" : ""}`} data-elapsed={elapsed.toFixed(1)}>
@@ -199,7 +200,7 @@ export function AnalysisBusy({ status, engine }: {
         <>
           <progress max={progress.total} value={progress.done} aria-label="Progress of the refits" />
           {/* the count is seen, not spoken: the status says the phase */}
-          <span className="analysis-busy-time" aria-hidden="true">
+          <span className="analysis-busy-time analysis-busy-count" aria-hidden="true">
             {progress.done.toLocaleString("en-US")} of {progress.total.toLocaleString("en-US")}
           </span>
         </>
