@@ -5534,6 +5534,12 @@ reads the acceptance CI (0.772 to 1.3 uM, 1.68-fold), the 28.2-fold CI
 and the top-plateau flag after shifting the series, a 30-run simulation
 near the expected width, and axe on the dialog; ui-stage scene
 guided-plan-dose.
+
+Independent check (2026-11-24, by the lead): the RM within effect of
+Faul et al. 2007 (f 0.2572, N 90, 3 groups x 3 measurements, rho 0.3)
+from scipy's noncentral F: lambda = f^2 N m / (1 - rho) = 25.5157,
+critical F(2, 174) = 3.047906, power 0.996553; the nested design effect
+1 + (10 - 1) x 0.3 = 3.7 and 63.77 x 3.7 / 10 = 23.59 animals by hand.
 """
 
 
