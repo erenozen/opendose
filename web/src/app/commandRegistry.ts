@@ -12,6 +12,7 @@ import { openGridFind, openGridReplace } from "./gridFind";
 import { focusNote } from "./noteFocus";
 import { printSheet } from "./usePrint";
 import { useCommands } from "./commands";
+import { canPickFiles } from "./fileSave";
 import { useProject } from "./context";
 import { useUi } from "./ui";
 import { familyChildren, familyRootId, findSheet } from "../project/ops";
@@ -100,7 +101,11 @@ export function useCommandRegistry(): Command[] {
       { id: "example", label: "Open the example project…", group: "file",
         keywords: "sample demo dose response contingency survival", run: () => requestShell("example") },
       { id: "save", label: "Save project", group: "file", shortcut: modKey("S"),
-        keywords: "download project file json keep", run: cmd.save },
+        keywords: "download project file json keep", run: () => { void cmd.save(); } },
+      // Only where the browser can write a picked file (P-71); elsewhere
+      // Save project's download already asks where, as the browser is set.
+      ...(canPickFiles() ? [{ id: "save-as", label: "Save as…", group: "file" as const,
+        keywords: "save copy new file name location json", run: () => { void cmd.saveAs(); } }] : []),
       { id: "print", label: "Print…", group: "file", shortcut: modKey("P"),
         keywords: "paper pdf", disabled: !selected,
         run: () => { if (selected) printSheet(select, selected.id); } },

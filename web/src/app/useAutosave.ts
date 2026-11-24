@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { autosaveKv, type SessionRecord } from "../project/autosave";
+import { autosaveEnabled, autosaveKv, type SessionRecord } from "../project/autosave";
 import { newId } from "../project/ids";
 import { parseProjectFile, savedSelection, serializeProject } from "../project/persist";
 import {
@@ -11,6 +11,7 @@ import { requestShell } from "./commandRegistry";
 import { useProject } from "./context";
 import { currentSavedWith, prepareReproduceCheckFor } from "./reproduceCheck";
 import { savedWithOf } from "../project/reproduce";
+import { linkedFile, linkFile, onLinkChange, recallHandle, rememberHandle } from "./fileSave";
 
 const DELAY_MS = 800;
 
@@ -89,11 +90,14 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
     if (readOnly) return;
     let live = true;
     booting ??= sessions().boot({ autoOpen: mayReopen });
-    booting.then((r) => {
+    booting.then(async (r) => {
       if (!live) return;
       if (r.reopen && !reopened.current) {
         reopened.current = true;
+        // The file this session saved to, read before the reopen drops it.
+        const handle = await recallHandle(r.reopen.id).catch(() => null);
         show.current(r.reopen, "auto");
+        if (handle) linkFile(handle);
       }
       if (!sharedBoot) {
         setOffers(r.offers);
@@ -151,6 +155,15 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
   useEffect(() => { schedule.current(); }, [history.present, selectedId, readOnly]);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
+  // The file this tab's project saves to (P-71) is kept with its session,
+  // so a reload still saves in place. Never for a shared project.
+  const readOnlyRef = useRef(readOnly);
+  readOnlyRef.current = readOnly;
+  useEffect(() => onLinkChange(() => {
+    const id = manager?.tabId;
+    if (id && !readOnlyRef.current && autosaveEnabled()) void rememberHandle(id, linkedFile());
+  }), []);
+
   // For the e2e scripts (scripts/e2e-check.mjs): this tab's session id
   // and the JSON its autosave writes, as __opendose is.
   useEffect(() => {
@@ -183,7 +196,9 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
       { tone: "error" });
       return;
     }
+    const handle = await recallHandle(id).catch(() => null);
     show.current(r.record, "restore");
+    if (handle) linkFile(handle);
     // The session this tab had stays kept, and is offered with the rest.
     const released = r.released;
     setOffers((o) => (released ? [...others(o), released].sort(byRecent) : others(o)));
@@ -191,7 +206,7 @@ export function useAutosave({ autoOpen }: { autoOpen: boolean }) {
 
   /** Delete a closed tab's session for good (the banner asks first). */
   const discard = async (id: string) => {
-    await sessions().discard(id);
+    if (await sessions().discard(id) === "ok") void rememberHandle(id, null);
     setOffers((o) => o.filter((x) => x.id !== id));
   };
 

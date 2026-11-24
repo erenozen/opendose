@@ -60,6 +60,13 @@ const boxes = (page, sel) => page.evaluate((s) => [...document.querySelectorAll(
 
 // ------------------------------------------------------------ the example
 const ctx = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+// Open… uses the browser's own file picker where the File System Access
+// API exists (P-71), which Playwright cannot answer: these checks drive
+// the file input every other browser uses. e2e-project covers the picker.
+await ctx.addInitScript(() => {
+  delete window.showOpenFilePicker;
+  delete window.showSaveFilePicker;
+});
 const page = await ctx.newPage();
 watch(page, "example");
 await page.goto(EXAMPLE, { waitUntil: "domcontentloaded" });

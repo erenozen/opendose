@@ -4,6 +4,43 @@ import { openPrivacy, openValidation } from "../share/events";
 import CiteBlock from "./CiteBlock";
 import Modal from "./Modal";
 import { Button } from "./ui/Button";
+import { notify } from "./ui/Toast.store";
+import { modKey } from "../app/commandRegistry";
+import { canPickFiles } from "../app/fileSave";
+import { installApp, useInstallState } from "../app/install";
+
+/** "Install as app" (P-71): what this browser can do with project files. */
+function InstallNote() {
+  const state = useInstallState();
+  const inPlace = canPickFiles();
+  const files = ".json, .pzfx and .prism files";
+  if (state === "installed") {
+    return (
+      <p className="info-install">
+        Installed as an app on this device: {files} open in it by double-click,
+        and Save project ({modKey("S")}) writes back into the file you opened.
+      </p>
+    );
+  }
+  if (state === "available") {
+    return (
+      <p className="info-install">
+        Install as app: OpenDose gets its own window, works offline, and opens {files} by
+        double-click. Nothing is sent anywhere; the app is this page.{" "}
+        <Button size="sm" onClick={async () => {
+          if (await installApp()) notify("Installed OpenDose as an app.", { tone: "success" });
+        }}>Install as app</Button>
+      </p>
+    );
+  }
+  return (
+    <p className="info-install">
+      {inPlace
+        ? `Install as app: Chrome and Edge offer it in the address bar once the page has loaded; the app opens ${files} by double-click. In this browser Save project (${modKey("S")}) writes back into a file opened with Open…`
+        : `This browser cannot install OpenDose as an app that opens files; use Open… (${modKey("O")}). Save project downloads the project file.`}
+    </p>
+  );
+}
 
 /** The format page (docs/project-file-format.md), with the schema beside it. */
 const FORMAT_DOC = "https://github.com/erenozen/opendose/blob/main/docs/project-file-format.md";
@@ -42,6 +79,7 @@ export default function AboutDialog({ dataId, onClose }: {
             The project file format and its JSON Schema
           </a>
         </p>
+        <InstallNote />
         <p>
           OpenDose is a free, independent open-source project built
           on NumPy/SciPy. It is not affiliated with, endorsed by, or

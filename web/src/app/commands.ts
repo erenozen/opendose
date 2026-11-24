@@ -13,6 +13,9 @@ import {
 } from "../project/groups";
 import { addNote, deleteNote, updateNote } from "../project/notes";
 import { serializeProject } from "../project/persist";
+import {
+  canPickFiles, linkedFile, linkFile, projectFileName, saveAsPicker, saveFailure, writeToHandle,
+} from "./fileSave";
 import { consistentTargets, makeGraphsConsistent } from "../project/wand";
 import { withExclusionsBlanked } from "../project/table";
 import { sheetTable } from "../project/leftOut";
@@ -26,6 +29,9 @@ import { useProject } from "./context";
 import { currentSavedWith } from "./reproduceCheck";
 import { analysisSheets } from "./factory";
 import { useUi } from "./ui";
+
+/** One toast follows a save to its outcome. */
+const SAVE_TOAST = "save-file";
 
 export function useCommands() {
   const api = useProject();
@@ -108,20 +114,56 @@ export function useCommands() {
       select(id);
     };
 
-    const save = () => {
-      const p = store.project;
-      const blob = new Blob([serializeProject(p, results.snapshot(),
-        { keys: results.fingerprints(), selected: api.selectedId, savedWith: currentSavedWith() })],
-        { type: "application/json" });
+    /** The project file's text: what Save writes, to a download or in place. */
+    const fileText = () => serializeProject(store.project, results.snapshot(),
+      { keys: results.fingerprints(), selected: api.selectedId, savedWith: currentSavedWith() });
+
+    const download = (text: string) => {
+      const blob = new Blob([text], { type: "application/json" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      const slug = p.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "") || "opendose-project";
-      a.download = `${slug}.json`;
+      a.download = projectFileName(store.project.title);
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    };
+
+    /** Save project (Ctrl/Cmd+S): back into the file the project came
+     *  from when there is one (P-71), else a download. */
+    const save = async () => {
+      const handle = linkedFile();
+      const text = fileText();
+      if (!handle) { download(text); return; }
+      try {
+        await writeToHandle(handle, text);
+        ui.notify(`Saved “${handle.name}”.`, { tone: "success", id: SAVE_TOAST });
+      } catch (e) {
+        ui.notify(`Could not save “${handle.name}”: ${saveFailure(e)}.`, {
+          tone: "error", id: SAVE_TOAST,
+          action: canPickFiles()
+            ? { label: "Save as…", onAction: () => { void saveAs(); } }
+            : { label: "Download a copy", onAction: () => download(fileText()) },
+        });
+      }
+    };
+
+    /** Save as…: a new file from the system picker, which the project
+     *  then saves to. Browsers without the picker download instead. */
+    const saveAs = async () => {
+      if (!canPickFiles()) { download(fileText()); return; }
+      const name = linkedFile()?.name ?? projectFileName(store.project.title);
+      try {
+        const handle = await saveAsPicker(name, fileText());
+        if (!handle) return;
+        linkFile(handle);
+        ui.notify(`Saved “${handle.name}”.`, { tone: "success", id: SAVE_TOAST });
+      } catch (e) {
+        ui.notify(`Could not save “${name}”: ${saveFailure(e)}.`, {
+          tone: "error", id: SAVE_TOAST,
+          action: { label: "Download a copy", onAction: () => download(fileText()) },
+        });
+      }
     };
 
     // ---- groups (navigator folders inside a section)
@@ -204,7 +246,7 @@ export function useCommands() {
     return {
       rename, remove, duplicate,
       openDuplicateFamily: ui.openDuplicateFamily, move, highlight,
-      toggleFreeze, addAnalysis, addInfo, addLayout, save,
+      toggleFreeze, addAnalysis, addInfo, addLayout, save, saveAs, fileText,
       newTable: ui.openNewTable,
       newGroup, renameGroup: renameGroupCmd, deleteGroup: deleteGroupCmd,
       moveGroup: moveGroupCmd, setGroupFolded, toGroup, dropBefore,

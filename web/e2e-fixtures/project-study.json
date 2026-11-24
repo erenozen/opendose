@@ -1,0 +1,43 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Study",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "d1",
+ "sheets": [
+  {
+   "id": "d1",
+   "kind": "data",
+   "name": "Viability",
+   "table": {
+    "type": "column",
+    "x": ["", "", "", "", "", ""],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": ["", "", "", "", "", ""],
+    "datasets": [
+     { "name": "Control", "rows": [["10.2"], ["11.5"], ["9.8"], ["14.1"], ["10.9"], ["11.3"]] },
+     { "name": "Treated", "rows": [["11.9"], ["12.8"], ["11.4"], ["13.6"], ["12.7"], ["13.1"]] }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r1",
+   "kind": "results",
+   "parentId": "d1",
+   "analysis": "column",
+   "options": { "analysis": "ttest", "ttestKind": "welch" },
+   "name": "t test of Viability"
+  }
+ ]
+}
