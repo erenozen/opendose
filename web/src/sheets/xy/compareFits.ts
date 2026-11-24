@@ -11,7 +11,10 @@
 //  - "parameter": one parameter (logEC50, Hill slope, Top ...) of model 1
 //    between two chosen data sets, by the engine's `compare_parameter`
 //    (difference / ratio with CI, F test and AICc for sharing it;
-//    compareParameter.ts).
+//    compareParameter.ts);
+//  - "potency": the relative potency of a test sample (data set B)
+//    against a reference standard (A) from parallel curves, with the
+//    parallelism F test and equivalence margins (relativePotency.ts).
 // The result keeps the per-data-set fit shape the XY graph draws (model 1
 // or the separate curves as `fit`, the other model's curve under
 // `altCurves`). Pure: unit-tested with node --test.
@@ -19,17 +22,25 @@ import { numericData } from "../../project/table.ts";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types.ts";
 import { engineWeighting, WEIGHTING_LABELS, weightingLabel } from "../../types.ts";
 import type { ConstraintState, ErrorBarKind, WeightingKind } from "../../types.ts";
-import { MODELS_META, modelMeta, modelsByFamily, type ModelMeta } from "../../lib/modelLibrary.ts";
+import {
+  MODELS_META, modelMeta, modelsByFamily, USER_MODEL_ID, type ModelMeta,
+} from "../../lib/modelLibrary.ts";
+import {
+  columnConstants, freeParameters, normalizeEquation, sharedParameters, userEquationPayload,
+  type UserEquationDef,
+} from "../../lib/userEquation.ts";
+import { globalModelToResult, numberInTitle } from "./fitOptions.ts";
 import {
   compareAicc, extraSumOfSquaresF, type AiccComparison, type FTest,
 } from "./fitStats.ts";
 import { comparableParameters, defaultParameter, runParameter } from "./compareParameter.ts";
+import { normalizeMargins, potencyModel, runPotency, type Margin } from "./relativePotency.ts";
 import { tQuantile } from "../grouped/stats.ts";
 
 export const ANALYSIS_COMPARE = "compare_fits";
 export const GRAPH_COMPARE = "compare_fits_xy";
 
-export type CompareMode = "models" | "global" | "parameter";
+export type CompareMode = "models" | "global" | "parameter" | "potency";
 /** Which comparison to report: both, the F test (nested models) or AICc
  *  only (models that are not nested). */
 export type CompareMethod = "both" | "f" | "aicc";
@@ -62,6 +73,14 @@ export interface CompareOptions {
   weighting: WeightingKind;
   /** K of 1/Y^K weighting. */
   weightK?: number;
+  /** "models" mode: the user-defined equation of model 1 / model 2 when
+   *  that model is USER_MODEL_ID (a copy, so the saved project does not
+   *  depend on this browser's equation library). */
+  userEquation1?: UserEquationDef | null;
+  userEquation2?: UserEquationDef | null;
+  /** "potency" mode: equivalence margins per parameter, as typed (set
+   *  before the data are seen). Data set A is the reference, B the test. */
+  margins?: Record<string, Margin>;
 }
 
 export const DEFAULT_COMPARE: CompareOptions = {
@@ -80,7 +99,7 @@ const isConstraints = (v: unknown): v is Record<string, ConstraintState> =>
 export function normalizeCompare(raw: unknown): CompareOptions {
   const r = (raw && typeof raw === "object" ? raw : {}) as Partial<CompareOptions>;
   return {
-    mode: r.mode === "global" || r.mode === "parameter" ? r.mode : "models",
+    mode: r.mode === "global" || r.mode === "parameter" || r.mode === "potency" ? r.mode : "models",
     model1: typeof r.model1 === "string" && r.model1 ? r.model1 : DEFAULT_COMPARE.model1,
     model2: typeof r.model2 === "string" && r.model2 ? r.model2 : DEFAULT_COMPARE.model2,
     constraints1: isConstraints(r.constraints1) ? r.constraints1 : {},
@@ -98,7 +117,18 @@ export function normalizeCompare(raw: unknown): CompareOptions {
     weighting: typeof r.weighting === "string" && r.weighting in WEIGHTING_LABELS
       ? r.weighting as WeightingKind : "none",
     ...(typeof r.weightK === "number" && r.weightK > 0 && r.weightK <= 10 ? { weightK: r.weightK } : {}),
+    ...userEquations(r),
+    ...(Object.keys(normalizeMargins(r.margins)).length ? { margins: normalizeMargins(r.margins) } : {}),
   };
+}
+
+function userEquations(r: Partial<CompareOptions>): Pick<CompareOptions, "userEquation1" | "userEquation2"> {
+  const out: Pick<CompareOptions, "userEquation1" | "userEquation2"> = {};
+  const u1 = r.model1 === USER_MODEL_ID ? normalizeEquation(r.userEquation1) : null;
+  const u2 = r.model2 === USER_MODEL_ID ? normalizeEquation(r.userEquation2) : null;
+  if (u1) out.userEquation1 = u1;
+  if (u2) out.userEquation2 = u2;
+  return out;
 }
 
 /** The engine's weighting option for this comparison ({} = unweighted). */
@@ -124,9 +154,86 @@ export function comparable(m: ModelMeta): boolean {
   return !m.globalOnly && !(m.datasetConstants?.length) && !(m.constants?.length) && !m.special;
 }
 
-export function comparableModels(): { family: string; models: ModelMeta[] }[] {
-  return modelsByFamily().map((g) => ({ family: g.family, models: g.models.filter(comparable) }))
+/** Library models the "Two models" comparison can fit (P-99): also the
+ *  global-only models (enzyme inhibition, Gaddum/Schild, ...) and models
+ *  with one constant per data set, read from the data set titles; not
+ *  models needing a typed-in experimental constant. */
+export function comparableInModels(m: ModelMeta): boolean {
+  return !(m.constants?.length) && !m.special;
+}
+
+/** A model fitted to all data sets at once (shared parameters, or one
+ *  constant per data set). */
+export const isGlobalModel = (m: ModelMeta): boolean =>
+  !!m.globalOnly || !!m.datasetConstants?.length;
+
+export function comparableModels(scope: "single" | "models" | "potency" = "single"):
+  { family: string; models: ModelMeta[] }[] {
+  const ok = scope === "models" ? comparableInModels : scope === "potency" ? potencyModel : comparable;
+  return modelsByFamily().map((g) => ({ family: g.family, models: g.models.filter(ok) }))
     .filter((g) => g.models.length);
+}
+
+/** Model 1 or 2 of a "models" comparison as library metadata; a
+ *  user-defined equation becomes an entry of its own (its free
+ *  parameters can be held constant, its data-set constants are read from
+ *  the titles, and it is global when it shares a parameter). */
+export function sideMeta(o: CompareOptions, side: 1 | 2): ModelMeta {
+  const id = side === 1 ? o.model1 : o.model2;
+  const def = side === 1 ? o.userEquation1 : o.userEquation2;
+  if (id !== USER_MODEL_ID) return modelMeta(id);
+  const params = Object.keys(def?.rules ?? {});
+  const shared = def ? sharedParameters(def, params) : [];
+  return {
+    id: USER_MODEL_ID, engineId: USER_MODEL_ID,
+    label: def?.name?.trim() || "User-defined equation", family: "My equations",
+    xLabel: def?.xIsLog ? "log[Concentration]" : "X", needsLogX: !!def?.xIsLog,
+    constrainable: def ? freeParameters(def, params).filter((p) => !shared.includes(p)) : [],
+    equation: def?.text ?? "", parameters: params,
+    datasetConstants: def ? columnConstants(def, params) : [],
+    shared, globalOnly: shared.length > 0,
+  };
+}
+
+/** The engine's answer to "is one model a special case of the other?"
+ *  (compare_models.nesting). */
+export interface Nesting { status: "nested" | "not_nested" | "unknown"; simpler: 1 | 2 | null; reason: string }
+
+const NESTING_SOURCE = "GraphPad curve-fitting guide, “Comparing models”";
+
+/** Whether the F test applies, in one sentence for the results. */
+export function nestingSentence(n: Nesting): string {
+  const reason = n.reason.replace(/\.$/, "");
+  if (n.status === "nested") {
+    return `Nested: ${reason}, so the F test applies (${NESTING_SOURCE}).`;
+  }
+  if (n.status === "not_nested") {
+    return `Not nested: ${reason}. The F test does not apply; compare the models by AICc `
+      + `(${NESTING_SOURCE}).`;
+  }
+  return `Nesting not checked: ${reason}. The F test is valid only if one model is a special `
+    + `case of the other; if it is not, read AICc only (${NESTING_SOURCE}).`;
+}
+
+/** One value per data set for each data-set constant, read from the
+ *  data set titles ("6.25", "I = 6.25 uM"). */
+export function titleConstants(params: string[], names: string[]):
+  { values: Record<string, number[]>; error?: string } {
+  const values: Record<string, number[]> = {};
+  for (const p of params) {
+    const vals: number[] = [];
+    for (let i = 0; i < names.length; i++) {
+      const v = numberInTitle(names[i] ?? "");
+      if (v === null) {
+        return { values, error: `Put the value of ${p} in the title of data set `
+          + `“${names[i] || i + 1}” (for example ${p} = 10): a global model reads one `
+          + `${p} per data set from the titles` };
+      }
+      vals.push(v);
+    }
+    values[p] = vals;
+  }
+  return { values };
 }
 
 /** Held-constant parameters of a model from the options' constraint rows. */
@@ -240,18 +347,39 @@ const fail = (error: string) => ({ analysis: ANALYSIS_COMPARE, rows: [], dataset
 
 const kOf = (g: any) => (g?.n_points ?? 0) - (g?.df ?? 0);
 
+/** The engine's model_1 / model_2 option of one side: a library model or
+ *  a user-defined equation, with its held-constant parameters. */
+function sideSpec(o: CompareOptions, side: 1 | 2, meta: ModelMeta, held: Record<string, number>):
+  Record<string, unknown> {
+  const def = side === 1 ? o.userEquation1 : o.userEquation2;
+  return meta.id === USER_MODEL_ID && def
+    ? { user_equation: userEquationPayload(def), constraints: held }
+    : { model: meta.engineId, constraints: held };
+}
+
+const known = (o: CompareOptions, side: 1 | 2) => {
+  const id = side === 1 ? o.model1 : o.model2;
+  const def = side === 1 ? o.userEquation1 : o.userEquation2;
+  return id === USER_MODEL_ID ? !!def?.text.trim() : !!MODELS_META[id];
+};
+
 function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): any {
-  const m1 = modelMeta(o.model1), m2 = modelMeta(o.model2);
-  if (!MODELS_META[o.model1] || !MODELS_META[o.model2]) return fail("Choose two models from the list");
+  const m1 = sideMeta(o, 1), m2 = sideMeta(o, 2);
+  if (!known(o, 1) || !known(o, 2)) return fail("Choose two models from the list");
   if (m1.needsLogX !== m2.needsLogX) {
     return fail("The two models must read X the same way: choose two models of "
       + "log(concentration), or two models of X itself");
   }
   const c1 = constraintValues(m1, o.constraints1), c2 = constraintValues(m2, o.constraints2);
   const label1 = modelLabel(m1, c1), label2 = modelLabel(m2, c2);
-  if (o.model1 === o.model2 && JSON.stringify(c1) === JSON.stringify(c2)) {
+  const same = o.model1 === o.model2 && (o.model1 !== USER_MODEL_ID
+    || o.userEquation1?.text === o.userEquation2?.text);
+  if (same && JSON.stringify(c1) === JSON.stringify(c2)) {
     return fail("Model 1 and model 2 are the same: choose another model, or hold a parameter "
       + "constant in one of them");
+  }
+  if (isGlobalModel(m1) || isGlobalModel(m2)) {
+    return runGlobalModels(engine, table, o, [m1, m2], [c1, c2], [label1, label2]);
   }
   const data = numericData(table);
   const extra = summaryOptions(table);
@@ -261,14 +389,15 @@ function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): an
   // the engine's notes (e.g. "the F test and AICc use the weighted sums of
   // squares"), once each, for the Notes strip
   const notes = new Set<string>();
+  let nesting: unknown = null;
   data.datasets.forEach((ds, i) => {
     const r = engine.analyze({
       analysis: "compare_fits",
       data,
       options: {
         dataset: i, x_is_log: o.xIsLog,
-        model_1: { model: m1.engineId, constraints: c1, ...extra, ...compareWeighting(o) },
-        model_2: { model: m2.engineId, constraints: c2, ...extra, ...compareWeighting(o) },
+        model_1: { ...sideSpec(o, 1, m1, c1), ...extra, ...compareWeighting(o) },
+        model_2: { ...sideSpec(o, 2, m2, c2), ...extra, ...compareWeighting(o) },
       },
     });
     const out: any = { name: ds.name, points: pts[i] };
@@ -278,6 +407,7 @@ function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): an
       return;
     }
     (Array.isArray(r.notes) ? r.notes : []).forEach((n: unknown) => { if (typeof n === "string") notes.add(n); });
+    nesting ??= r.nesting ?? null;
     const g1 = r.model_1.goodness, g2 = r.model_2.goodness;
     const f = r.f_test ? { F: r.f_test.F, dfn: r.f_test.dfn, dfd: r.f_test.dfd, p: r.f_test.p,
       simpler: r.f_test.simpler_model as 1 | 2 } : null;
@@ -301,7 +431,62 @@ function runModels(engine: Engine, table: DataTableModel, o: CompareOptions): an
   });
   return { analysis: ANALYSIS_COMPARE, mode: "models", method: o.method,
     labels: [label1, label2], rows, datasets, weighted: o.weighting !== "none",
+    ...(nesting ? { nesting } : {}),
     ...(notes.size ? { notes: [...notes] } : {}) };
+}
+
+/** Two models fitted to all data sets at once (a global-only model, a
+ *  model with one constant per data set, or an equation sharing a
+ *  parameter; the other model then fits a separate curve per data set
+ *  in the same pooled fit): one F test and AICc over all data sets, by
+ *  the engine's compare_global_fits. */
+function runGlobalModels(engine: Engine, table: DataTableModel, o: CompareOptions,
+  metas: [ModelMeta, ModelMeta], held: [Record<string, number>, Record<string, number>],
+  labels: [string, string]): any {
+  const data = numericData(table);
+  const withData = data.datasets.filter((d) => d.ys.some((r) => r.some((v) => v !== null)));
+  if (!withData.length) return fail("Enter data to compare the models");
+  const consts = [...new Set(metas.flatMap((m) => m.datasetConstants ?? []))];
+  const cc = titleConstants(consts, withData.map((d) => d.name));
+  if (cc.error) return fail(cc.error);
+  const r = engine.analyze({
+    analysis: "compare_global_fits",
+    data: { x: data.x, datasets: withData },
+    options: {
+      x_is_log: o.xIsLog, error_bars: o.errorBars,
+      ...(consts.length ? { column_constants: cc.values } : {}),
+      ...summaryOptions(table), ...compareWeighting(o),
+      model_1: sideSpec(o, 1, metas[0], held[0]),
+      model_2: sideSpec(o, 2, metas[1], held[1]),
+    },
+  });
+  if (!r || r.error) return fail(String(r?.error ?? "no result"));
+  const f1 = globalModelToResult(r.model_1), f2 = globalModelToResult(r.model_2);
+  const g1 = r.model_1.goodness, g2 = r.model_2.goodness;
+  const row: CompareRow = {
+    name: "All data sets (one global fit per model)", n: g1.n_points,
+    models: [
+      { label: labels[0], ss: fitSS(g1), df: g1.df, k: kOf(g1) },
+      { label: labels[1], ss: fitSS(g2), df: g2.df, k: kOf(g2) },
+    ],
+    f: r.f_test ? { F: r.f_test.F, dfn: r.f_test.dfn, dfd: r.f_test.dfd, p: r.f_test.p,
+      simpler: r.f_test.simpler_model as 1 | 2 } : null,
+    aicc: r.aicc ? { aicc1: r.aicc.aicc_1, aicc2: r.aicc.aicc_2, delta: r.aicc.delta,
+      probability1: r.aicc.probability_1, probability2: r.aicc.probability_2,
+      prefer: r.aicc.prefer as 1 | 2 } : null,
+  };
+  return {
+    analysis: ANALYSIS_COMPARE, mode: "models", global: true, method: o.method,
+    labels, rows: [row], weighted: o.weighting !== "none", nesting: r.nesting ?? null,
+    constants: consts.length ? cc.values : undefined,
+    ...((r.warnings ?? []).length ? { warnings: r.warnings } : {}),
+    ...((r.notes ?? []).length ? { notes: r.notes } : {}),
+    datasets: f1.datasets.map((d: any, i: number) => ({
+      name: d.name, points: d.points,
+      fit: { ...d.fit, label: `Model 1: ${labels[0]}` },
+      altCurves: [{ label: `${d.name}, model 2`, curve: f2.datasets[i]?.fit?.curve }],
+    })),
+  };
 }
 
 /** The table with its data sets stacked into one (X repeated per data
@@ -369,7 +554,18 @@ function runOneParameter(engine: Engine, table: DataTableModel, o: CompareOption
   });
 }
 
+function runRelativePotency(engine: Engine, table: DataTableModel, o: CompareOptions): any {
+  const m = modelMeta(o.model1);
+  if (!MODELS_META[o.model1]) return fail("Choose a model from the list");
+  return runPotency(engine, table, {
+    model: m, held: constraintValues(m, o.constraints1), reference: o.datasetA, test: o.datasetB,
+    xIsLog: o.xIsLog, errorBars: o.errorBars, margins: o.margins,
+    extra: { ...summaryOptions(table), ...compareWeighting(o) },
+  });
+}
+
 export function runCompare(engine: Engine, table: DataTableModel, o: CompareOptions): any {
+  if (o.mode === "potency") return runRelativePotency(engine, table, o);
   if (o.mode === "parameter") return runOneParameter(engine, table, o);
   return o.mode === "global" ? runGlobal(engine, table, o) : runModels(engine, table, o);
 }

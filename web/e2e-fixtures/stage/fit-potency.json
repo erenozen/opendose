@@ -1,0 +1,226 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Relative potency",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r212",
+ "sheets": [
+  {
+   "id": "d211",
+   "kind": "data",
+   "name": "S. alba (drc)",
+   "table": {
+    "type": "xy",
+    "x": [
+     "0",
+     "0",
+     "10",
+     "20",
+     "40",
+     "80",
+     "160",
+     "320",
+     "640"
+    ],
+    "xTitle": "Dose",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Dry matter (g/pot)",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Bentazone",
+      "subTitles": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "4.1",
+        "3.4",
+        "2.6",
+        "3.5"
+       ],
+       [
+        "4.3",
+        "4.2",
+        "4.1",
+        "4.5"
+       ],
+       [
+        "3.5",
+        "3.8",
+        "3.9",
+        "3.7"
+       ],
+       [
+        "3.2",
+        "3.5",
+        "3",
+        "4"
+       ],
+       [
+        "1.1",
+        "1.4",
+        "1.4",
+        "0.9"
+       ],
+       [
+        "0.9",
+        "0.6",
+        "0.7",
+        "0.8"
+       ],
+       [
+        "0.7",
+        "0.7",
+        "0.5",
+        "0.6"
+       ],
+       [
+        "0.8",
+        "0.5",
+        "0.7",
+        "0.8"
+       ],
+       [
+        "0.6",
+        "0.7",
+        "0.6",
+        "0.8"
+       ]
+      ]
+     },
+     {
+      "name": "Glyphosate",
+      "subTitles": [
+       "",
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "4.7",
+        "4.6",
+        "4.1",
+        "4.4"
+       ],
+       [
+        "3.2",
+        "3",
+        "3.8",
+        "3.9"
+       ],
+       [
+        "3.8",
+        "3.8",
+        "3.8",
+        "3.3"
+       ],
+       [
+        "4.1",
+        "3.5",
+        "4.1",
+        "3.2"
+       ],
+       [
+        "2.8",
+        "3",
+        "3.7",
+        "3.4"
+       ],
+       [
+        "1.8",
+        "1.6",
+        "2.3",
+        "1.7"
+       ],
+       [
+        "1.1",
+        "1.3",
+        "1",
+        "1.2"
+       ],
+       [
+        "0.9",
+        "0.9",
+        "0.9",
+        "0.9"
+       ],
+       [
+        "",
+        "",
+        "",
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r212",
+   "kind": "results",
+   "parentId": "d211",
+   "analysis": "compare_fits",
+   "options": {
+    "mode": "potency",
+    "model1": "log_logistic_4pl_conc",
+    "xIsLog": false,
+    "datasetA": 0,
+    "datasetB": 1,
+    "margins": {
+     "Top": {
+      "lower": "-0.5",
+      "upper": "0.5"
+     },
+     "Bottom": {
+      "lower": "-0.5",
+      "upper": "0.5"
+     },
+     "HillSlope": {
+      "lower": "0.8",
+      "upper": "1.25"
+     }
+    }
+   },
+   "name": "Relative potency of S. alba (drc)"
+  },
+  {
+   "id": "g213",
+   "kind": "graph",
+   "parentId": "d211",
+   "resultsId": "r212",
+   "graphType": "compare_fits_xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of the parallel curves"
+  }
+ ]
+}

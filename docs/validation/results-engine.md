@@ -2462,3 +2462,113 @@ interaction F); the P-87 sleepstudy random-intercept fixed effects
 agree with lme4's published fit (Days 10.4673, SE 0.8042; intercept
 251.4051, SE 9.7467) and lmerTest's Satterthwaite df (22.81 for the
 intercept); the P-94 EP05 components agree with VCA's validated values.
+
+## Feature validation: comparing global and user-defined models, relative potency (2026-11-24)
+
+### P-99 Compare fits of global-only and user-defined models
+
+`compare_models.py` and the API handler `compare_global_fits`: two
+models, each fitted to all data sets at once (`fit_global_model`: a
+global-only model such as enzyme inhibition or Gaddum/Schild, a model
+with one constant per data set, or a user-defined equation; an ordinary
+model in the pair fits a separate curve per data set in the same pooled
+fit), compared by the extra-sum-of-squares F test and AICc on the pooled
+sums of squares (Motulsky & Christopoulos 2004, ch. 21-23). Whether the
+models are nested comes from `compare_models.nesting`: the mixed model
+contains competitive, uncompetitive and noncompetitive inhibition
+(GraphPad curve-fitting guide, "Comparing models of enzyme inhibition"),
+Gaddum/Schild with SchildSlope = 1 is the general model with it fixed,
+3PL is 4PL with the Hill slope fixed, and the same equation with extra
+parameters held constant or shared is nested. Equal parameter counts are
+never nested (no F test, AICc only); any other pair is "not checked":
+the F test carries the warning that it is valid only for nested models
+and AICc is the comparison to read otherwise. The per-data-set
+`compare_fits` handler now also reports `nesting` and accepts a
+user-defined equation (`user_equation` instead of `model`). A user
+equation's data-set constant sent as `"column"` (what the equation
+editor sends) was refused by the parser; it is now read.
+
+Reference: `engine/tests/reference/compare_global_models.py`, the models
+written as one regression over the stacked data (the inhibitor
+concentration as a covariate, the reproduction of R's `anova(nls_a,
+nls_b)` on an indicator-coded global model), fitted with scipy
+`least_squares` from a grid of starts, F and AICc by hand. Data: the
+vmkmki inhibition data of the R package nlstools (Baty et al. 2015, J
+Stat Softw 66(5); INRA UMR1233), 6 substrate x 6 inhibitor
+concentrations in duplicate. Neither the package nor the paper prints a
+comparison for these data, so no published value is pinned.
+`engine/tests/test_compare_global_models.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| vmkmki, competitive vs mixed (the acceptance test) | SS 177.252935 (69 df) vs 42.105215 (68 df); F(1, 68) = 218.2638, P < 1e-12; AICc 73.46265 vs -27.71851, difference -101.1812 | 1e-4 (the mixed optimum runs to the uncompetitive limit Alpha -> 0; the engine stops within 1e-5 of the SS) |
+| vmkmki, noncompetitive vs mixed | F(1, 68) = 20.7712, P 2.2e-5; AICc difference -16.8798 | 1e-4 |
+| vmkmki, competitive vs noncompetitive; uncompetitive vs noncompetitive | not nested, no F; AICc difference -84.3013 | 1e-6 |
+| Synthetic mixed inhibition (Alpha = 3, seeded), competitive vs mixed | F(1, 52) = 79.69979, P 4.49e-12; AICc 90.56852 vs 40.94445 | 1e-6 |
+
+Also tested: two user equations written as competitive and mixed
+inhibition give the built-in models' numbers ("not checked" nesting,
+with the warning); a user equation with Alpha = 1 typed as its default
+constant is nested in the free one and gives the noncompetitive F; model
+order swapped (F equal, simpler index and AICc difference swapped);
+substrate units x 1e-6 (F and AICc unchanged); the mixed model stuck at
+its limit (F set to 0, with a warning); Gaddum/Schild slope 1 vs free; a
+missing data-set constant, a log-X model against a model of X (X = 0
+rows left out by one: refused), too few points, weighting (weighted SS).
+
+### P-100 Relative potency from parallel curves, with equivalence
+
+`relpotency.py` and the API handler `relative_potency`: a reference
+standard and a test sample fitted together twice with
+`fit_global_model`, with every parameter shared except the potency
+(logEC50, EC50, ...: parallel curves) and with every parameter separate
+(one pooled residual variance; started from the parallel fit as well as
+from its default start, the better kept). Parallelism by the
+extra-sum-of-squares F test (Finney 1978, Statistical Method in
+Biological Assay, ch. 3-4; USP <1034>) and, because an F test cannot show
+parallelism, by equivalence: the 90% CI of each other parameter's
+difference (test - reference; Fieller's ratio for a slope) inside
+margins the user sets before seeing the data (USP <1032>/<1034>; Hauck
+et al. 2005, PDA J Pharm Sci Technol 59:127-137). One missed margin says
+equivalence is not shown. The relative potency EC50_reference /
+EC50_test comes from the parallel fit with Fieller's interval for two
+correlated estimates (Fieller 1954; the log-EC50 covariance transformed
+to the EC50 scale) and a delta-method SE, as drc's EDcomp reports them.
+`fit_global_model` takes start values per data set (`initial` lists).
+
+Reference: `engine/tests/reference/relative_potency.py`, drc's LL.4
+parameterisation (e itself) fitted with scipy `least_squares` on the
+stacked, indicator-coded data, F by hand, Fieller's interval as the
+roots of its quadratic. R (drc::EDcomp, compParm) is not installed and no
+EDcomp output for S.alba is published, so the potency, F and equivalence
+values are this script's. The one published S.alba output, drc's fit
+with common lower and upper limits (drc reference page for S.alba,
+`summary(S.alba.LL.4.1)`), is pinned: the reference reproduces its
+printed SEs with the observed information (drc's covariance), and the
+engine's Gauss-Newton SEs equal the reference's J'J ones.
+`engine/tests/test_relative_potency.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| drc S.alba (Christensen, Teicher & Streibig 2003; 68 points), common c and d (published) | e 28.638392 and 66.933054, b 5.058358 and 2.385448, c 0.716452, d 3.854375, residual SE 0.370514 on 62 df (drc's printed values) | 2e-5 on e, 1e-6 elsewhere |
+| S.alba, bentazone reference, glyphosate test (the acceptance test) | parallelism F(3, 60) = 2.747128, P = 0.050657; relative potency 0.425398, Fieller 95% CI 0.349703 to 0.516115, delta SE 0.041033 (63 df) | 1e-5 |
+| S.alba equivalence (90%, 60 df) | Top difference 0.069584 (-0.184772 to 0.323940), Bottom 0.210082 (-0.139598 to 0.559762), Hill slope ratio 0.529942 (0.289957 to 0.926266): the slope misses 0.8 to 1.25 although the F test passes | 1e-5 |
+
+Also tested: both parameterisations (logEC50 with X as concentration,
+and IC50) give the same ratio; swapping reference and test inverts the
+ratio and its Fieller interval; dose units x 1e-6 leave the ratio, CI and
+F unchanged; seeded parallel curves recover the shift and pass
+equivalence; non-parallel ones fail the F test; a 3PL (slope fixed) and a
+fit with only the potency free (no F test, no equivalence rows);
+Fieller with covariance against the quadratic roots (50 random cases)
+and the unbounded case; clear errors for one data set, the same data set
+twice, a global model, a model without an EC50, the potency held
+constant, a margin with lower >= upper or a ratio margin at 0, too few
+points; two data sets with the same name.
+
+Independent check (2026-11-24, by the lead): from the reported sums of
+squares (177.3 on 69 df, 42.11 on 68 df, 72 points) the extra
+sum-of-squares F(1, 68) is 218.3 and AICc (n ln(SS/n) + 2K + 2K(K+1)/(n -
+K - 1), K counting the variance) is 73.48 and -27.71, difference -101.19:
+the engine's 218.2638, 73.46265, -27.71851 and -101.1812 to the rounding
+of the printed sums of squares.

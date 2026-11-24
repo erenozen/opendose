@@ -6,10 +6,11 @@ import assert from "node:assert/strict";
 import { normalizeTable } from "../../../project/table.ts";
 import { aicc, compareAicc, extraSumOfSquaresF } from "../fitStats.ts";
 import {
-  DEFAULT_COMPARE, compareWeighting, compareWeightingSentence, constraintValues, fitSS,
+  DEFAULT_COMPARE, comparable, comparableInModels, comparableModels, compareWeighting,
+  compareWeightingSentence, constraintValues, fitSS, isGlobalModel, nestingSentence, sideMeta, titleConstants,
   globalComparison, meanPoints, normalizeCompare, pooledData, preferred, runCompare,
 } from "../compareFits.ts";
-import { modelMeta } from "../../../lib/modelLibrary.ts";
+import { applyModelList, modelMeta } from "../../../lib/modelLibrary.ts";
 import { numericData } from "../../../project/table.ts";
 
 const close = (a: number, b: number, rel = 1e-9) =>
@@ -158,4 +159,117 @@ test("weighting: kept by normalizeCompare, sent to every fit, weighted SS in the
   const u = runCompare(engine, t, { ...o, weighting: "none" });
   assert.equal("weighting" in calls[0].options.model_1, false);
   assert.equal(u.weighted, false);
+});
+
+// ------------------------------------------------ P-99: global and user models
+
+const entry = (id: string, params: string[], extra: Record<string, unknown> = {}) => ({
+  id, label: id.replace(/_/g, " "), family: "Enzyme inhibition", equation: "Y=...", parameters: params,
+  has_log_x: false, x_label: "[Substrate]", ...extra,
+});
+
+test("nesting sentences say when the F test applies", () => {
+  assert.equal(nestingSentence({ status: "nested", simpler: 1,
+    reason: "noncompetitive inhibition is mixed-model inhibition with Alpha = 1" }),
+  "Nested: noncompetitive inhibition is mixed-model inhibition with Alpha = 1, so the F test "
+    + "applies (GraphPad curve-fitting guide, “Comparing models”).");
+  assert.match(nestingSentence({ status: "not_nested", simpler: null, reason: "x" }),
+    /^Not nested: x\. The F test does not apply; compare the models by AICc/);
+  assert.match(nestingSentence({ status: "unknown", simpler: null, reason: "y." }),
+    /^Nesting not checked: y\. The F test is valid only if/);
+});
+
+test("data-set constants come from the titles, with a next step when one is missing", () => {
+  assert.deepEqual(titleConstants(["I"], ["0", "I = 6.25 uM", "12.5"]).values, { I: [0, 6.25, 12.5] });
+  const bad = titleConstants(["I"], ["0", "Control"]);
+  assert.match(bad.error!, /^Put the value of I in the title of data set “Control”/);
+  assert.deepEqual(titleConstants([], ["x"]), { values: {} });
+});
+
+test("a user equation as a model: metadata, payload and options kept", () => {
+  const def = { id: "eq1", name: "My competitive", text: "Y=Vmax*X/(Km*(1+I/Ki)+X)", xIsLog: false,
+    rules: { Vmax: { kind: "rule", value: "1", op: "*", of: "YMAX" },
+      Km: { kind: "value", value: "10", op: "*", of: "YMAX" },
+      Ki: { kind: "value", value: "20", op: "*", of: "YMAX" },
+      I: { kind: "value", value: "0", op: "*", of: "YMAX" } },
+    constraints: { Vmax: { kind: "shared", value: "", min: "", max: "" },
+      I: { kind: "column", value: "", min: "", max: "" } },
+    transforms: [] } as any;
+  const o = normalizeCompare({ model1: "user", userEquation1: def, model2: "user", userEquation2: null });
+  assert.equal(o.userEquation1?.name, "My competitive");
+  assert.equal(o.userEquation2, undefined);
+  const m = sideMeta(o, 1);
+  assert.equal(m.label, "My competitive");
+  assert.deepEqual(m.datasetConstants, ["I"]);
+  assert.deepEqual(m.shared, ["Vmax"]);
+  assert.deepEqual(m.constrainable, ["Km", "Ki"]);
+  assert.ok(isGlobalModel(m));
+  // a library model with a data-set constant is global too
+  assert.ok(isGlobalModel({ ...modelMeta("straight_line"), datasetConstants: ["B"] }));
+  assert.ok(!isGlobalModel(modelMeta("straight_line")));
+});
+
+test("global models: one compare_global_fits call over all data sets, constants from the titles", () => {
+  applyModelList({ models: [
+    entry("competitive_inhibition", ["Vmax", "Km", "Ki", "I"],
+      { dataset_constants: ["I"], global_only: true, shared: ["Vmax", "Km", "Ki"] }),
+    entry("mixed_model_inhibition", ["Vmax", "Km", "Ki", "Alpha", "I"],
+      { dataset_constants: ["I"], global_only: true, shared: ["Vmax", "Km", "Ki", "Alpha"] }),
+    entry("needs_constant", ["A"], { required_constants: ["Et"] }),
+  ] });
+  assert.ok(comparableInModels(modelMeta("competitive_inhibition")));
+  assert.ok(!comparable(modelMeta("competitive_inhibition")));
+  assert.ok(!comparableInModels(modelMeta("needs_constant")));
+  assert.ok(comparableModels("models").some((g) => g.models.some((m) => m.id === "mixed_model_inhibition")));
+  assert.ok(!comparableModels().some((g) => g.models.some((m) => m.id === "mixed_model_inhibition")));
+
+  const t = normalizeTable({ type: "xy", x: ["1", "2", "4", "8"],
+    datasets: [{ name: "0", rows: [["1"], ["2"], ["3"], ["4"]] }, { name: "6.25", rows: [["0.5"], ["1"], ["2"], ["3"]] },
+      { name: "empty", rows: [[""], [""], [""], [""]] }] });
+  const calls: any[] = [];
+  const gfit = (ss: number, df: number) => ({
+    model: "m", label: "m", equation: "Y=...", shared: ["Vmax"],
+    goodness: { ss_res: ss, ss_res_weighted: null, df, n_points: 8, sy_x: 1 },
+    datasets: ["0", "6.25"].map((name) => ({ name, params: {}, n_points: 4, ss_res: ss / 2,
+      curve: { x: [1, 8], y: [ss, ss] }, points: { x: [1, 2, 4, 8], bars: [] } })),
+  });
+  const engine = { analyze: (p: any) => {
+    calls.push(p);
+    return { model_1: gfit(4, 5), model_2: gfit(1, 4), n_points: 8,
+      f_test: { F: 12, dfn: 1, dfd: 4, p: 0.026, simpler_model: 1 },
+      aicc: { aicc_1: 1, aicc_2: 0, delta: -1, probability_1: 0.38, probability_2: 0.62, prefer: 2 },
+      nesting: { status: "nested", simpler: 1, reason: "r" }, warnings: ["w"], notes: [] };
+  } };
+  const r = runCompare(engine, t, { ...DEFAULT_COMPARE, model1: "competitive_inhibition",
+    model2: "mixed_model_inhibition", constraints2: { Km: { enabled: true, value: "10" } } });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].analysis, "compare_global_fits");
+  assert.deepEqual(calls[0].data.datasets.map((d: any) => d.name), ["0", "6.25"]);
+  assert.deepEqual(calls[0].options.column_constants, { I: [0, 6.25] });
+  assert.deepEqual(calls[0].options.model_1, { model: "competitive_inhibition", constraints: {} });
+  assert.deepEqual(calls[0].options.model_2, { model: "mixed_model_inhibition", constraints: { Km: 10 } });
+  assert.equal(r.global, true);
+  assert.equal(r.rows.length, 1);
+  assert.deepEqual(r.rows[0].models.map((m: any) => [m.ss, m.df, m.k]), [[4, 5, 3], [1, 4, 4]]);
+  assert.equal(r.rows[0].f.simpler, 1);
+  assert.equal(r.rows[0].aicc.prefer, 2);
+  assert.equal(r.nesting.status, "nested");
+  assert.deepEqual(r.warnings, ["w"]);
+  assert.deepEqual(r.constants, { I: [0, 6.25] });
+  assert.equal(r.datasets.length, 2);
+  assert.deepEqual(r.datasets[1].altCurves[0].curve, { x: [1, 8], y: [1, 1] });
+  assert.match(r.datasets[0].fit.label, /^Model 1: /);
+
+  // a title without a number: no engine call, the next step instead
+  calls.length = 0;
+  const t2 = normalizeTable({ type: "xy", x: ["1", "2"],
+    datasets: [{ name: "Control", rows: [["1"], ["2"]] }] });
+  const e = runCompare(engine, t2, { ...DEFAULT_COMPARE, model1: "competitive_inhibition",
+    model2: "mixed_model_inhibition" });
+  assert.equal(calls.length, 0);
+  assert.match(e.error, /title of data set “Control”/);
+  // an engine error is passed on
+  const failing = { analyze: () => ({ error: "Model 2: did not converge" }) };
+  assert.match(runCompare(failing, t, { ...DEFAULT_COMPARE, model1: "competitive_inhibition",
+    model2: "mixed_model_inhibition" }).error, /did not converge/);
 });

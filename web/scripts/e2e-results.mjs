@@ -1238,6 +1238,131 @@ const analyzeWith = async (re) => {
       && row2.endsWith("Scheffé (3, 12 df)"), row2);
 }
 
+// --- P-99: compare fits of global-only models ------------------------------
+{
+  // nlstools' vmkmki (engine/tests/reference/compare_global_models.json):
+  // X = substrate, one data set per inhibitor concentration (its title),
+  // each substrate twice (duplicate rows); competitive vs mixed-model
+  // inhibition, each fitted to all six data sets at once
+  const cg = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference",
+    "compare_global_models.json"), "utf8"));
+  const vm = cg.vmkmki;
+  const levels = [...new Set(vm.I)].sort((a, b) => a - b);
+  const subs = [200, 200, 100, 100, 50, 50, 25, 25, 12.5, 12.5, 0, 0];
+  const lines = subs.map((s, r) => [s, ...levels.map((lev) => {
+    const vals = vm.v.filter((_, k) => vm.S[k] === s && vm.I[k] === lev);
+    return vals[r % 2];
+  })].join("\t"));
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="xy"]').check();
+  await nd.getByLabel("Table name").fill("Inhibition (vmkmki)");
+  await nd.locator(".field-num input").nth(1).fill("1");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  await imp.getByLabel("Pasted text").check();
+  await imp.getByLabel("Text to import").fill(`S\t${levels.join("\t")}\n${lines.join("\n")}\n`);
+  const titles = imp.getByLabel(/holds column titles/);
+  if (!(await titles.isChecked())) await titles.check();
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 30000 });
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Compare fits/ }).click();
+  await page.getByLabel(/^Model 1/).selectOption({ label: "Competitive inhibition (global)" });
+  await page.getByLabel(/^Model 2/).selectOption({ label: "Mixed model inhibition (global)" });
+  const ref = vm.comparisons["competitive_inhibition|mixed_model_inhibition"];
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const shown = await liveResults(new RegExp(`F \\(1, 68\\) = ${sig(ref.F).replace(".", "\\.")}`), 120000);
+  const card = (await page.locator(".pane-results .result-card").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect(`P-99 acceptance: competitive vs mixed on vmkmki, F (1, 68) = ${sig(ref.F)}, P < 0.0001`,
+    shown && card.includes(`F (1, 68) = ${sig(ref.F)}`) && /P value < 0\.0001/.test(card), card.slice(0, 300));
+  expect(`P-99 acceptance: AICc ${sig(ref.aicc_1)} and ${sig(ref.aicc_2)}, difference ${sig(ref.delta)}`,
+    card.includes(`1. Competitive inhibition 177.3 69 3 ${sig(ref.aicc_1)}`)
+      && card.includes(`2. Mixed model inhibition 42.11 68 4 ${sig(ref.aicc_2)}`)
+      && card.includes(`Difference in AICc (2 − 1) ${sig(ref.delta)}`), card.slice(0, 400));
+  const pane = (await page.locator(".pane-results").first().innerText()).replace(/\s+/g, " ");
+  expect("P-99 the results say the models are nested, so the F test applies",
+    /Nested: competitive inhibition is the limit of mixed-model inhibition as Alpha grows very large, so the F test applies/.test(pane));
+  expect("P-99 I of each data set is read from the titles",
+    pane.includes("I of each data set, read from its title: 0, 6.25, 12.5, 25, 50, 100."));
+  // a pair that is not nested: AICc only, said next to the number
+  await page.getByLabel(/^Model 1/).selectOption({ label: "Uncompetitive inhibition (global)" });
+  await page.getByLabel(/^Model 2/).selectOption({ label: "Noncompetitive inhibition (global)" });
+  const nn = await liveResults(/Not nested: uncompetitive and noncompetitive inhibition are not nested\. The F test does not apply/, 120000);
+  const card2 = (await page.locator(".pane-results .result-card").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect("P-99 uncompetitive vs noncompetitive: not nested, AICc only (no F)",
+    nn && card2.includes("not nested (same degrees of freedom)") && !/F \(\d/.test(card2), card2.slice(0, 300));
+}
+
+// --- P-100: relative potency from parallel curves, with equivalence --------
+{
+  // drc's S.alba (engine/tests/fixtures/s_alba.json), bentazone the
+  // reference and glyphosate the test sample; reference values from
+  // engine/tests/reference/relative_potency.json (scipy, drc's LL.4)
+  const sa = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "fixtures",
+    "s_alba.json"), "utf8"));
+  const rp = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference",
+    "relative_potency.json"), "utf8"));
+  const doses = [...new Set(sa.Bentazone.dose)];
+  const lines = [];
+  for (const d of doses) {
+    const b = sa.Bentazone.drymatter.filter((_, k) => sa.Bentazone.dose[k] === d);
+    const g = sa.Glyphosate.drymatter.filter((_, k) => sa.Glyphosate.dose[k] === d);
+    b.forEach((v, k) => lines.push(`${d}\t${v}\t${g[k] ?? ""}`));
+  }
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.locator('input[name="table-type"][value="xy"]').check();
+  await nd.getByLabel("Table name").fill("S. alba");
+  await nd.locator(".field-num input").nth(1).fill("1");
+  await nd.getByRole("button", { name: "Create table" }).click();
+  await page.waitForSelector(".grid-toolbar");
+  await page.getByRole("button", { name: "Import…", exact: true }).click();
+  const imp = page.locator(".import-dialog");
+  await imp.getByLabel("Pasted text").check();
+  await imp.getByLabel("Text to import").fill(`Dose\tBentazone\tGlyphosate\n${lines.join("\n")}\n`);
+  const titles = imp.getByLabel(/holds column titles/);
+  if (!(await titles.isChecked())) await titles.check();
+  await imp.getByRole("tab", { name: "Placement" }).click();
+  await imp.getByLabel(/In place of the table/).check();
+  await imp.getByRole("button", { name: "Import", exact: true }).click();
+  await imp.waitFor({ state: "detached", timeout: 30000 });
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Compare fits/ }).click();
+  await page.getByLabel(/^Relative potency: a test sample against a reference/).check();
+  await page.getByLabel(/^Model/).first().selectOption({ label: "Log-logistic (four parameters), X is concentration" });
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const p = rp.potency_jtj, f = rp.parallelism_f;
+  const want = `Relative potency ${sig(p.ratio)} (95% CI ${sig(p.fieller_ci[0])} to ${sig(p.fieller_ci[1])})`;
+  const shown = await liveResults(new RegExp(want.replace(/[().]/g, "\\$&")), 120000);
+  const card = (await page.locator(".pane-results .relative-potency").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect(`P-100 acceptance: S.alba, glyphosate against bentazone, "${want}" (Fieller, as EDcomp)`, shown, card.slice(0, 200));
+  expect(`P-100 acceptance: parallelism F (3, 60) = ${sig(f.F)}, P = 0.0507`,
+    card.includes(`F test for parallelism F (3, 60) = ${sig(f.F)}, P = 0.0507`), card.slice(0, 600));
+  expect("P-100 the delta-method SE as EDcomp prints it", card.includes(`SE (delta method) ${sig(p.se_delta)}`));
+  expect("P-100 without margins the results ask for them",
+    /Set equivalence margins to show parallelism\./.test(card));
+  // margins set before the data are seen: the slope ratio misses 0.8 to 1.25
+  const slope = page.getByRole("group", { name: "HillSlope ratio" });
+  await slope.getByLabel("From").fill("0.8");
+  await slope.getByLabel("To").fill("1.25");
+  const eq = rp.equivalence_90.HillSlope;
+  const row = `HillSlope ratio (test / reference) ${sig(eq.ratio)} ${sig(eq.ci[0])} to ${sig(eq.ci[1])} 0.8 to 1.25 No`;
+  const judged = await liveResults(/Equivalence is not shown for HillSlope/, 120000);
+  const card2 = (await page.locator(".pane-results .relative-potency").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect(`P-100 acceptance: equivalence, "${row}"`, judged && card2.includes(row), card2.slice(0, 900));
+  expect("P-100 the potency is demoted under the reason when parallelism is not shown",
+    await page.locator(".pane-results .compare-headline.potency-unsupported").count() === 1);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));
