@@ -4702,6 +4702,23 @@ def _lmm(data, options):
 
 _HANDLERS["lmm"] = _lmm
 
+from . import precision  # noqa: E402
+
+
+def _precision_study(data, options):
+    """Assay precision and recovery (opendose.precision, P-94): per
+    sample, repeatability (within-run), between-run, between-day and total
+    variance components with SD, CV and CIs (CLSI EP05-A3 / VCA), the
+    repeatability coefficient and, with a nominal concentration, recovery
+    with the acceptance verdicts. data: {"samples": [{"name", "values",
+    "runs", "days"?, "nominal"?}]} or {"records": [{value, run, day?,
+    sample?, nominal?}]}. options: ci_level, recovery_limit, cv_limit
+    (percent), use_days."""
+    return precision.precision_study(data, options)
+
+
+_HANDLERS["precision_study"] = _precision_study
+
 
 def analyze(payload: dict) -> dict:
     kind = payload.get("analysis")

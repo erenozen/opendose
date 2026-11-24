@@ -2282,3 +2282,42 @@ give no t or P and say so. e2e (`e2e-results.mjs`): the RM 2 x 2 above
 in the grouped sheet's Interaction block, the one-way contrasts and a
 contrast typed in the "Custom contrast…" dialog, and the two-way cell
 contrast.
+
+### P-94 Assay precision and recovery
+
+`precision.precision_study` (API handler `precision_study`; the
+standard-curve module's Precision report for every sample measured on
+two or more plates, and the nested table's "Precision study" analysis):
+ANOVA estimators of the nested random model day / run / replicate with
+Type I sums of squares and the unbalanced expected mean squares
+(Searle, Casella & McCulloch 1992, ch. 5; CLSI EP05-A3), negative
+components reported as 0 with a sentence; repeatability and total
+variances with chi-square CIs (Satterthwaite's df for the total),
+between-run and between-day with Wald CIs truncated at 0 (VCA's
+VCAinference); SD and CV intervals as square roots; the repeatability
+coefficient 1.96 sqrt(2) s_w (Bland & Altman 1996, BMJ 313:744); recovery
+against the nominal with a t interval from the run means, accepted
+within the chosen limits (ICH M10 section 3.2.5: +-15%, CV 15%).
+
+Reference: `engine/tests/reference/assay_precision.py` (VCA 1.5.1's own
+unit-test values, from SAS 9.2 PROC NESTED / VARCOMP / MIXED, on CLSI
+EP05-A2 dataEP05A2_1 read from the package's RData; statsmodels 0.15
+Type I mean squares with the EP05-A3 formulas by hand; statsmodels
+MixedLM REML; R is not installed). `engine/tests/test_precision.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| dataEP05A2_1, 20 days x 2 runs x 2 (acceptance) | variances total 3.298986, day 0.001096, run 1.344492, error 1.953397; 95% CIs total 2.4156 to 4.7767, day 0 to 1.0322, run 0 to 2.8455, error 1.3167 to 3.1980 (VCA / SAS) | 6 and 4 decimals as published |
+| same, by hand | Satterthwaite df 67.088, CV total 7.2669%, repeatability 5.5919%, repeatability coefficient 3.8740 | 1e-10 |
+| dataEP05A2_1 without rows 11, 12, 17, 37, 45, 56, 57, 68 (unbalanced) | total 3.272031, day 0.278178, run 0.875624, error 2.118229 (VCA / SAS) | 6 decimals |
+| 40 runs x 2 (no days) | run 1.3456, error 1.9534 (ANOVA; MixedLM REML to 1e-3) | 1e-12 |
+| QC at 50, 4 runs x 5 | recovery 103.05% (97.97 to 108.14), within-run CV 1.6652%, total 3.4391% | 1e-10 |
+| ELISA QC low / mid / high on 4 plates (2 days x 2 runs, triplicates), back-calculated by the engine's 4PL | CVs and recovery from statsmodels' mean squares (QC mid: repeatability 3.9115%, total 4.5519%, between-run negative so 0, recovery 99.248%) | 1e-9 |
+
+Also tested: x 1000 units and reversed rows scale the variances by 1e6
+and keep the CVs; values at 1e-12 keep them; all values equal give 0,
+not NaN; one run, one value per run, one day and as many runs as days
+are refused with a sentence; blanks are counted; a nominal of 0 is
+refused. e2e (`e2e-assays.mjs`): the Precision report of the ELISA
+validation, the wizard's Precision step with a 3% CV limit failing QC
+high, and dataEP05A2_1 as a nested table giving VCA's CVs and total CI.

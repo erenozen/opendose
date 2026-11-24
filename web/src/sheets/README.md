@@ -386,6 +386,13 @@ through `project/recipes.ts`, so files and share links carry it).
 
 ## Notes on specific analyses
 
+- The multiple-variables "Mixed model with a grouping column" switches to
+  the general linear mixed model (engine `lmm`, `common/lmmPanels.tsx`)
+  once a nested level or a covariate is chosen; without them it sends the
+  same `mixed_grouping` payload as before. Custom contrasts after one-way
+  and two-way ANOVA live in `common/CustomContrasts.tsx`; the precision
+  report (engine `precision_study`) is shared by the standard-curve module
+  and the nested table's "Precision study".
 - Curve-fit models come from the engine's `list_models` at boot
   (`lib/modelLibrary.ts`, which also keeps a static fallback for the
   boot sequence and for model ids older projects store). A results

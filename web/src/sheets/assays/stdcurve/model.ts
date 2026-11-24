@@ -17,8 +17,9 @@ import {
   cellOf, columnNames, distinctValues, numberColumn, resolveColumns, textColumn,
   type ColumnChoice, type RoleSpec,
 } from "../kit/columns.ts";
+import { precisionSamples } from "./precision.ts";
 
-export type StdRole = "type" | "name" | "group" | "conc" | "dilution" | "plate";
+export type StdRole = "type" | "name" | "group" | "conc" | "dilution" | "plate" | "day";
 
 export const STD_ROLES: RoleSpec<StdRole>[] = [
   { key: "type", label: "Row type (Standard / Blank / Low / Unknown)", required: false,
@@ -34,6 +35,9 @@ export const STD_ROLES: RoleSpec<StdRole>[] = [
     patterns: [/^(dilution|dil|dilution factor|df)/i] },
   { key: "plate", label: "Plate", required: false,
     patterns: [/^(plate|run|batch|assay)$/i], hint: "One curve per plate when given." },
+  { key: "day", label: "Day (precision report)", required: false,
+    patterns: [/^(day|date|session)$/i],
+    hint: "Plates on several days: the precision report separates between-day from between-run." },
 ];
 
 const SIGNAL_RE = /^(signal|od|abs|absorbance|rep|replicate|read|rfu|rlu|lum|fluor|mfi|value|response)/i;
@@ -81,6 +85,10 @@ export interface StdOptions {
   /** LoQ precision goal: CV (%) of a low sample's back-calculated
    *  concentrations. */
   loqCv: number;
+  /** Precision report (P-94): recovery within ±qcAccuracy % of the
+   *  nominal and within-run and total CV at most qcCv % (ICH M10: 15). */
+  qcAccuracy: number;
+  qcCv: number;
   output?: string;
 }
 
@@ -90,6 +98,7 @@ export const DEFAULT_STD_OPTIONS: StdOptions = {
   accuracy: 20, accuracyEnds: 25, precision: 20, precisionEnds: 25,
   minFraction: 0.75, minLevels: 6, cvLimit: 20, cvBasis: "concentration",
   parallelismCv: 30, unit: "pg/mL", excludeLevels: [], lodCBeta: false, loqCv: 20,
+  qcAccuracy: 15, qcCv: 15,
 };
 
 export function normalizeStdOptions(raw: unknown): StdOptions {
@@ -112,6 +121,7 @@ export function normalizeStdOptions(raw: unknown): StdOptions {
     excludeLevels: Array.isArray(o.excludeLevels)
       ? o.excludeLevels.filter((x): x is number => typeof x === "number" && Number.isFinite(x)) : [],
     lodCBeta: o.lodCBeta === true, loqCv: n("loqCv"),
+    qcAccuracy: n("qcAccuracy"), qcCv: n("qcCv"),
     ...(typeof o.output === "string" ? { output: o.output } : {}),
   };
 }
@@ -128,6 +138,8 @@ export interface StdRow {
   conc: number | null;
   dilution: number;
   plate: string;
+  /** Day of the run (the precision report's day level); "" when none. */
+  day?: string;
   signals: (number | null)[];
   /** The table row (0-based). */
   row: number;
@@ -165,6 +177,7 @@ export function readRows(t: DataTableModel, o: StdOptions): { rows: StdRow[]; pr
   const conc = numberColumn(t, idx.conc);
   const dil = numberColumn(t, idx.dilution);
   const plate = textColumn(t, idx.plate);
+  const day = textColumn(t, idx.day);
   const sigs = sig.map((c) => numberColumn(t, c));
   const rows: StdRow[] = [];
   for (let r = 0; r < t.x.length; r++) {
@@ -173,7 +186,7 @@ export function readRows(t: DataTableModel, o: StdOptions): { rows: StdRow[]; pr
     const kind = kindOf(type[r], conc[r]);
     if (!kind) continue;
     rows.push({
-      kind, conc: conc[r], plate: plate[r],
+      kind, conc: conc[r], plate: plate[r], ...(day[r] ? { day: day[r] } : {}),
       name: name[r] || (kind === "unknown" ? `Sample ${r + 1}` : kind === "blank" ? "Blank"
         : kind === "low" ? "Low" : `Std ${conc[r]}`),
       group: group[r], dilution: dil[r] && dil[r]! > 0 ? dil[r]! : 1, signals: s, row: r,
@@ -213,6 +226,9 @@ export interface StdRun {
   /** sample name -> group */
   groups?: Record<string, string>;
   notes?: string[];
+  /** Precision report of the samples measured on two or more plates
+   *  (engine precision_study), with its notes. */
+  precision?: any;
 }
 
 export function stdPayloads(rows: StdRow[], o: StdOptions): { plate: string; payload: unknown; note?: string }[] {
@@ -286,7 +302,17 @@ export function runStdCurve(analyze: (p: unknown) => unknown, t: DataTableModel,
     return { plate, res };
   });
   if (plates.every((p) => p.res?.error)) return { error: String(plates[0].res.error) };
-  return { unit: o.unit, plates, groups, notes };
+  // P-94: samples measured on two or more plates (runs)
+  const prec = precisionSamples(rows, plates);
+  let precision: any;
+  if (prec.samples.length) {
+    try {
+      precision = analyze({ analysis: "precision_study", data: { samples: prec.samples },
+        options: { recovery_limit: o.qcAccuracy, cv_limit: o.qcCv } });
+    } catch (e) { precision = { error: String(e) }; }
+    if (precision && !precision.error) precision = { ...precision, notes: prec.notes };
+  }
+  return { unit: o.unit, plates, groups, notes, ...(precision ? { precision } : {}) };
 }
 
 // ------------------------------------------------------------ outputs

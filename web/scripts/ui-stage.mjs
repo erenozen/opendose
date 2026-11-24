@@ -1204,6 +1204,35 @@ const scenes = [
     await d.locator(".contrast-status[data-problem]").waitFor();
     await settle(s, 500);
   } },
+  // P-94: the standard curve's Precision report (4 plates on 2 days)
+  { name: "results-precision-report", setup: async (s) => {
+    await fixture(s, "precision.json", { live: true });
+    const rep = s.page.locator(".pane-results .precision-report").first();
+    await rep.waitFor({ timeout: 240000 });
+    await rep.locator(".precision-detail summary").nth(1).click();
+    await rep.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-94: CLSI EP05 data as a nested table under the precision study
+  { name: "results-nested-precision", setup: async (s) => {
+    await fixture(s, "precision.json", { live: true });
+    await selectSheet(s, "Precision of EP05 20 x 2 x 2");
+    const rep = s.page.locator(".pane-results .precision-results").first();
+    await rep.locator("tbody tr").first().waitFor({ timeout: 240000 });
+    await rep.locator(".precision-detail summary").first().click();
+    await rep.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-94: the standard-curve wizard's Precision step with its preview
+  { name: "assay-wizard-precision", setup: async (s) => {
+    await fixture(s, "precision.json", { live: true });
+    await click(s, await reveal(s, s.page.getByRole("button", { name: "Open setup wizard…" })));
+    const wiz = s.page.locator("dialog.assay-wizard");
+    await wiz.waitFor();
+    await click(s, wiz.getByRole("button", { name: /Precision/ }));
+    await wiz.locator(".precision-report").waitFor({ timeout: 240000 });
+    await settle(s, 800);
+  } },
   { name: "results-schild", setup: async (s) => {
     await fixture(s, "schild.json", { live: true });
     const card = s.page.locator(".schild-card");

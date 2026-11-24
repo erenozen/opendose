@@ -785,3 +785,24 @@ const longData = (name, names, rows, categorical) => data(name, {
   "Two-way ANOVA of Genotype by drug");
   write("contrasts.json", project("Contrasts", [rm, rr, three, r3, two, r2], { selected: rr.id }));
 }
+
+// precision.json (P-94; engine/tests/reference/assay_precision.py): an
+// ELISA validation in the standard-curve layout (4 plates on 2 days, QC
+// low / mid / high in triplicate with their nominal concentrations) and
+// VCA's dataEP05A2_1 as a nested table (20 days as columns, 2 runs as
+// subcolumns, 2 replicates down the rows) under the precision analysis
+{
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/assay_precision.json"), "utf8"));
+  const el = ref.elisa;
+  const elisa = longData("ELISA validation", el.columns, el.rows, ["Type", "Name", "Group", "Plate", "Day"]);
+  const re = results(elisa, "assay_stdcurve", { unit: "pg/mL" }, "Standard curve of ELISA validation");
+  const ep = readFileSync(join(here, "../../../engine/tests/fixtures/vca_dataEP05A2_1.csv"), "utf8").trim()
+    .split("\n").slice(1).map((l) => l.split(","));
+  const days = [...new Set(ep.map((r) => r[0]))];
+  const nested = data("EP05 20 x 2 x 2", { ...table("nested", { yTitle: "mg/dL", datasets: days.map((d) => {
+    const runs = [1, 2].map((k) => ep.filter((r) => r[0] === d && r[1] === String(k)).map((r) => r[2]));
+    return { name: `Day ${d}`, subTitles: ["Run 1", "Run 2"], rows: [0, 1].map((i) => runs.map((v) => v[i])) };
+  }) }) });
+  const rn = results(nested, "nested_precision", {}, "Precision of EP05 20 x 2 x 2");
+  write("precision.json", project("Precision", [elisa, re, nested, rn], { selected: re.id }));
+}
