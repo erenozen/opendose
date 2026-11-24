@@ -5,6 +5,7 @@ import { analysisDef } from "../sheets/registry";
 import { resolveOptions, resultKey, sheetRunner, type PendingRun } from "./analysis";
 import { useProject } from "./context";
 import { infoSignature } from "../project/infoRefs";
+import { analysisTable } from "../project/leftOut";
 
 /** What the results view knows about the computation behind a result. */
 export interface AnalysisStatus {
@@ -32,9 +33,15 @@ const IDLE: AnalysisStatus = { live: false, pending: null, cancelled: false, ret
  * result stored when they were frozen and never recompute.
  */
 export function useAnalysisResult(sheet: ResultsSheet | null,
-  table: DataTableModel | null, priority: Priority = "visible"):
+  tableIn: DataTableModel | null, priority: Priority = "visible"):
   { result: unknown; options: unknown; formOptions: unknown; status: AnalysisStatus } {
   const { results, project } = useProject();
+  // What the analysis sees: the values left out of it only (P-68)
+  // excluded. Every caller gets the same input, hence the same
+  // fingerprint (applying it to a table that has it already is a no-op).
+  const leftOut = sheet?.leftOut;
+  const table = useMemo(() => (tableIn ? analysisTable(tableIn, leftOut) : null),
+    [tableIn, leftOut]);
   const def = sheet && table ? analysisDef(table.type, sheet.analysis) : undefined;
   const prefs = project.prefs;
   // Info constants used as "@Name" (project/infoRefs.ts): re-resolve when

@@ -87,7 +87,10 @@ export function validationScope(analysisId: string, options?: unknown): Validati
       return scope("confidence intervals of proportions", /CI of a proportion|interval of a proportion|Wilson/i);
     case "nested_ttest": return scope("the nested t test", /^nested t test/i);
     case "nested_anova": return scope("nested one-way ANOVA", /^nested one-way ANOVA/i);
-    case "grouped_two_way": return o.design === "rm_rows" || o.design === "rm_both"
+    // the aligned rank transform (P-85) has no corpus check of its own: its
+    // record is in docs/validation/results-engine.md, not the two-way ANOVA's
+    case "grouped_two_way": if (o.method === "art") return null;
+      return o.design === "rm_rows" || o.design === "rm_both"
       ? scope("repeated-measures two-way ANOVA", /two-way RM|Mixed-effects two-way/i)
       : scope("two-way ANOVA", /^two-way ANOVA|Compact letter display \(two-way/i);
     case "grouped_three_way": return scope("three-way ANOVA", /three-way ANOVA/i);

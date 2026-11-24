@@ -9,6 +9,7 @@ import { saveBlob } from "../export/download";
 import { statsCsv, statsWord, statsWorkbook, panelsByResults } from "../export/statsExport";
 import { versionLabel } from "../export/cite";
 import { XLSX_MIME } from "../export/xlsx";
+import { sheetTable } from "../project/leftOut";
 import type { DataSheet, Project } from "../project/types";
 import { resultOf } from "../report/facts";
 import { currentReportPrefs } from "../report/pformat";
@@ -46,8 +47,10 @@ export function projectScriptEntries(p: Project, cache: ResultsCache): Omit<Scri
     const data = byId.get(s.parentId) as DataSheet | undefined;
     if (data?.kind !== "data") continue;
     const def = analysisDef(data.table.type, s.analysis);
-    out.push({ sheet: s.name, analysisId: s.analysis, result: resultOf(s, cache), table: data.table,
-      options: resolveOptions(def, s.options, data.table, p.prefs), dataName: data.name });
+    // the table this analysis saw: values left out of it only (P-68) excluded
+    const table = sheetTable(s, data.table);
+    out.push({ sheet: s.name, analysisId: s.analysis, result: resultOf(s, cache), table,
+      options: resolveOptions(def, s.options, table, p.prefs), dataName: data.name });
   }
   return out;
 }

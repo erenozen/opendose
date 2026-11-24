@@ -9,6 +9,7 @@ import { copyText } from "../export/download";
 import { analyzeAsync, readWorkbook, type XlsxSheet } from "../lib/engine";
 import { textOf, WORKBOOK_ACCEPT, workbookFormat } from "../lib/fileText";
 import { newId } from "../project/ids";
+import { sheetTable } from "../project/leftOut";
 import { addSheets, findSheet, makeInfoSheet, makeProject, uniqueName } from "../project/ops";
 import {
   buildReplayLog, matchTables, planFromJson, planTables, replaceTables,
@@ -51,14 +52,15 @@ async function settle(get: () => Project, results: ResultsCache, timeoutMs = 120
       if (!data || data.kind !== "data") continue;
       const def = analysisDef(data.table.type, s.analysis);
       if (!def) continue;
-      const options = resolveOptions(def, s.options, data.table, p.prefs);
-      const key = resultKey(s.analysis, options, data.table);
+      const table = sheetTable(s, data.table);
+      const options = resolveOptions(def, s.options, table, p.prefs);
+      const key = resultKey(s.analysis, options, table);
       keys.push(key);
       if (results.isCurrent(s.id, key)) continue;
       left++;
       if (results.isCancelled(s.id, key)) results.retry(s.id);
       if (results.pending(s.id)?.key !== key) {
-        results.run(s.id, key, sheetRunner(def, data.table, options), "user");
+        results.run(s.id, key, sheetRunner(def, table, options), "user");
       }
     }
     onProgress?.(left);

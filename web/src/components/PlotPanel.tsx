@@ -45,13 +45,25 @@ interface Props {
   drop?: { points: DropPoint[]; label: boolean; unit: string };
   /** Caption drawn inside the figure (the legend sentence), if any. */
   caption?: string;
+  /** A data point was clicked (or tapped): its data set in `result` and
+   *  its row (P-68: leave it out of this analysis). On screen only. */
+  onPointClick?: (dataset: number, row: number) => void;
+}
+
+/** Plotly's click event, as far as it is read here. */
+interface PlotClick {
+  points?: { pointIndex?: number; data?: { meta?: { odTag?: { ds?: number; role?: string;
+    rows?: number[] } } } }[];
 }
 
 export default function PlotPanel({
   result, xTitle, yTitle, scheme = DEFAULT_SCHEME, xTickFormat, format = EMPTY_FORMAT,
-  onFormatChange, rowTitles, drop, caption,
+  onFormatChange, rowTitles, drop, caption, onPointClick,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
+  const pickRef = useRef(onPointClick);
+  useEffect(() => { pickRef.current = onPointClick; });
+  const pickable = !!onPointClick;
   const [dark, setDark] = useState(isDarkMode());
   const { rev, attach } = usePlotEdits(format, onFormatChange);
   const { load, attempt, drawn, draw, purge, retry } = usePlotLoad();
@@ -217,7 +229,8 @@ export default function PlotPanel({
             }
           : undefined,
         hovertemplate:
-          `${ds.name}<br>log[C] = %{x:.3g}<br>response = %{y:.4g}<extra></extra>`,
+          `${ds.name}<br>log[C] = %{x:.3g}<br>response = %{y:.4g}`
+          + `${pickable ? "<br>Click to leave out of this analysis" : ""}<extra></extra>`,
       }, { ds: i, role: "points", rows }) as Plotly.Data);
     });
 
@@ -287,9 +300,24 @@ export default function PlotPanel({
         toImageButtonOptions: { format: "svg", filename: "dose-response" },
       }, format, !!onFormatChange));
       attach(div);
+      // A click on a data point (not a curve or band) names its row.
+      const ev = div as unknown as {
+        on?: (name: string, fn: (e: PlotClick) => void) => void;
+        removeAllListeners?: (name: string) => void;
+      };
+      ev.removeAllListeners?.("plotly_click");
+      if (pickable) {
+        ev.on?.("plotly_click", (e) => {
+          const pt = e.points?.[0];
+          const tag = pt?.data?.meta?.odTag;
+          if (!tag || tag.role !== "points" || typeof tag.ds !== "number") return;
+          const row = tag.rows?.[pt?.pointIndex ?? -1];
+          if (typeof row === "number") pickRef.current?.(tag.ds, row);
+        });
+      }
     });
   }, [result, dark, xTitle, yTitle, scheme, xTickFormat, format, rev, rowTitles, onFormatChange,
-    attach, draw, attempt, drop, caption]);
+    attach, draw, attempt, drop, caption, pickable]);
 
   return (
     <div className="plot" ref={el}>

@@ -169,6 +169,22 @@ test("two-way, three-way and RM two-way ANOVA: one row per term, then the post h
   assert.equal(mrows.find((x) => x.comparison === "Column factor")!.value, S(mx.fixed_effects.column_factor.F));
 });
 
+test("aligned rank transform two-way ANOVA (P-85): one row per effect on its aligned ranks, then ART-C", () => {
+  const r = FX.two_way_art.result;
+  const rows = rowsOf("two_way_art");
+  const terms = rows.filter((x) => x.statistic === "F (aligned ranks)");
+  assert.deepEqual(terms.map((x) => x.comparison), ["Day", "Treatment", "Interaction"]);
+  assert.deepEqual(terms.map((x) => x.value), [r.sources.Day.F, r.sources.Treatment.F, r.sources.interaction.F].map(S));
+  assert.deepEqual(terms.map((x) => x.df), ["2, 12", "1, 12", "2, 12"]);
+  assert.deepEqual(terms.map((x) => x.p), [r.sources.Day.p, r.sources.Treatment.p, r.sources.interaction.p].map(P));
+  assert.ok(terms.every((x) => x.note === "ranks aligned for this effect"));
+  const post = rows.filter((x) => x.adjustment === "Tukey");
+  assert.equal(post.length, 1);
+  assert.equal(post[0].comparison, "Vehicle vs. Drug");
+  assert.equal(post[0].estimate, "Difference of mean aligned ranks");
+  assert.equal(post[0].p, P(r.art_contrasts.comparisons[0].p_adjusted));
+});
+
 test("multiple t tests: one row per data row with the family's adjusted P and the unadjusted one in the note", () => {
   const r = FX.multi_t.result;
   const rows = rowsOf("multi_t");

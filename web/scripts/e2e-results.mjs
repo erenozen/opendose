@@ -1535,6 +1535,263 @@ const analyzeWith = async (re) => {
   expect("P-92 the checks say the experiments disagree (I² 92.2%)", checks.includes("I² 92.2%"), checks.slice(0, 300));
 }
 
+// --- P-68: leave a value out of one analysis -----------------------------
+// The plan's acceptance test: duplicate the example t test (the built-in
+// "Two-group t test" template), leave Control row 3 (21.8) out of the
+// copy for "pipetting error noted": the copy's n drops by one and its
+// Exclusions block and methods name it; the original is unchanged.
+// Numbers: e2e-fixtures/reference/left_out_ttest.py (scipy ttest_ind).
+// Identity: excluding the same value in the table gives the same numbers.
+const axeOn = (sel) => page.evaluate(async ([src, s]) => {
+  // eslint-disable-next-line no-eval
+  if (!window.axe) (0, eval)(src);
+  const el = document.querySelector(s);
+  if (!el) return [`${s}: missing`];
+  // eslint-disable-next-line no-undef
+  const r = await axe.run(el, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa"] } });
+  return r.violations.flatMap((x) => x.nodes.map((n) => `${x.id}: ${n.html.slice(0, 70)}`));
+}, [readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8"), sel]);
+{
+  const ref = JSON.parse(readFileSync(join(here, "..", "e2e-fixtures", "reference", "left_out_ttest.json"), "utf8"));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const tRow = (r) => `t=-${sig(r.t)}, df=${r.df}`;
+  await fileMenu("New data table…");
+  const nd = page.locator(".new-table-dialog");
+  await nd.getByRole("radio", { name: "From a template" }).check();
+  await nd.getByRole("radio", { name: /Two-group t test/ }).check();
+  await nd.getByLabel("Table name").fill("Pipetting");
+  await nd.getByRole("button", { name: "Create from template" }).click();
+  const original = await liveResults(new RegExp(tRow(ref.all_values)), 120000);
+  expect(`P-68 the t test of every value: ${tRow(ref.all_values)} (scipy)`, original);
+  const block = page.getByRole("region", { name: "Exclusions" });
+  expect("P-68 with nothing excluded the Exclusions block offers Leave out of this analysis…",
+    await appears(block.getByRole("button", { name: "Leave out of this analysis…" })));
+  // duplicate the results sheet; the copy opens
+  const navItem = (name) => page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row");
+  await navItem("Column stats of Pipetting").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Duplicate sheet" }).click();
+  await navItem("Column stats of Pipetting copy").click();
+  await liveResults(new RegExp(tRow(ref.all_values)), 60000);
+  await block.getByRole("button", { name: "Leave out of this analysis…" }).click();
+  const dlg = page.getByRole("dialog", { name: "Leave a value out of this analysis" });
+  await dlg.waitFor({ timeout: 10000 });
+  await dlg.getByLabel("Data set").selectOption({ label: "Control" });
+  await dlg.getByLabel("Row", { exact: true }).fill("3");
+  expect("P-68 the dialog shows the value it will leave out",
+    /Value: 21\.8 \(Control, row 3\)/.test(await dlg.locator(".leave-out-value").innerText()));
+  // a reason is required
+  await dlg.getByRole("button", { name: "Leave out", exact: true }).click();
+  expect("P-68 no reason, nothing left out: the dialog asks for one",
+    await appears(dlg.getByText("Enter why this value is left out"), 5000) && await dlg.isVisible());
+  const axDlg = await axeOn('dialog[open]');
+  expect("P-68 axe-core: the Leave out dialog passes", axDlg.length === 0, axDlg.join(" | "));
+  await dlg.getByLabel("Reason").fill("pipetting error noted");
+  await dlg.getByRole("button", { name: "Leave out", exact: true }).click();
+  await dlg.waitFor({ state: "detached", timeout: 10000 });
+  const copied = await liveResults(new RegExp(tRow(ref.left_out)), 60000);
+  const resText = await page.locator(".pane-results .results-table").first().innerText();
+  expect(`P-68 the copy leaves 21.8 out: ${tRow(ref.left_out)}, Control n = 5 (scipy)`,
+    copied && /Mean of Control[\s\S]*\(n=5\)/.test(resText), resText.replace(/\s+/g, " ").slice(0, 300));
+  const row = await block.locator(".exc-groups tbody tr", { hasText: "Control" }).innerText();
+  expect("P-68 the Exclusions block: Control 6 entered, 1 excluded, 5 analysed, pipetting error noted",
+    /Control\s+6\s+1\s+5\s+pipetting error noted/.test(row), row.replace(/\s+/g, " "));
+  expect("P-68 the block lists it under Left out of this analysis only",
+    /Control, row 3: 21\.8\s*pipetting error noted/.test(await block.locator(".exc-left").innerText()));
+  const clause = "1 value left out of this analysis only, as a sensitivity analysis (it stays in the "
+    + "table and in the other analyses): Control, row 3 (21.8; pipetting error noted)";
+  const methods = await page.locator(".stats-methods p").innerText();
+  expect("P-68 the methods name it, with n enrolled and analysed",
+    methods.includes("Exclusions: Control, n = 6 enrolled, 5 analysed (1 excluded: pipetting error noted); "
+      + `no exclusions in Treated; ${clause}.`), methods);
+  // reported with and without, at once
+  const both = block.getByRole("group", { name: "Results with the left-out values put back" });
+  await both.locator(".exc-all").waitFor({ timeout: 60000 }).catch(() => {});
+  const pOf = (s) => (s.match(/P\s*[=<]\s*([\d.e-]+)/) ?? [])[1] ?? "";
+  const asIs = pOf(await both.locator(".exc-as-is").innerText().catch(() => ""));
+  const all = pOf(await both.locator(".exc-all").innerText().catch(() => ""));
+  expect("P-68 the results with it put back show next to these (another P)",
+    !!asIs && !!all && asIs !== all, `as analysed ${asIs}, put back ${all}`);
+  expect("P-68 the numbers that change include n (Control): 5 → 6",
+    /n \(Control\): 5 → 6/.test(await both.locator(".exc-changes").innerText().catch(() => "")));
+  const axBlock = await axeOn(".exclusions-card");
+  expect("P-68 axe-core: the Exclusions block passes", axBlock.length === 0, axBlock.join(" | "));
+  // the original is unchanged, and the value stays in the table
+  await navItem("Column stats of Pipetting").click();
+  expect("P-68 the original analysis is unchanged",
+    await liveResults(new RegExp(tRow(ref.all_values)), 60000)
+    && await page.locator(".exclusions-card.exclusions-none").count() === 1);
+  const cell = page.locator('.data-table input[aria-label="Control, row 3"]');
+  expect("P-68 the value stays in the table (not struck through)",
+    (await cell.inputValue()) === "21.8" && !/Excluded/.test(await cell.getAttribute("title") ?? ""));
+  // identity: the same value excluded in the table gives the same numbers
+  const copyText = resText.replace(/\s+/g, " ");
+  await cell.click();
+  await page.keyboard.press("Control+e");
+  const prompt = page.getByRole("region", { name: "Exclusion reason" });
+  await prompt.getByLabel("Other reason for excluding").fill("pipetting error noted");
+  await prompt.getByRole("button", { name: "Save reason" }).click();
+  await liveResults(new RegExp(tRow(ref.left_out)), 60000);
+  const tableLevel = (await page.locator(".pane-results .results-table").first().innerText()).replace(/\s+/g, " ");
+  expect("P-68 identity: excluding 21.8 in the table gives the copy's numbers, every row",
+    tableLevel === copyText, `${tableLevel.slice(0, 200)} / ${copyText.slice(0, 200)}`);
+  // the copy now says the value is excluded in the table itself
+  await navItem("Column stats of Pipetting copy").click();
+  expect("P-68 the copy says the value is now excluded in the table itself",
+    await appears(block.getByText(/Now excluded in the table itself/), 20000));
+}
+
+// --- P-68: click a point of an XY graph to leave it out of that fit -------
+{
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  // the first point of data set 1 at its drawn position (a real click)
+  const at = await page.evaluate(() => {
+    const gd = document.querySelector(".pane-plot .js-plotly-plot");
+    const tr = gd?._fullData?.find((t) => t.meta?.odTag?.role === "points" && t.meta.odTag.ds === 0);
+    if (!tr) return null;
+    const xa = gd._fullLayout.xaxis;
+    const ya = gd._fullLayout.yaxis;
+    const box = gd.getBoundingClientRect();
+    const i = 2;
+    return { x: box.left + xa._offset + xa.l2p(tr.x[i]), y: box.top + ya._offset + ya.l2p(tr.y[i]),
+      row: tr.meta.odTag.rows[i] };
+  });
+  if (at) await page.mouse.click(at.x, at.y);
+  const dlg = page.getByRole("dialog", { name: "Leave a value out of this analysis" });
+  const opened = await appears(dlg, 10000);
+  expect("P-68 a click on a point of the dose-response graph opens Leave out for that row",
+    opened && (await dlg.getByLabel("Row", { exact: true }).inputValue()) === String((at?.row ?? -9) + 1),
+    JSON.stringify(at));
+  if (opened) {
+    const v = await dlg.locator(".leave-out-value").innerText();
+    expect("P-68 the clicked point's value and X are named", /Value: .+ \(.+, X = /.test(v), v);
+    await dlg.getByRole("button", { name: "Cancel" }).click();
+  }
+}
+
+// --- P-84: mean / SD / N tables get the options of raw data ---------------
+{
+  // engine/tests/reference/summary_parity.py: data with exactly the entered
+  // means, SDs and Ns through statsmodels OLS + multipletests (Holm,
+  // Sidak); the lognormal moment conversion checked by scipy.stats.lognorm;
+  // the mixed model's contrasts from statsmodels MixedLM
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/summary_parity.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  const pTxt = (p) => (p < 0.0001 ? "< 0.0001" : p < 0.001 ? p.toExponential(3) : sig4(p));
+  const open = async (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const cmpRows = async (sel = ".pane-results .comparisons-table") => (await page.locator(sel).first()
+    .locator("tbody tr").allInnerTexts().catch(() => [])).map((t) => t.replace(/\s+/g, " ").trim());
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "summary-parity.json"));
+  await open("One-way ANOVA of Four groups");
+  await liveResults(/each of 3 groups vs\. the control Control/, 180000);
+  const holm = await cmpRows();
+  const want = REF.ols.holm_vs_control.map((r) => `${r.pair} ${sig4(r.difference)} n/a ${pTxt(r.p_adjusted)}`);
+  expect("P-84 acceptance: 4 groups as mean, SD, N; Holm vs. control equals statsmodels on data with exactly "
+    + "those means, SDs and Ns", want.every((w, i) => holm[i]?.startsWith(w)), `${holm.join(" | ")} vs ${want.join(" | ")}`);
+  expect(`P-84 the F test from the summaries: F(3, 19) = ${sig4(REF.ols.F)}`,
+    await liveResults(new RegExp(`F\\(3, 19\\) = ${sig4(REF.ols.F).replace(".", "\\.")}`)));
+  // planned pairs, driven through the comparisons picker
+  const controls = page.locator(".pane-controls");
+  await controls.getByLabel("Multiple comparisons").selectOption("sidak");
+  await controls.getByLabel("Comparisons", { exact: true }).selectOption("pairs");
+  await controls.getByRole("checkbox", { name: "Control vs. High" }).check();
+  await controls.getByRole("checkbox", { name: "Low vs. Mid" }).check();
+  await liveResults(/Šídák, 2 planned comparisons|adjusted for 2 comparisons \(Šídák\)/, 120000);
+  const sid = await cmpRows();
+  const [hc, ml] = REF.ols.sidak_planned;
+  expect("P-84 planned pairs with Šídák correct for the 2 pairs ticked (statsmodels multipletests sidak)",
+    sid.length === 2 && sid[0].startsWith("Control vs. High ") && sid[0].includes(` ${pTxt(hc.p_adjusted)} `)
+      && sid[1].startsWith("Low vs. Mid ") && sid[1].includes(` ${pTxt(ml.p_adjusted)} `), sid.join(" | "));
+
+  // the log scale from means and SDs: approximate, said next to the numbers
+  await open("Log-scale ANOVA of Titres");
+  await liveResults(/Geometric means and ratios/, 180000);
+  const gm = (await page.locator(".pane-results .geometric-means").first().locator("tbody tr").allInnerTexts())
+    .map((t) => t.replace(/\s+/g, " ").trim());
+  expect("P-84 geometric means = 10^(mean of log10) from the lognormal moment conversion (scipy lognorm)",
+    REF.lognorm.every((g, i) => gm[i]?.startsWith(`${g.name} ${REF.log_groups[i].n} ${sig4(10 ** g.mu_log10)} `)),
+    gm.join(" | "));
+  const note = page.locator(".pane-results .log-note [data-approximate]").first();
+  expect("P-84 the log-scale result from means and SDs says it is approximate, with its source",
+    /Approximate: computed from the entered means and SDs, assuming each group is lognormal.*Higgins, White & Anzures-Cabrera 2008/
+      .test(await note.innerText().catch(() => "")));
+
+  // the mixed-model RM path (missing values) with Holm and a control family
+  await open("Mixed model of Weekly scores");
+  await liveResults(/each of 3 groups vs\. the control Baseline/, 180000);
+  const mixed = await cmpRows(".pane-results .results-table:has(th:text('Mean difference'))");
+  expect("P-84 mixed model with missing values: Holm vs. Baseline, differences as statsmodels MixedLM",
+    REF.mixed.holm_vs_baseline.every((r, i) => mixed[i]?.startsWith(`${r.pair} ${sig4(r.difference)} n/a `)),
+    mixed.join(" | "));
+
+  // Compare a parameter on a mean / SD / N table equals the replicates
+  const cmpText = async (name) => {
+    await open(name);
+    await liveResults(/Difference in LogEC50 \(B − A\)/, 180000);
+    return (await page.locator(".pane-results").first().innerText()).replace(/\s+/g, " ");
+  };
+  const pick = (t) => [/Difference in LogEC50 \(B − A\) [^;]+; t = [\d.]+, df = \d+/, /F\(1, \d+\) = [\d.]+/,
+    /Separate fits .*? converged .*? converged/].map((re) => (re.exec(t) ?? [""])[0]);
+  const raw = pick(await cmpText("Compare logEC50 of Agonist (replicates)"));
+  const sum = pick(await cmpText("Compare logEC50 of Agonist (mean, SD, N)"));
+  expect("P-84 Compare a parameter from mean, SD, N equals the comparison of the replicates "
+    + "(difference, t, df, F test, separate fits)", raw.every((r, i) => r && r === sum[i]), `${raw} || ${sum}`);
+}
+
+// --- P-85: aligned rank transform two-way ANOVA ----------------------------
+{
+  // engine/tests/reference/art_anova.py: ARTool's Higgins1990Table5; an own
+  // align-and-rank (ARTool's rules) fed to statsmodels anova_lm(typ=3);
+  // the same ranks reproduce ARTool's published split-plot F values;
+  // ART-C from statsmodels OLS marginal means + studentized_range
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/art_anova.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  const pTxt = (p) => (p < 0.0001 ? "< 0.0001" : p < 0.001 ? p.toExponential(3) : sig4(p));
+  const open = async (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const rowsOf = async (sel) => (await page.locator(sel).first().locator("tbody tr").allInnerTexts()
+    .catch(() => [])).map((t) => t.replace(/\s+/g, " ").trim());
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "art-anova.json"));
+  await liveResults(/Two-way ANOVA on aligned ranks/, 180000);
+  const anova = await rowsOf(".pane-results .art-anova");
+  const f = REF.fixed;
+  const want = [["Interaction (Moisture × Fertilizer)", f["Moisture:Fertilizer"]], ["Moisture", f.Moisture],
+    ["Fertilizer", f.Fertilizer]].map(([lab, s]) => `${lab} F(${s.df}, ${s.df_res}) = ${sig4(s.F)} ${pTxt(s.p)}`);
+  expect("P-85 acceptance: Higgins1990Table5 as a grouped table, interaction and main effects F and P as the "
+    + "reference ART (statsmodels on ARTool's alignment)", want.every((w, i) => anova[i]?.startsWith(w)),
+  `${anova.join(" | ")} vs ${want.join(" | ")}`);
+  const con = await rowsOf(".pane-results .art-contrasts");
+  const c0 = REF.artc_moisture[0];
+  expect("P-85 ART-C contrasts of Moisture (Tukey) as statsmodels marginal means of the aligned ranks",
+    con.length === 6 && con[0].startsWith(`${c0.pair} ${sig4(c0.difference)} `)
+      && con[0].includes(` ${pTxt(c0.p_tukey)} `), con[0]);
+  expect("P-85 the log-scale route is named next to the results, with its source",
+    /a two-way ANOVA on the logarithms is often the better route.*Bland & Altman 1996/
+      .test(await page.locator(".pane-results .art-log-note").first().innerText().catch(() => "")));
+  // the ordinary two-way ANOVA, switched to the aligned rank transform in its controls
+  await open("Two-way ANOVA of Higgins 1990 Table 5");
+  await liveResults(/Ordinary, /, 120000);
+  await page.locator(".pane-controls").getByLabel("Method", { exact: true })
+    .selectOption("art");
+  await liveResults(/Two-way ANOVA on aligned ranks/, 120000);
+  const switched = await rowsOf(".pane-results .art-anova");
+  expect("P-85 the Method choice in the two-way controls runs the aligned rank transform",
+    switched[0]?.startsWith(want[0]), switched[0]);
+  await page.locator(".pane-controls").getByLabel("ART-C contrasts").selectOption("cells");
+  await page.waitForFunction(() => document.querySelectorAll(".pane-results .art-contrasts tbody tr").length === 120,
+    null, { timeout: 60000 }).catch(() => {});
+  const cells = await rowsOf(".pane-results .art-contrasts");
+  const cc = REF.artc_cells_first[0];
+  expect("P-85 ART-C of every cell: 120 pairs, Tukey over 16 cell means (statsmodels)",
+    cells.length === 120 && cells[0].startsWith(`${cc.pair} ${sig4(cc.difference)} `)
+      && cells[0].includes(` ${pTxt(cc.p_tukey)} `), `${cells.length}: ${cells[0]}`);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

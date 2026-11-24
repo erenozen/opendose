@@ -12,6 +12,7 @@ import {
   GRAPH_SURVIVAL, GRAPH_XY,
 } from "./builtin.ts";
 import { parseDerivedLink } from "./derived.ts";
+import { parseLeftOut } from "./leftOut.ts";
 import { parseReportMeta } from "../report/meta.ts";
 import { reportPrefsOf } from "../report/prefs.ts";
 import { repairGroups } from "./groups.ts";
@@ -44,6 +45,9 @@ export interface SerializeOptions {
   /** The software saving the file (project/reproduce.ts SavedWith): a
    *  later version that opens it recomputes and compares the results. */
   savedWith?: unknown;
+  /** Share links only: an exercise for students (share/exercise.ts,
+   *  P-126). Project files never carry it. */
+  exercise?: unknown;
 }
 
 /** JSON text of a project. `results` (sheet id -> last computed result)
@@ -73,6 +77,7 @@ export function serializeProject(p: Project,
     ...(p.groupColors?.length ? { groupColors: p.groupColors } : {}),
     ...(p.reproductions?.length ? { reproductions: p.reproductions } : {}),
     ...(selected ? { selected } : {}),
+    ...(opts.exercise ? { exercise: opts.exercise } : {}),
     sheets,
   }, null, opts.compact ? undefined : 2);
 }
@@ -215,12 +220,15 @@ function normalizeV2(r: Record<string, unknown>, ctx: LoadContext): Project {
         if (!str(s.parentId) || !str(s.analysis)) break;
         // Files from before the chooser's reason was saved have none.
         const chosen = parseChosen(s.chosen);
+        // Files from before values could be left out of one analysis have none.
+        const leftOut = parseLeftOut(s.leftOut);
         sheets.push({
           ...common, kind: "results", parentId: str(s.parentId),
           analysis: str(s.analysis), options: s.options ?? {},
           ...(s.cached !== undefined ? { cached: s.cached } : {}),
           ...(s.cached !== undefined && str(s.cachedKey) ? { cachedKey: str(s.cachedKey) } : {}),
           ...(chosen ? { chosen } : {}),
+          ...(leftOut ? { leftOut } : {}),
         });
         break;
       }

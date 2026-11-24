@@ -47,7 +47,7 @@ import math
 import numpy as np
 from scipy import stats
 
-from . import anova, descriptive, ttests, twoway
+from . import anova, descriptive, logscale, ttests, twoway
 
 # ---------------------------------------------------------------- formats
 
@@ -481,6 +481,65 @@ def _need_sd(g, min_n=2):
         raise ValueError("each group needs an SD (or SEM / %CV)")
 
 
+# ---------------------------------------------------------------- log scale
+
+LOGNORMAL_SOURCE = (
+    "Higgins JPT, White IR & Anzures-Cabrera J (2008), 'Meta-analysis of "
+    "skewed data: combining results reported on log-transformed or raw "
+    "scales', Stat Med 27:6072-6092 (method of moments for a lognormal "
+    "variable); Aitchison J & Brown JAC (1957), The Lognormal "
+    "Distribution, Cambridge University Press")
+
+LOGNORMAL_NOTE = (
+    "Approximate: the means and SDs of the logarithms were estimated from "
+    "the entered means and SDs by the lognormal moment conversion "
+    "(sigma^2 = ln(1 + SD^2 / mean^2), mu = ln(mean) - sigma^2 / 2), which "
+    "assumes each group is lognormal. With the raw values the log-scale "
+    "analysis uses the actual logarithms, and its results can differ.")
+
+
+def lognormal_log_moments(mean, sd, base: str = "log10"):
+    """(mean, SD) of the logarithms of a lognormal variable with
+    arithmetic mean `mean` and SD `sd`, by the method of moments:
+    sigma_ln^2 = ln(1 + sd^2 / mean^2), mu_ln = ln(mean) - sigma_ln^2 / 2
+    (Higgins et al. 2008, LOGNORMAL_SOURCE), divided by ln(base) for
+    log10 / log2. An approximation: exact only for the population
+    moments of a lognormal distribution, not for a sample's."""
+    lb = math.log(logscale.BASES[base]) if base in logscale.BASES else None
+    if lb is None:
+        raise ValueError(f"unknown log base: {base!r} (use 'log10', 'ln' "
+                         "or 'log2')")
+    if mean is None or not mean > 0:
+        raise ValueError("the log-scale analysis from mean and SD needs "
+                         "every mean > 0 (a lognormal variable is "
+                         f"positive; got {mean})")
+    if sd is None:
+        return math.log(mean) / lb, None
+    s2 = math.log1p((sd / mean) ** 2)
+    return (math.log(mean) - s2 / 2.0) / lb, math.sqrt(s2) / lb
+
+
+def log_scale_groups(groups, fmt: str = "mean_sd_n", base: str = "log10"):
+    """Groups (as _group accepts them) -> {mean, sd, n, exact} of the
+    logarithms by lognormal_log_moments; 'exact' is always False."""
+    out = []
+    for g in groups:
+        g = _group(g, fmt)
+        mu, sigma = lognormal_log_moments(g["mean"], g["sd"], base)
+        out.append({"mean": mu, "sd": sigma, "n": g["n"], "exact": False})
+    return out
+
+
+def log_scale_summary_block(base: str) -> dict:
+    """The result's "log_scale" block for data entered as mean, SD and n:
+    logscale.log_scale_block plus approximate / approximation / its
+    source (no value is left out: only the means are checked > 0)."""
+    block = logscale.log_scale_block(base, {})
+    block.update(approximate=True, approximation=LOGNORMAL_NOTE,
+                 approximation_source=LOGNORMAL_SOURCE)
+    return block
+
+
 def unpaired_t_summary(group_a, group_b, *, welch: bool = False,
                        ci_level: float = 0.95, fmt: str = "mean_sd_n") -> dict:
     """Unpaired (or Welch) t test from mean, SD and n per group; the same
@@ -549,13 +608,21 @@ def _bartlett(sds, ns) -> dict:
 
 def one_way_anova_summary(groups, names=None, *, comparisons: str | None = None,
                           control_index: int = 0, ci_level: float = 0.95,
-                          fmt: str = "mean_sd_n") -> dict:
+                          fmt: str = "mean_sd_n",
+                          comparisons_family: str | None = None,
+                          pairs=None) -> dict:
     """Ordinary one-way ANOVA from mean, SD and n per group: the result
     dict of anova.one_way_anova (+ 'multiple_comparisons' when
     comparisons is 'tukey' | 'dunnett' | 'bonferroni' | 'sidak' |
-    'holm_sidak'). Brown-Forsythe needs the raw values (it works on
-    deviations from each group median) so it is reported as None;
-    Bartlett's test needs only SDs and n and is computed."""
+    'holm_sidak' | 'holm' | 'fisher_lsd' | 'newman_keuls'). The planned
+    family (comparisons_family "all" | "control" | "pairs", with pairs
+    [[i, j], ...]) applies to Sidak, Bonferroni, Holm-Sidak, Holm and
+    Fisher's LSD, exactly as for raw data: every one of these tests
+    depends on the data only through the group means, n and the pooled
+    residual mean square (anova._comparisons_from_stats).
+    Brown-Forsythe needs the raw values (it works on deviations from
+    each group median) so it is reported as None; Bartlett's test needs
+    only SDs and n and is computed."""
     gs = [_group(g, fmt) for g in groups]
     if len(gs) < 2:
         raise ValueError("one-way ANOVA needs at least 2 non-empty groups")
@@ -583,15 +650,19 @@ def one_way_anova_summary(groups, names=None, *, comparisons: str | None = None,
     if comparisons:
         out["multiple_comparisons"] = multiple_comparisons_summary(
             gs, comparisons, names=names, control_index=control_index,
-            ci_level=ci_level)
+            ci_level=ci_level, comparisons_family=comparisons_family,
+            pairs=pairs)
     return out
 
 
 def multiple_comparisons_summary(groups, method: str, *, names=None,
                                  control_index: int = 0,
                                  ci_level: float = 0.95,
-                                 fmt: str = "mean_sd_n") -> dict:
-    """anova.multiple_comparisons from mean, SD and n per group."""
+                                 fmt: str = "mean_sd_n",
+                                 comparisons_family: str | None = None,
+                                 pairs=None) -> dict:
+    """anova.multiple_comparisons from mean, SD and n per group (with
+    the same planned families)."""
     gs = [_group(g, fmt) for g in groups]
     for g in gs:
         _need_sd(g)
@@ -601,7 +672,8 @@ def multiple_comparisons_summary(groups, method: str, *, names=None,
     ms_res = sum((g["n"] - 1) * g["sd"] ** 2 for g in gs) / df_res
     return anova._comparisons_from_stats(
         means, ns, ms_res, df_res, method, names=names,
-        control_index=control_index, ci_level=ci_level)
+        control_index=control_index, ci_level=ci_level,
+        comparisons_family=comparisons_family, pairs=pairs)
 
 
 def _cells(cells, fmt):

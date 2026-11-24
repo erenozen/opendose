@@ -21,6 +21,7 @@ import Tooltip from "./ui/Tooltip";
 import { lastInputWasKeyboard } from "./ui/useDismiss";
 import { Logo } from "./Logo";
 import { OPEN_ACCEPT } from "../app/useFileOpen";
+import { testWithheld, useExercise } from "../share/exerciseStore";
 
 /**
  * The app bar (DECISIONS 5, "One bar"): navigator toggle, the logo, the
@@ -68,7 +69,11 @@ export default function Header({ onOpenFile, onNewProject, inert }: {
     .filter((s): s is ResultsSheet => s.kind === "results") : [];
   const active = data ? api.activeResults(data.id) : null;
   const tdef = data ? tableDef(data.table.type) : undefined;
+  // An exercise link that withholds the test (P-126): neutral tab names.
+  const testHidden = testWithheld(useExercise());
   const labelFor = (s: ResultsSheet) => {
+    // (the sheets carry their neutral names until the reveal)
+    if (testHidden) return s.name;
     const baseOf = (r: ResultsSheet) => {
       const a = analysisDef(data!.table.type, r.analysis);
       return a?.tabLabel?.(r.options) ?? a?.short ?? r.analysis;

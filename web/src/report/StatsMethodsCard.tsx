@@ -4,6 +4,7 @@
 import { useProject } from "../app/context";
 import { CopyButton } from "../components/CiteBlock";
 import { exclusionSentence } from "../project/exclusions";
+import { leftOutClause, sheetTable } from "../project/leftOut";
 import { currentChoice } from "../guide/choice";
 import { designMethodsSentence, designSheetFor } from "../project/studyDesign";
 import type { DataSheet, ResultsSheet } from "../project/types";
@@ -24,9 +25,12 @@ export default function StatsMethodsCard({ sheet, result }: { sheet: ResultsShee
   // Unit of n and experiments: typed in Reporting details, else from the
   // table's replicate map (replicates.ts).
   const meta = data ? metaWithReplicates(data.report, data.table, result) : undefined;
+  // Excluded in the table, and left out of this analysis only (P-68).
+  const exclusions = data ? [exclusionSentence(sheetTable(sheet, data.table)),
+    leftOutClause(data.table, sheet.leftOut)].filter(Boolean).join("; ") || null : null;
   const text = statsMethodsParagraph(result, prefs, meta,
     { powerJustification: powerJustification(project, results),
-      exclusions: data ? exclusionSentence(data.table) : null, plan,
+      exclusions, plan,
       design: designSheet ? designMethodsSentence(designSheet.design) : null,
       chosen: currentChoice(sheet) });
   if (!text) return null;

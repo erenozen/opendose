@@ -5,7 +5,7 @@ import { normalizeTable } from "../../../project/table.ts";
 import { DEFAULT_COLUMN_OPTIONS, type ColumnOptionsState } from "../../../types.ts";
 import { columnPayload } from "../run.ts";
 import {
-  baselineName, fitsMixedModel, incompleteSubjects, mixedLimitations, mixedOptions,
+  baselineName, fitsMixedModel, incompleteSubjects, mixedOptions,
   rmComparisonsOf, rmComparisonsSpec, rmMethodsSentence,
 } from "../rmPosthoc.ts";
 import { extractComparisons } from "../../../graph/results.ts";
@@ -80,9 +80,18 @@ test("missing values: the mixed-effects model when chosen", () => {
   assert.deepEqual(mixedOptions(o({ comparisons: "fisher_lsd" }), 3),
     { method: "mixed", comparisons: "fisher", control_index: 0, ddf: "containment" });
   assert.equal(mixedOptions(o({ mixedDdf: "kenward_roger" }), 3).ddf, "kenward_roger");
-  assert.equal(mixedOptions(o({ comparisons: "holm" }), 3).comparisons, null);
-  assert.match(mixedLimitations(o({ comparisons: "holm" }), 3), /Holm/);
-  assert.equal(mixedLimitations(o({ comparisons: "tukey" }), 3), "");
+  // P-84: Holm and the planned families reach the mixed model
+  assert.equal(mixedOptions(o({ comparisons: "holm" }), 3).comparisons, "holm");
+  assert.deepEqual(mixedOptions(o({ comparisons: "holm", comparisonsFamily: "control", controlIndex: 1 }), 3),
+    { method: "mixed", comparisons: "holm", control_index: 1, ddf: "containment",
+      comparisons_family: "control" });
+  assert.deepEqual(mixedOptions(o({ comparisons: "bonferroni", comparisonsFamily: "pairs",
+    plannedPairs: [[2, 0], [9, 1]] }), 3),
+  { method: "mixed", comparisons: "bonferroni", control_index: 0, ddf: "containment",
+    comparisons_family: "pairs", pairs: [[2, 0]] });
+  // Tukey and Dunnett keep their own families
+  assert.equal(mixedOptions(o({ comparisons: "tukey", comparisonsFamily: "control" }), 3)
+    .comparisons_family, undefined);
 });
 
 test("the comparisons reach brackets, family line, describe and sentences", () => {

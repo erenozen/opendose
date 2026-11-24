@@ -149,6 +149,28 @@ async function analyzeItem(s, item) {
   await click(s, button(s, "Analyze"));
   await s.page.getByRole("menuitem", { name: item }).click();
 }
+/** The Share dialog of a t test project (why-history.json), made an
+ *  exercise with a task (P-126). Returns the dialog. */
+async function exerciseDialog(s) {
+  await fixture(s, "why-history.json", { live: true });
+  await headerMenu(s, "File", "Copy share link…");
+  const d = dialog(s, "Share this project");
+  await d.getByLabel("Protect with a password (recommended)").uncheck();
+  await d.getByLabel(/Make it an exercise/).check();
+  await d.getByLabel("Task for the student").fill("Pilot data from two groups of six mice. "
+    + "Which test compares Control with Treated, and what does it conclude?");
+  return d;
+}
+/** The student's view of that exercise link, opened in the same page. */
+async function openExercise(s) {
+  const d = await exerciseDialog(s);
+  const link = await d.getByLabel("Share link").inputValue();
+  await d.getByRole("button", { name: "Done" }).click();
+  await s.page.goto(link);
+  await s.page.locator(".shell").waitFor({ timeout: 60000 });
+  await waitEngine(s);
+  await s.page.getByRole("region", { name: "Exercise" }).waitFor({ timeout: 60000 });
+}
 /** The header's File or View menu (DECISIONS 5), and one of its items. */
 async function headerMenu(s, menu, item) {
   await click(s, s.page.locator("header").getByRole("button", { name: menu, exact: true }));
@@ -344,6 +366,25 @@ const scenes = [
     await example(s);
     await headerMenu(s, "File", "Copy share link…");
     await s.page.locator("dialog[open]").first().waitFor();
+    await settle(s, 1200);
+  } },
+  // P-126: the Share dialog making an exercise link, then the student's
+  // view of it (the task in place of the results) and after the answers
+  { name: "shell-share-exercise", setup: async (s) => {
+    await exerciseDialog(s);
+    await settle(s, 800);
+  } },
+  { name: "results-exercise-withheld", setup: async (s) => {
+    await openExercise(s);
+    await settle(s, 1200);
+  } },
+  { name: "results-exercise-revealed", setup: async (s) => {
+    await openExercise(s);
+    await click(s, s.page.getByRole("region", { name: "Exercise" })
+      .getByRole("button", { name: "Help me choose…" }));
+    await dialog(s, "Help me choose a test").getByRole("button", { name: "Commit my answers" }).click();
+    await s.page.getByRole("region", { name: /Your answers point to/ }).waitFor({ timeout: 60000 });
+    await waitLive(s);
     await settle(s, 1200);
   } },
   { name: "shell-export-pptx", setup: async (s) => {
@@ -1030,6 +1071,33 @@ const scenes = [
     const d = dialog(s, "History");
     await d.locator(".history-reproduction").scrollIntoViewIfNeeded();
   } },
+  // P-68: leave a value out of one analysis (the dialog, filled in), and
+  // the Exclusions block of the sensitivity results with them put back
+  { name: "results-leave-out-dialog", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    const block = s.page.getByRole("region", { name: "Exclusions" });
+    await into(s, ".exclusions-card", "center");
+    await click(s, block.getByRole("button", { name: "Leave out of this analysis…" }));
+    const d = dialog(s, "Leave a value out of this analysis");
+    await d.getByLabel("Data set").selectOption({ label: "Treated" });
+    await d.getByLabel("Row", { exact: true }).fill("2");
+    await d.getByLabel("Reason").fill("pipetting error noted");
+    await settle(s, 400);
+  } },
+  { name: "results-left-out", setup: async (s) => {
+    await fixture(s, "why-history.json", { live: true });
+    const block = s.page.getByRole("region", { name: "Exclusions" });
+    await into(s, ".exclusions-card", "center");
+    await click(s, block.getByRole("button", { name: "Leave out of this analysis…" }));
+    const d = dialog(s, "Leave a value out of this analysis");
+    await d.getByLabel("Data set").selectOption({ label: "Treated" });
+    await d.getByLabel("Row", { exact: true }).fill("2");
+    await d.getByLabel("Reason").fill("pipetting error noted");
+    await d.getByRole("button", { name: "Leave out", exact: true }).click();
+    await block.locator(".exc-all").waitFor({ timeout: 60000 });
+    await into(s, ".exclusions-card", "start");
+    await settle(s, 800);
+  } },
 
   // ---- graphs
   { name: "graphs-contingency", setup: async (s) => {
@@ -1363,6 +1431,51 @@ const scenes = [
     await click(s, d.getByRole("button", { name: "Add contrast" }));
     await d.locator(".contrast-status[data-problem]").waitFor();
     await settle(s, 500);
+  } },
+  // P-84: a log-scale ANOVA from mean, SD, N, its approximation stated
+  { name: "results-summary-log", setup: async (s) => {
+    await fixture(s, "summary-parity.json", { live: true });
+    await selectSheet(s, "Log-scale ANOVA of Titres");
+    const note = s.page.locator(".pane-results .log-note [data-approximate]").first();
+    await note.waitFor({ timeout: 240000 });
+    await s.page.locator(".pane-results .geometric-means").first()
+      .evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-84: planned pairs in the comparisons picker of a mean, SD, N table
+  { name: "controls-summary-family", setup: async (s) => {
+    await fixture(s, "summary-parity.json", { live: true });
+    const controls = s.page.locator(".pane-controls").first();
+    const fam = await reveal(s, controls.getByLabel("Comparisons", { exact: true }));
+    await fam.selectOption("pairs");
+    await controls.getByRole("checkbox", { name: "Control vs. High" }).check();
+    await controls.locator(".planned-pairs").evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
+  // P-84: the mixed model's comparisons picker (Holm, each vs. Baseline)
+  { name: "controls-mixed-family", setup: async (s) => {
+    await fixture(s, "summary-parity.json", { live: true });
+    await selectSheet(s, "Mixed model of Weekly scores");
+    const controls = s.page.locator(".pane-controls").first();
+    const pick = await reveal(s, controls.locator(".rm-posthoc .comparisons-picker"));
+    await pick.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
+  // P-85: the aligned rank transform of Higgins 1990 Table 5, ART-C of Moisture
+  { name: "results-art", setup: async (s) => {
+    await fixture(s, "art-anova.json", { live: true });
+    const card = s.page.locator(".pane-results .art-results").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-85: the two-way controls with the aligned rank transform chosen
+  { name: "controls-art", setup: async (s) => {
+    await fixture(s, "art-anova.json", { live: true });
+    const controls = s.page.locator(".pane-controls").first();
+    const sel = await reveal(s, controls.getByLabel("ART-C contrasts"));
+    await sel.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
   } },
   // P-94: the standard curve's Precision report (4 plates on 2 days)
   { name: "results-precision-report", setup: async (s) => {

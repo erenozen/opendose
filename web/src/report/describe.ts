@@ -201,6 +201,14 @@ export function describeResult(result: unknown): TestInfo {
       info.nUnit = "subjects";
       info.assumptions = "nonparametric (no normality assumption)";
       return withMc(info, r.dunns, "dunns");
+    case "two_way_art":
+      info.test = "aligned rank transform two-way ANOVA (nonparametric)";
+      info.sided = "two-sided";
+      info.exactP = true;
+      info.statisticWithDf = true;
+      info.nUnit = "values";
+      info.assumptions = "nonparametric (no normality assumption; tests aligned ranks)";
+      return withMc(info, r.art_contrasts);
     case "two_way_anova":
       info.test = "two-way ANOVA";
       info.sided = "two-sided";

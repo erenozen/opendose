@@ -565,9 +565,11 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
     method: tukey (studentized range on q = |diff| / (SE/sqrt 2), Prism's
     q, family size = number of means), dunnett (multivariate t with the
     contrasts' correlation, Prism's q = |t|), bonferroni, sidak,
-    holm_sidak (step-down), fisher (uncorrected LSD). n_family_total sets
-    the number of comparisons the Bonferroni/Sidak/Holm corrections use
-    (Prism corrects for all comparisons in two-way designs).
+    holm_sidak (step-down), holm (Holm 1979 step-down Bonferroni, R's
+    p.adjust "holm"; as anova.py, no simultaneous CIs), fisher
+    (uncorrected LSD). n_family_total sets the number of comparisons the
+    Bonferroni/Sidak/Holm corrections use (Prism corrects for all
+    comparisons in two-way designs).
 
     Each comparison also carries "p_unadjusted" (the Wald t test of the
     contrast on the model df), "family_size" (the comparisons the
@@ -632,7 +634,7 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
             if r["df"] not in crit:
                 crit[r["df"]] = dunnett.critical_value(ci_level, R, r["df"])
             r["half"] = crit[r["df"]] * r["se"]
-    elif method in ("bonferroni", "sidak", "holm_sidak", "fisher"):
+    elif method in ("bonferroni", "sidak", "holm_sidak", "holm", "fisher"):
         for r in rows:
             r["stat"] = r["t"]
         if method == "fisher":
@@ -653,7 +655,9 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
             order = sorted(range(m), key=lambda a: rows[a]["p_raw"])
             running = 0.0
             for rank, a in enumerate(order):
-                p_adj = 1.0 - (1.0 - rows[a]["p_raw"]) ** (m_total - rank)
+                p = rows[a]["p_raw"]
+                p_adj = ((m_total - rank) * p if method == "holm"
+                         else 1.0 - (1.0 - p) ** (m_total - rank))
                 running = max(running, p_adj)
                 rows[a]["p_adj"] = min(running, 1.0)
             # step-down: no simultaneous CIs (as anova.py)
@@ -687,6 +691,9 @@ def compare_estimates(est, cov, df, method: str, *, names=None,
 
 
 _METHODS = ("tukey", "dunnett", "bonferroni", "sidak", "holm_sidak", "fisher")
+# the one-way model also takes Holm and a planned family (P-84)
+_ONE_WAY_METHODS = _METHODS + ("holm",)
+_PLANNED_METHODS = ("bonferroni", "sidak", "holm_sidak", "holm", "fisher")
 
 
 def comparisons_family(method: str, k: int, comps: list, names=None,
@@ -765,7 +772,8 @@ def _fit_with_negative_policy(y, X, random_effects, negative_variance):
 def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
                      control_index: int = 0, ci_level: float = 0.95,
                      negative_variance: str = "allow",
-                     ddf: str = "containment") -> dict:
+                     ddf: str = "containment", family: str = "all",
+                     pairs=None) -> dict:
     """Repeated-measures one-way design fitted as a mixed model (random
     subject intercept, compound symmetry, REML), allowing missing values.
 
@@ -777,6 +785,13 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
     comparisons: "containment" (the residual df N - rank[X Z], = RM
     ANOVA's for complete data; Prism's "Legacy"), "kenward_roger" or
     "satterthwaite" (opendose.ddfm; each comparison gets its own df).
+
+    family ("all" | "control" | "pairs", with pairs [[i, j], ...]; as
+    anova.planned_pairs, difference = mean i - mean j) chooses the
+    planned family for Bonferroni, Sidak, Holm-Sidak, Holm and Fisher's
+    LSD, which then correct for exactly that many comparisons (P-84; the
+    GraphPad statistics guide, "Options tab, multiple comparisons":
+    selected pairs). Tukey and Dunnett keep their own families.
     """
     ddf = ddfm.method_of(ddf)
     k = len(datasets)
@@ -876,19 +891,42 @@ def mixed_rm_one_way(datasets, names=None, *, comparisons=None,
     if ddf != "containment":
         out["sphericity_note"] = _NO_GG_NOTE
     if comparisons:
-        if comparisons not in _METHODS:
+        if comparisons not in _ONE_WAY_METHODS:
             raise ValueError(f"unknown multiple-comparisons method: "
                              f"{comparisons}")
+        fam = family or "all"
+        planned = fam != "all"
+        if planned and comparisons not in _PLANNED_METHODS:
+            raise ValueError(
+                f"a planned family ('{fam}') is available for Sidak, "
+                "Bonferroni, Holm-Sidak, Holm and Fisher's LSD; "
+                f"{comparisons} has its own fixed family")
+        from .anova import family_block, planned_pairs
+        fam_pairs = (planned_pairs(k, fam, control_index, pairs)
+                     if planned else None)
         comps = compare_estimates(
             emm, emm_cov, cmp_df, comparisons, names=names,
-            control_index=control_index, ci_level=ci_level)
+            pairs=fam_pairs, control_index=control_index,
+            ci_level=ci_level)
+        method_id = "fisher_lsd" if comparisons == "fisher" else comparisons
+        if planned:
+            for c, (i, j) in zip(comps, fam_pairs):
+                c.update(a_index=i, b_index=j)
+            blk = family_block(method_id, len(comps), k, fam,
+                               names[control_index] if fam == "control"
+                               else None)
+        else:
+            blk = comparisons_family(comparisons, k, comps, names,
+                                     control_index)
         out["multiple_comparisons"] = {
             "method": comparisons,
             "df": float(df_den) if ddf == "containment" else None,
             "ddf": ddf,
             "comparisons": comps,
-            "family": comparisons_family(comparisons, k, comps, names,
-                                         control_index)}
+            "family": blk}
+        if planned:
+            out["multiple_comparisons"]["planned_pairs"] = [
+                [i, j] for i, j in fam_pairs]
     return out
 
 

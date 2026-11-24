@@ -10,6 +10,7 @@ import type { PanelInput, SourceDataInput } from "../export/sourceData";
 import { panelLetters, readingOrder, type ResolvedLayout } from "../project/layout";
 import { findSheet } from "../project/ops";
 import { withExclusionsBlanked } from "../project/table";
+import { analysisTable } from "../project/leftOut";
 import type { DataSheet, DataTableModel, GraphSheet, Project, ResultsSheet } from "../project/types";
 import { describeResult } from "../report/describe";
 import { graphFacts, legendFor, tableGroups } from "../report/legendFor";
@@ -62,9 +63,10 @@ export function panelInfo(project: Project, graph: GraphSheet, cache: ResultsCac
   Omit<PanelInput, "letter" | "traces" | "xTicks" | "xTitle" | "yTitle"> | null {
   const data = findSheet(project, graph.parentId) as DataSheet | undefined;
   if (data?.kind !== "data") return null;
-  const table: DataTableModel = graph.frozen && graph.snapshot ? graph.snapshot.table
-    : withExclusionsBlanked(data.table);
   const { sheet: res, result, options } = boundResult(project, graph, cache);
+  // values left out of the bound analysis only (P-68) are not drawn
+  const table: DataTableModel = graph.frozen && graph.snapshot ? graph.snapshot.table
+    : withExclusionsBlanked(analysisTable(data.table, res?.leftOut));
   const kind = graphDef(data.table.type, graph.graphType);
   const datasets = kind?.formatDatasets ? kind.formatDatasets(table, graph, options as any)
     : table.datasets.map((d, i) => d.name || `Data set ${i + 1}`);

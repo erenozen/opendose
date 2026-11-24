@@ -11,6 +11,8 @@
 // ordinary project file (version 2, see project/persist.ts) minus the
 // browser's preferences, so a link opens in any build that opens files.
 // Nothing else goes in: no autosave, no preferences, no export settings.
+// An exercise link (P-126, ./exercise.ts) adds a top-level `exercise` key,
+// which links without it never have and older builds ignore.
 import { deflateSync, inflateSync, strFromU8, strToU8 } from "fflate";
 import { serializeProject, type SerializeOptions } from "../project/persist.ts";
 import { familyChildren, findSheet } from "../project/ops.ts";
@@ -63,6 +65,13 @@ export function decodePayload(payload: string): string {
   return strFromU8(bytes);
 }
 
+/** What a link without its cached results keeps of `opts`: the sheet on
+ *  screen and an exercise (P-126, ./exercise.ts), never the fingerprints
+ *  or the software of results it does not carry. */
+export function bareOptions(opts: SerializeOptions): SerializeOptions {
+  return { selected: opts.selected, ...(opts.exercise ? { exercise: opts.exercise } : {}) };
+}
+
 export type ShareOutcome =
   | { ok: true; fragment: string; withResults: boolean; length: number }
   | { ok: false; length: number; limit: number };
@@ -73,7 +82,7 @@ export type ShareOutcome =
 export function makeFragment(p: Project, results?: ReadonlyMap<string, unknown>,
   limit = SHARE_LIMIT, opts: SerializeOptions = {}): ShareOutcome {
   const attempt = (r?: ReadonlyMap<string, unknown>) =>
-    `#${SHARE_KEY}=${encodePayload(shareJson(p, r, r ? opts : { selected: opts.selected }))}`;
+    `#${SHARE_KEY}=${encodePayload(shareJson(p, r, r ? opts : bareOptions(opts)))}`;
   if (results?.size) {
     const full = attempt(results);
     if (full.length <= limit) return { ok: true, fragment: full, withResults: true, length: full.length };

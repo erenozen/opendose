@@ -15,6 +15,7 @@ import { addNote, deleteNote, updateNote } from "../project/notes";
 import { serializeProject } from "../project/persist";
 import { consistentTargets, makeGraphsConsistent } from "../project/wand";
 import { withExclusionsBlanked } from "../project/table";
+import { sheetTable } from "../project/leftOut";
 import type {
   DataSheet, FloatingNote, GraphSheet, GroupSection, HighlightColor, Project,
   ResultsSheet,
@@ -76,10 +77,11 @@ export function useCommands() {
         const res = findSheet(p, s.resultsId) as ResultsSheet | undefined;
         if (!data) return;
         const def = res ? analysisDef(data.table.type, res.analysis) : undefined;
+        // a graph of an analysis that leaves values out draws without them
         const snapshot = {
-          table: withExclusionsBlanked(data.table),
+          table: withExclusionsBlanked(sheetTable(res, data.table)),
           result: res ? (res.frozen ? res.cached : results.get(res.id)?.result) ?? null : null,
-          options: res ? resolveOptions(def, res.options, data.table, p.prefs) : null,
+          options: res ? resolveOptions(def, res.options, sheetTable(res, data.table), p.prefs) : null,
         };
         apply((q) => setFrozen(q, id, true, { snapshot }));
       } else {

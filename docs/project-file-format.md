@@ -41,7 +41,7 @@ Every sheet has an `id`, a `kind` and a `name`; optional keys are
 | --- | --- |
 | `data` | `table`: the table type, the X column, the data sets with their subcolumns and raw cells (strings, exactly as typed), excluded cells and their reasons, row titles. Optional: `derived` (a table computed by another analysis), `simulation`, `report` (reporting details). |
 | `info` | Notes, constants, an optional analysis plan and an optional study design record (`design`: randomisation method and seed, blinding by stage, inclusion and exclusion criteria, the animals' sex, strain and age), for one table (`parentId`) or the project. |
-| `results` | `parentId` (the data sheet), `analysis` (the analysis id) and its `options`. `cached` is the last computed result, written on save so a reopened file shows numbers before the engine has started; `cachedKey` is the fingerprint of the input it was computed from. `chosen` is the reason Help me choose gave for the test, with the options it set; it is shown while those options are unchanged. The reason is in the third-person wording of the methods paragraph (`guide/methodsWording.ts`); a file that saved the chooser's on-screen wording reads with the methods wording of the same outcome. |
+| `results` | `parentId` (the data sheet), `analysis` (the analysis id) and its `options`. `cached` is the last computed result, written on save so a reopened file shows numbers before the engine has started; `cachedKey` is the fingerprint of the input it was computed from. `chosen` is the reason Help me choose gave for the test, with the options it set; it is shown while those options are unchanged. The reason is in the third-person wording of the methods paragraph (`guide/methodsWording.ts`); a file that saved the chooser's on-screen wording reads with the methods wording of the same outcome. `leftOut` lists values left out of this analysis only (a sensitivity analysis): each names a cell (`dataset`, `row`, `sub`, from 0), the `value` it held and the `reason` given. The analysis sees the table with those cells excluded, exactly as excluding them in the table would; the table and every other analysis keep them. A cell that no longer holds its `value` is not left out (the results say so). Files saved before it existed have none. |
 | `graph` | The data sheet and results it draws, the graph type and its settings and format. |
 | `layout` | A page layout: the page, the graphs and text placed on it, panel letters. |
 
@@ -55,6 +55,15 @@ A share link (`#p=…`) carries the same JSON without `prefs`, compressed
 it encrypted. The autosave in your browser keeps the same JSON too. Both
 record `savedWith`, so opening either in a later build checks the saved
 results the way opening a file does.
+
+An exercise link for teaching adds one top-level key, `exercise`: the
+`task` the student reads and `hideTest` (whether the analyses' names,
+settings and methods are withheld too). The project opens with its results
+withheld until the student commits answers in Help me choose. The answer
+is in the link all the same: the results are withheld in the app only, and
+a build that does not know the key opens the link with everything shown.
+Links without the key decode exactly as before; project files and the
+autosave never carry it.
 
 ## How the schema is made and checked
 

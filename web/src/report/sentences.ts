@@ -694,6 +694,10 @@ export function resultSentences(result: unknown, ctx: SentenceContext = {}): str
       case "mixed_rm_one_way": return mixedRmSentences(r, f);
       case "friedman": return friedmanSentences(r, f, eff);
       case "two_way_anova": return factorialSentences(r, f, prefs, "two-way ANOVA");
+      case "two_way_art": return factorialSentences({ ...r, multiple_comparisons: r.art_contrasts,
+        sources: Object.fromEntries(Object.entries((r.sources ?? {}) as R)
+          .map(([k, s]) => [k, { ...(s as R), df_error: (s as R).df_residual }])) },
+      f, prefs, "two-way ANOVA on aligned ranks (aligned rank transform)");
       case "rm_two_way_mixed": return factorialSentences(r, f, prefs, "two-way repeated-measures ANOVA, mixed design");
       case "rm_two_way_both": return factorialSentences(r, f, prefs, "two-way repeated-measures ANOVA");
       case "three_way_anova": return factorialSentences(r, f, prefs, "three-way ANOVA");

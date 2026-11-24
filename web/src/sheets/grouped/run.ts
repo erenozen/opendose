@@ -13,6 +13,7 @@ import { groupedPayload, hasMissingRM } from "./stats.ts";
 import { allCellsComparisons, cellsFamily } from "../common/allCells.ts";
 import { ddfOf } from "../common/ddf.ts";
 import { contrastsOption } from "../common/customContrasts.ts";
+import { artPayload, artRefusal } from "./art.ts";
 
 type Result = Record<string, unknown>;
 
@@ -56,6 +57,7 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
   const model = additive ? { model: "additive" } : {};
   const withNames = (r: Result) => ({ ...r, factor_names: [rowFactor, colFactor] });
 
+  if (o.method === "art") return runArt(engine, table, o, [rowFactor, colFactor]);
   if (table.subcolumnFormat !== "replicates") {
     if (o.design !== "none") return { error: `Repeated measures ${RAW_ONLY}` };
     const format = SUMMARY_FORMAT[table.subcolumnFormat];
@@ -132,6 +134,14 @@ export function runTwoWay(engine: EngineBridge, table: DataTableModel,
     multiple_comparisons: m.multiple_comparisons ?? null,
     comparisons_error: m.error ?? null,
   };
+}
+
+/** Nonparametric two-way ANOVA by the aligned rank transform (art.ts). */
+function runArt(engine: EngineBridge, table: DataTableModel, o: TwoWayOptions,
+  factors: [string, string]): Result {
+  const refused = artRefusal(table, o);
+  if (refused) return { error: refused };
+  return { ...analyze(engine, artPayload(table, o, factors)), factor_names: factors };
 }
 
 // ------------------------------------------------------------ three-way

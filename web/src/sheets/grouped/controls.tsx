@@ -15,6 +15,11 @@ import {
 } from "./options";
 import { groupedPayload, hasMissingRM } from "./stats";
 import DdfSelect from "../common/DdfSelect";
+import {
+  ART_ADJUST_LABELS, ART_CONTRAST_LABELS, ART_LOG_NOTE, ART_SOURCES, LOG_ROUTE_SOURCE,
+} from "./art";
+import type { ArtAdjust, ArtContrasts } from "./options";
+import { Sources } from "./artPanels";
 import { CustomContrastsControl } from "../common/CustomContrasts";
 import "./grouped.css";
 
@@ -51,7 +56,8 @@ const DESIGN_HINT: Record<TwoWayDesign, string> = {
     + "subject in every row and every dataset.",
 };
 
-export function TwoWayControls({ table, options: o, onChange }: ControlsProps<TwoWayOptions>) {
+export function TwoWayControls(props: ControlsProps<TwoWayOptions>) {
+  const { table, options: o, onChange } = props;
   const set = (patch: Partial<TwoWayOptions>) => onChange({ ...o, ...patch });
   const summary = table.subcolumnFormat !== "replicates";
   const missing = o.design !== "none" && !summary
@@ -61,10 +67,13 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
     ? table.factorNames?.rows || o.rowFactor : o.rowFactor;
   const shownCol = o.colFactor === DEFAULT_TWO_WAY.colFactor
     ? table.factorNames?.datasets || o.colFactor : o.colFactor;
+  const art = o.method === "art";
+  if (art) return <ArtControls {...props} />;
   return (
     <div className="controls">
       <section>
         <h3>Design</h3>
+        <MethodRow options={o} onChange={onChange} summary={summary} />
         <Row label="Repeated measures">
           <select value={o.design} disabled={summary}
             onChange={(e) => set({ design: e.target.value as TwoWayDesign })}>
@@ -157,6 +166,90 @@ export function TwoWayControls({ table, options: o, onChange }: ControlsProps<Tw
         {o.design === "none" && !summary && (
           <CustomContrastsControl what="cell" value={o.customContrasts ?? []}
             names={cellNames(table)} onChange={(v) => set({ customContrasts: v })} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+/** Gaussian two-way ANOVA or its nonparametric version by the aligned
+ *  rank transform (P-85, art.ts): independent replicate values only. */
+function MethodRow({ options: o, onChange, summary }: {
+  options: TwoWayOptions; onChange: (o: TwoWayOptions) => void; summary: boolean;
+}) {
+  return (
+    <Row label="Method">
+      <select aria-label="Method" value={o.method === "art" ? "art" : "anova"} disabled={summary}
+        onChange={(e) => onChange(e.target.value === "art"
+          ? { ...o, method: "art", design: "none" } : { ...o, method: undefined })}>
+        <option value="anova">Two-way ANOVA (Gaussian)</option>
+        <option value="art">Aligned rank transform (nonparametric)</option>
+      </select>
+    </Row>
+  );
+}
+
+/** The aligned rank transform's controls: the factor names and the ART-C
+ *  contrasts (which levels, which adjustment). */
+function ArtControls({ table, options: o, onChange }: ControlsProps<TwoWayOptions>) {
+  const set = (patch: Partial<TwoWayOptions>) => onChange({ ...o, ...patch });
+  const shownRow = o.rowFactor === DEFAULT_TWO_WAY.rowFactor
+    ? table.factorNames?.rows || o.rowFactor : o.rowFactor;
+  const shownCol = o.colFactor === DEFAULT_TWO_WAY.colFactor
+    ? table.factorNames?.datasets || o.colFactor : o.colFactor;
+  const contrasts = o.artContrasts ?? "none";
+  return (
+    <div className="controls">
+      <section>
+        <h3>Design</h3>
+        <MethodRow options={o} onChange={onChange} summary={false} />
+        <p className="hint-block">
+          A nonparametric two-way ANOVA with the interaction: for each effect the values are
+          aligned (the other effects removed) and ranked, and a factorial ANOVA of the ranks tests
+          that effect. Values are independent (no repeated measures); every cell needs two or
+          more values. <Sources list={ART_SOURCES} />
+        </p>
+        <p className="hint-block">{ART_LOG_NOTE} <Sources list={[LOG_ROUTE_SOURCE]} /></p>
+      </section>
+      <section>
+        <h3>Factor names</h3>
+        <div className="factor-names">
+          <span>Rows</span>
+          <input aria-label="Name of the row factor" value={shownRow}
+            onChange={(e) => set({ rowFactor: e.target.value })} />
+          <span />
+          <span>Datasets</span>
+          <input aria-label="Name of the column factor" value={shownCol}
+            onChange={(e) => set({ colFactor: e.target.value })} />
+          <span />
+        </div>
+      </section>
+      <section>
+        <h3>Multiple comparisons</h3>
+        <Row label="ART-C contrasts">
+          <select aria-label="ART-C contrasts" value={contrasts}
+            onChange={(e) => set({ artContrasts: e.target.value === "none" ? undefined
+              : e.target.value as ArtContrasts })}>
+            {(Object.keys(ART_CONTRAST_LABELS) as ArtContrasts[]).map((k) => (
+              <option key={k} value={k}>{ART_CONTRAST_LABELS[k]}</option>
+            ))}
+          </select>
+        </Row>
+        {contrasts !== "none" && (
+          <Row label="Adjustment">
+            <select aria-label="Adjustment of the ART-C contrasts" value={o.artAdjust ?? "tukey"}
+              onChange={(e) => set({ artAdjust: e.target.value === "holm" ? "holm" : undefined })}>
+              {(Object.keys(ART_ADJUST_LABELS) as ArtAdjust[]).map((k) => (
+                <option key={k} value={k}>{ART_ADJUST_LABELS[k]}</option>
+              ))}
+            </select>
+          </Row>
+        )}
+        {contrasts !== "none" && (
+          <p className="hint-block">
+            Differences of mean aligned ranks (ART-C): they show which levels differ and in which
+            direction, not by how much in the data&apos;s units.
+          </p>
         )}
       </section>
     </div>

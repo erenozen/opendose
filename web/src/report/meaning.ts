@@ -467,6 +467,35 @@ function twoWayMeaning(r: R, o: R, t: MeaningTable | null | undefined, style: PS
   test);
 }
 
+// Aligned rank transform (P-85): the same reading as the two-way ANOVA,
+// on aligned ranks (Wobbrock et al. 2011): an effect on the ranks, not a
+// size in the data's units.
+const ART_SOURCE: Source = SRC.wobbrock2011;
+
+function artMeaning(r: R, style: PStyle): Meaning | null {
+  const src: R = r.sources ?? {};
+  const pi = src.interaction?.p;
+  if (!num(pi)) return null;
+  const fn: string[] = Array.isArray(r.factor_names) ? r.factor_names.map(String) : [];
+  const rowF = fn[0] || "the row factor";
+  const colF = fn[1] || "the column factor";
+  const pc = src[colF]?.p, pr = src[rowF]?.p;
+  const test = "Aligned rank transform two-way ANOVA: a nonparametric test of the two factors and "
+    + "their interaction on ranks aligned for each effect.";
+  const mis = "a measure of how large the effect is. The test is on aligned ranks: it says which "
+    + "effects shift the values, not by how much in the data's units.";
+  if (pi < ALPHA) {
+    return meaning(`On aligned ranks, the effect of ${colF} differed between levels of ${rowF} `
+      + `(interaction ${P(pi, style)}), so describe the effect of ${colF} at each level of ${rowF} `
+      + "rather than as one average.", [ART_SOURCE, S.gpInteraction, S.greenland2016], mis, test);
+  }
+  const main = [num(pr) ? `${rowF} ${P(pr, style)}` : "", num(pc) ? `${colF} ${P(pc, style)}` : ""]
+    .filter(Boolean).join("; ");
+  return meaning(`The aligned ranks do not show that the effect of ${colF} depends on ${rowF} `
+    + `(interaction ${P(pi, style)})${main ? `; main effects: ${main}` : ""}.`,
+  [ART_SOURCE, S.amrhein2019], mis, test);
+}
+
 // ------------------------------------------------------------- correlation, regression
 
 function correlationMeaning(r: R, style: PStyle): Meaning | null {
@@ -1165,6 +1194,7 @@ export function meaningOf(input: MeaningInput): Meaning | null {
       case "two_way_anova":
       case "rm_two_way_mixed":
       case "rm_two_way_both": return twoWayMeaning(r, o, t, style);
+      case "two_way_art": return artMeaning(r, style);
       case "correlation": return correlationMeaning(r, style);
       case "linear_regression": return linregMeaning(r, t, style);
       case "multiple_regression":

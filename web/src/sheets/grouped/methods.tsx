@@ -10,6 +10,7 @@ import {
   type MultiTOptions, type RowMeansOptions, type ThreeWayOptions, type TwoWayOptions,
 } from "./options";
 import { CopyButton } from "../../components/CiteBlock";
+import { artMethodsSentence } from "./art";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -59,6 +60,9 @@ export function TwoWayMethods({ result, options: o }: ResultsProps<TwoWayOptions
   const fA = names[0] || o.rowFactor || "the row factor";
   const fB = names[1] || o.colFactor || "the column factor";
   let text: string;
+  if (result.analysis === "two_way_art") {
+    return <MethodsCard text={`${artMethodsSentence(result, [fA, fB])} Computed with ${TOOL}.`} />;
+  }
   if (result.analysis === "mixed_rm_two_way") {
     const fe = result.fixed_effects ?? {};
     const parts = [

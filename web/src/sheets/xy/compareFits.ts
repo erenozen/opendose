@@ -19,7 +19,7 @@
 // or the separate curves as `fit`, the other model's curve under
 // `altCurves`). Pure: unit-tested with node --test.
 import { numericData } from "../../project/table.ts";
-import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types.ts";
+import type { DataTableModel } from "../../project/types.ts";
 import { engineWeighting, WEIGHTING_LABELS, weightingLabel } from "../../types.ts";
 import type { ConstraintState, ErrorBarKind, WeightingKind } from "../../types.ts";
 import {
@@ -33,7 +33,9 @@ import { globalModelToResult, numberInTitle } from "./fitOptions.ts";
 import {
   compareAicc, extraSumOfSquaresF, type AiccComparison, type FTest,
 } from "./fitStats.ts";
-import { comparableParameters, defaultParameter, runParameter } from "./compareParameter.ts";
+import {
+  comparableParameters, defaultParameter, runParameter, summaryFitOptions,
+} from "./compareParameter.ts";
 import { normalizeMargins, potencyModel, runPotency, type Margin } from "./relativePotency.ts";
 import { tQuantile } from "../grouped/stats.ts";
 
@@ -338,10 +340,7 @@ export function meanPoints(table: DataTableModel, logX: boolean, kind: ErrorBarK
   }));
 }
 
-function summaryOptions(table: DataTableModel): Record<string, unknown> {
-  return table.subcolumnFormat !== "replicates"
-    ? { summary_format: SUBCOLUMN_FORMAT_ENGINE[table.subcolumnFormat], replicates: "account" } : {};
-}
+const summaryOptions = summaryFitOptions;
 
 const fail = (error: string) => ({ analysis: ANALYSIS_COMPARE, rows: [], datasets: [], error });
 

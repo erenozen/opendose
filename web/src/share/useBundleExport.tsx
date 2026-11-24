@@ -16,6 +16,7 @@ import { svgPagesToPdf } from "../export/pdf";
 import { resolveLayout } from "../project/layout";
 import { getRuntimeVersions, runEngine } from "../lib/engine";
 import { exportPzfx, pzfxSelection } from "./pzfx";
+import { sheetTable } from "../project/leftOut";
 import { findSheet } from "../project/ops";
 import { serializeProject } from "../project/persist";
 import { replayPlanOf } from "../project/replay";
@@ -180,7 +181,8 @@ export function useBundleExport() {
           const result = bound?.kind === "results"
             ? (bound.frozen ? bound.cached : api.results.get(bound.id)?.result) ?? null : null;
           job.input.legends!.push({ name: sheet.name, kind: "graph", text: legendFor({
-            data, table: data.table, graph: sheet as GraphSheet, result,
+            data, table: sheetTable(bound?.kind === "results" ? bound : null, data.table),
+            graph: sheet as GraphSheet, result,
             options: bound?.kind === "results" ? bound.options : null,
             prefs: reportPrefsOf(api.project.prefs), software: softwareLabel(),
             valuesAre: valuesPhrase(api.project, data),
