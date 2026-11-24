@@ -43,6 +43,14 @@ Methods 16:565), after Gardner & Altman (1986, BMJ 292:746) and Cumming
   Smyth 2010, Stat Appl Genet Mol Biol 9:39). DABEST reports b / m with
   a strict inequality; the two differ by less than the Monte Carlo
   error.
+- Combined effects of DABEST for unpaired mean differences
+  (combined_effect): the mini-meta weighted delta of independent repeats
+  of a two-group experiment, weighted by the inverse of each repeat's
+  pooled group variance, and the delta-delta of a 2 x 2 design (the
+  second comparison's difference minus the first's), each with a BCa
+  bootstrap CI from the comparisons' own bootstrap differences; the
+  weighted mean is meta.weighted_mean, the pooling step of the
+  meta-analysis.
 - Random numbers: numpy's PCG64 generator, seeded (default 12345);
   independent streams for every comparison and for the bootstrap and the
   permutations (numpy SeedSequence.spawn), so results are reproducible.
@@ -354,8 +362,11 @@ def _clean_pair(c, t, paired):
 def compare(control, test, *, names=("Control", "Test"), paired=False,
             effects=("mean_diff",), ci_level=0.95, n_boot=5000,
             n_permutations=5000, seed=12345, ci_type="bca",
-            permutation=True, streams=None) -> dict:
-    """One control/test comparison with every requested effect size."""
+            permutation=True, streams=None,
+            keep_bootstraps: bool = False) -> dict:
+    """One control/test comparison with every requested effect size
+    (keep_bootstraps: each effect keeps its bootstrap values, for the
+    mini-meta and delta-delta)."""
     c, t = _clean_pair(control, test, paired)
     if isinstance(effects, str):
         effects = (effects,)
@@ -366,7 +377,8 @@ def compare(control, test, *, names=("Control", "Test"), paired=False,
             continue
         res = bootstrap_effect(c, t, eff, paired=paired, ci_level=ci_level,
                                n_boot=n_boot, ci_type=ci_type,
-                               rng=np.random.default_rng(streams[2 * k]))
+                               rng=np.random.default_rng(streams[2 * k]),
+                               keep_bootstraps=keep_bootstraps)
         if permutation:
             res["permutation"] = permutation_test(
                 c, t, eff, paired=paired, n_permutations=n_permutations,
@@ -387,7 +399,7 @@ def estimation(groups, names=None, *, design: str | None = None,
                effects=("mean_diff",), ci_level: float = 0.95,
                n_boot: int = 5000, n_permutations: int = 5000,
                seed=12345, ci_type: str = "bca",
-               permutation: bool = True) -> dict:
+               permutation: bool = True, combine: str | None = None) -> dict:
     """Estimation analysis of several groups.
 
     groups: list of value lists (paired designs: aligned by position,
@@ -400,7 +412,9 @@ def estimation(groups, names=None, *, design: str | None = None,
     previous). Result: groups (summaries with raw values), comparisons
     (each with its effects: difference, BCa and percentile CIs,
     bootstrap percentiles and density, permutation P) and plot (the
-    Gardner-Altman or Cumming layout)."""
+    Gardner-Altman or Cumming layout). combine: "mini_meta" (the
+    weighted delta of independent repeats) or "delta_delta" (2 x 2
+    designs), see combined_effect; added as result["combined"]."""
     k = len(groups)
     names = list(names or [f"Group {i + 1}" for i in range(k)])
     if k < 2:
@@ -425,14 +439,35 @@ def estimation(groups, names=None, *, design: str | None = None,
         comp = [(i - 1, i) for i in range(1, k)]
     if isinstance(effects, str):
         effects = (effects,)
-    streams = _seed_streams(seed, len(comp))
+    if combine not in (None, "none", "mini_meta", "delta_delta"):
+        raise ValueError(f"unknown combined effect: {combine}")
+    combine = None if combine == "none" else combine
+    if combine:
+        _check_combinable(combine, comp, effects, paired)
+    # one stream per comparison; the combined effect takes the next one,
+    # so the comparisons' streams (and results) do not change with it
+    streams = _seed_streams(seed, len(comp) + (1 if combine else 0))
     comparisons = []
     for (ci_, ti), ss in zip(comp, streams):
         comparisons.append(compare(
             groups[ci_], groups[ti], names=(names[ci_], names[ti]),
             paired=paired, effects=effects, ci_level=ci_level, n_boot=n_boot,
             n_permutations=n_permutations, ci_type=ci_type,
-            permutation=permutation, streams=ss.spawn(2 * len(effects))))
+            permutation=permutation, streams=ss.spawn(2 * len(effects)),
+            keep_bootstraps=bool(combine)))
+    combined = None
+    if combine:
+        data = [_clean_pair(groups[a], groups[b], False) for a, b in comp]
+        boots = [np.asarray(c["effects"][0].pop("bootstraps"), float)
+                 for c in comparisons]
+        for c in comparisons:
+            for e in c["effects"]:
+                e.pop("bootstraps", None)
+        combined = combined_effect(
+            combine, data, boots, [(names[a], names[b]) for a, b in comp],
+            ci_level=ci_level, ci_type=ci_type,
+            n_permutations=n_permutations if permutation else 0,
+            rng=np.random.default_rng(streams[-1]))
     summaries = [_group_summary(n, [v for v in g if v is not None and v == v])
                  for n, g in zip(names, groups)]
     plot_kind = ("gardner_altman" if len(comparisons) == 1 else "cumming")
@@ -448,4 +483,145 @@ def estimation(groups, names=None, *, design: str | None = None,
             "comparisons": comparisons, "effects": list(effects),
             "ci_level": ci_level, "ci_type": ci_type,
             "n_resamples": int(n_boot), "n_permutations": int(n_permutations),
-            "seed": seed, "plot": plot}
+            "seed": seed, "plot": plot,
+            **({"combined": combined} if combined else {})}
+
+
+# ------------------------------------------------- mini-meta, delta-delta
+
+def _check_combinable(combine, comp, effects, paired):
+    if effects[0] != "mean_diff":
+        raise ValueError("the mini-meta and delta-delta are defined for the "
+                         "mean difference; choose Mean difference as the "
+                         "effect size")
+    if paired:
+        raise ValueError("the mini-meta and delta-delta here are for "
+                         "independent (unpaired) groups")
+    if combine == "mini_meta" and len(comp) < 2:
+        raise ValueError("the mini-meta needs at least 2 independent "
+                         "control/test experiments")
+    if combine == "delta_delta" and len(comp) != 2:
+        raise ValueError(
+            f"the delta-delta needs exactly 2 control/test comparisons (a "
+            f"2 x 2 design); this design has {len(comp)}")
+    used = [i for pair in comp for i in pair]
+    if len(set(used)) != len(used):
+        raise ValueError("the mini-meta and delta-delta need comparisons "
+                         "that share no group")
+
+
+def _pooled_var(c, t):
+    """Pooled variance of a control/test pair (DABEST's group variance)."""
+    n0, n1 = c.size, t.size
+    return ((n0 - 1) * c.var(ddof=1) + (n1 - 1) * t.var(ddof=1)) / (n0 + n1 - 2)
+
+
+def _jackknife_diffs(data, diffs, combine_fn):
+    """Delete-one jackknife over every observation of every comparison:
+    only that comparison's difference changes."""
+    jack = []
+    for i, (c, t) in enumerate(data):
+        for j in range(c.size):
+            dj = diffs.copy()
+            dj[i] = t.mean() - np.delete(c, j).mean()
+            jack.append(combine_fn(dj))
+        for j in range(t.size):
+            dj = diffs.copy()
+            dj[i] = np.delete(t, j).mean() - c.mean()
+            jack.append(combine_fn(dj))
+    return np.asarray(jack, float)
+
+
+def combined_effect(kind, data, boots, names, *, ci_level=0.95,
+                    ci_type="bca", n_permutations=5000, rng=None) -> dict:
+    """The DABEST mini-meta weighted delta or delta-delta of unpaired
+    control/test comparisons (Ho et al. 2019; DABEST-python 2025.03.27).
+
+    data: [(control, test)] value arrays; boots: each comparison's
+    bootstrap distribution of its mean difference (independent
+    resamples); names: [(control, test)].
+
+    - mini_meta: weighted delta = sum(w_i d_i) / sum(w_i) with w_i = 1 /
+      s_i^2, s_i^2 the pooled variance of comparison i's two groups (the
+      weights DABEST uses; meta.weighted_mean does the pooling). Its
+      bootstrap distribution applies the same weights to the comparisons'
+      bootstrap differences. Permutation P: the groups of every
+      comparison are reshuffled together and the weighted delta
+      recomputed with the reshuffled pooled variances (as DABEST),
+      P = (b + 1) / (m + 1).
+    - delta_delta: d_2 - d_1 (the second comparison's difference minus
+      the first's); bootstrap d*_2 - d*_1. No permutation P: shuffling
+      within each pair tests that both differences are 0, not that they
+      are equal.
+
+    CI: BCa (bias correction from the bootstrap; acceleration from the
+    delete-one jackknife over every observation, weights held fixed as in
+    the bootstrap) or percentile. DABEST takes its acceleration from a
+    jackknife of the bootstrap values themselves, which is close to 0;
+    the limits agree within Monte Carlo error."""
+    from . import meta
+    diffs = np.array([t.mean() - c.mean() for c, t in data])
+    B = np.vstack(boots)
+    out = {"kind": kind, "comparisons": [
+        {"control": a, "test": b, "difference": float(d)}
+        for (a, b), d in zip(names, diffs)]}
+    if kind == "mini_meta":
+        gv = np.array([_pooled_var(c, t) for c, t in data])
+        if np.any(gv <= 0):
+            raise ValueError("a comparison has no spread (all its values are "
+                             "equal), so it cannot be weighted in the "
+                             "mini-meta")
+        w = 1.0 / gv
+        theta = float(meta.weighted_mean(diffs, w))
+        boot = meta.weighted_mean(B, w)
+        jack = _jackknife_diffs(data, diffs,
+                                lambda d: float(meta.weighted_mean(d, w)))
+        out.update({"label": "Weighted mean difference",
+                    "pooled_variances": gv.tolist(),
+                    "weights": (100 * w / w.sum()).tolist()})
+    elif kind == "delta_delta":
+        theta = float(diffs[1] - diffs[0])
+        boot = B[1] - B[0]
+        jack = _jackknife_diffs(data, diffs, lambda d: float(d[1] - d[0]))
+        out["label"] = "Delta-delta"
+    else:
+        raise ValueError(f"unknown combined effect: {kind}")
+    bca = bca_interval(boot, theta, jack, ci_level)
+    fin = boot[np.isfinite(boot)]
+    alpha = 1 - ci_level
+    pct = [float(np.quantile(fin, alpha / 2)),
+           float(np.quantile(fin, 1 - alpha / 2))]
+    out.update({
+        "difference": theta, "ci": bca["ci"] if ci_type == "bca" else pct,
+        "ci_type": ci_type, "ci_level": ci_level, "bca_ci": bca["ci"],
+        "percentile_ci": pct, "bias_correction": bca["bias_correction"],
+        "acceleration": bca["acceleration"], "note": bca["note"],
+        "bootstrap": _summary_of(boot)})
+    if kind == "mini_meta" and n_permutations:
+        out["permutation"] = _mini_meta_permutation(
+            data, theta, n_permutations, rng or np.random.default_rng(12345))
+    return out
+
+
+def _mini_meta_permutation(data, theta, m, rng):
+    num = np.zeros(m)
+    den = np.zeros(m)
+    for c, t in data:
+        pooled = np.concatenate([c, t])
+        n0, n_all = c.size, pooled.size
+        X = pooled[np.argsort(rng.random((m, n_all)), axis=1)]
+        C, T = X[:, :n0], X[:, n0:]
+        gv = (((n0 - 1) * C.var(1, ddof=1)
+               + (n_all - n0 - 1) * T.var(1, ddof=1)) / (n_all - 2))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            w = 1.0 / gv
+        num += w * (T.mean(1) - C.mean(1))
+        den += w
+    with np.errstate(divide="ignore", invalid="ignore"):
+        vals = num / den
+    vals = vals[np.isfinite(vals)]
+    tol = 1e-9 * max(1.0, abs(theta))
+    hits = int(np.sum(np.abs(vals) >= abs(theta) - tol))
+    return {"p": float(min((hits + 1) / (vals.size + 1), 1.0)),
+            "n_permutations": int(vals.size), "exact": False,
+            "method": "random arrangements, P = (b + 1)/(m + 1)"}

@@ -4153,7 +4153,10 @@ def _estimation(data, options):
     multi_two_group), effects (["mean_diff"]; any of "mean_diff",
     "median_diff", "cohens_d", "hedges_g", "cliffs_delta"), ci_level
     (0.95), n_boot (5000), n_permutations (5000), seed (12345), ci_type
-    ("bca" | "percentile"), permutation (true). Result: {"analysis",
+    ("bca" | "percentile"), permutation (true), combine ("mini_meta" |
+    "delta_delta": the weighted delta of independent unpaired repeats,
+    or the second comparison's mean difference minus the first's; mean
+    difference only). Result: {"analysis",
     "design", "paired", "groups": [{name, n, mean, sd, median, q1, q3,
     values}], "comparisons": [{control, test, paired, n_control, n_test,
     effects: [{effect, label, difference, ci, ci_type, ci_level, bca_ci,
@@ -4161,7 +4164,8 @@ def _estimation(data, options):
     {n_resamples, mean, sd, percentiles, kde: {x, density, bandwidth}},
     permutation: {p, n_permutations, exact, method}}]}], "plot": {kind:
     "gardner_altman" | "cumming", order, pairs, paired_lines,
-    reference_mean?}}."""
+    reference_mean?}, "combined"?: {kind, label, difference, ci, bca_ci,
+    percentile_ci, comparisons, weights?, bootstrap, permutation?}}."""
     names = [ds.get("name", f"Group {i + 1}")
              for i, ds in enumerate(data["datasets"])]
     design = options.get("design")
@@ -4183,7 +4187,8 @@ def _estimation(data, options):
         ci_level=options.get("ci_level", 0.95), n_boot=n_boot,
         n_permutations=n_perm, seed=options.get("seed", 12345),
         ci_type=options.get("ci_type", "bca"),
-        permutation=options.get("permutation", True))}
+        permutation=options.get("permutation", True),
+        combine=options.get("combine"))}
 
 
 def _power(data, options):

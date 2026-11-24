@@ -18,6 +18,9 @@ export type EstimationDesign =
 
 export type EstimationEffect = "mean_diff" | "median_diff" | "cohens_d" | "hedges_g" | "cliffs_delta";
 
+/** DABEST's combined effects of unpaired mean differences (P-93). */
+export type EstimationCombine = "none" | "mini_meta" | "delta_delta";
+
 export interface EstimationOptions {
   design: EstimationDesign;
   /** Control group (two-group and shared-control designs). */
@@ -27,11 +30,20 @@ export interface EstimationOptions {
   seed: number;
   ciType: "bca" | "percentile";
   ciLevel: number;
+  /** Mini-meta weighted delta of independent repeats, or the
+   *  delta-delta of a 2 × 2 design. */
+  combine: EstimationCombine;
 }
 
 export const DEFAULT_ESTIMATION: EstimationOptions = {
   design: "auto", controlIndex: 0, effect: "mean_diff", nBoot: 5000, seed: 12345,
-  ciType: "bca", ciLevel: 0.95,
+  ciType: "bca", ciLevel: 0.95, combine: "none",
+};
+
+export const COMBINE_LABELS: Record<EstimationCombine, string> = {
+  none: "None",
+  mini_meta: "Mini-meta: weighted mean difference of independent repeats",
+  delta_delta: "Delta-delta: the second difference minus the first (2 × 2)",
 };
 
 export const DESIGN_LABELS: Record<EstimationDesign, string> = {
@@ -67,15 +79,23 @@ export function normalizeEstimation(raw: unknown): EstimationOptions {
     seed: int(o.seed, 0, 2 ** 31 - 1, d.seed),
     ciType: o.ciType === "percentile" ? "percentile" : "bca",
     ciLevel: typeof o.ciLevel === "number" && o.ciLevel > 0.5 && o.ciLevel < 1 ? o.ciLevel : d.ciLevel,
+    combine: pick(o.combine, Object.keys(COMBINE_LABELS) as EstimationCombine[], d.combine),
   };
 }
 
 /** Engine options shared by both table types. */
-function engineOptions(o: EstimationOptions): Record<string, unknown> {
+function engineOptions(o: EstimationOptions, combine = true): Record<string, unknown> {
   return {
     effects: [o.effect], n_boot: o.nBoot, n_permutations: 5000, seed: o.seed,
     ci_type: o.ciType, ci_level: o.ciLevel,
+    ...(o.combine === "none" || !combine ? {} : { combine: o.combine }),
   };
+}
+
+/** Whether the combined effects apply: independent control/test pairs
+ *  (a grouped table, or the column table's multiple two-group design). */
+export function canCombine(tableType: string, o: EstimationOptions): boolean {
+  return tableType === "grouped" || o.design === "multi_two_group";
 }
 
 /** Column table: one group per data set (paired designs align rows). */
@@ -88,7 +108,7 @@ export function columnEstimationPayload(table: DataTableModel, o: EstimationOpti
     analysis: "estimation",
     data: { datasets },
     options: {
-      ...engineOptions(o),
+      ...engineOptions(o, o.design === "multi_two_group"),
       ...(o.design === "auto" ? {} : { design: o.design }),
       control_index: o.design === "repeated_baseline" || o.design === "repeated_sequential" ? 0 : control,
     },

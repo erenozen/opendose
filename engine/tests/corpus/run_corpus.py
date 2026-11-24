@@ -4903,6 +4903,58 @@ experiments on dat.bcg and reads RR 0.4894 with the Hartung-Knapp CI,
 tau^2 0.3132 (SE 0.1664), I^2 92.22% and, with the z interval, SE 0.1798
 and exp(-1.0669) to exp(-0.3622); e2e-figures checks the forest plot's
 13 rows, the diamonds and its CI ends against the table.
+
+### P-93 Delta-delta and mini-meta estimation plots
+
+`estimation.combined_effect` adds DABEST's two combined effects of
+unpaired mean differences to the estimation analysis (option `combine`):
+the mini-meta weighted delta of independent repeats of a two-group
+experiment (each repeat's mean difference weighted by the inverse of its
+pooled group variance, as DABEST weights them; the pooling step is
+`meta.weighted_mean`, shared with P-92) and the delta-delta of a 2 x 2
+design (the second comparison's mean difference minus the first's). The
+bootstrap distribution applies the same arithmetic to the comparisons'
+own bootstrap differences (independent resamples, seeded), with a BCa
+interval whose acceleration comes from the delete-one jackknife over every
+observation; the mini-meta has a permutation P (every repeat reshuffled
+together, P = (b + 1) / (m + 1)). The delta-delta has no P: shuffling
+within each pair tests that both differences are 0, not that they are
+equal. The comparisons' own results are unchanged by the option (their
+random streams are the same).
+
+Reference: DABEST-python 2025.03.27 itself, installed in a throwaway
+virtual environment for `engine/tests/reference/estimation_minimeta.py`
+(never a project dependency), on data the script draws with a fixed seed
+and stores in `estimation_minimeta.json`. Point estimates are
+deterministic; DABEST's bootstrap limits come from its own random
+streams, so the engine's agree with them within Monte Carlo error.
+`engine/tests/test_estimation_minimeta.py`:
+
+| Input | Reference (DABEST) | Engine tolerance |
+|---|---|---|
+| Three repeats, control vs drug (n 6/6, 8/7, 5/6), mini_meta = True | differences -2.823333, -1.003750, -4.953000; pooled variances 1.956603, 0.733584, 7.110670; weighted delta -1.740944, BCa -2.462132 to -1.070963, percentile -2.449816 to -1.056635; permutation P 0 of 5000 | 1e-12 on the estimates; CI limits within 5% of the CI width (engine BCa -2.4457 to -1.0923); P = 1/5001 |
+| 2 x 2 (W / M x Placebo / Drug), delta2 = True | differences -7.365000 (W), -1.422540 (M); delta-delta 5.942460, BCa 2.295198 to 9.868194, percentile 2.210595 to 9.759107 | 1e-12; CI limits within 5% of the width (engine BCa 2.3841 to 9.7256) |
+
+Also tested: the weighted delta equals meta.weighted_mean of the
+differences; the SD of its bootstrap distribution equals the normal
+approximation sqrt(sum w^2 se^2) / sum w (plug-in variances) within 3%
+at 20000 resamples; the same seed gives the same CI and the comparisons'
+CIs and P values are bit-identical with and without the option;
+percentile intervals; units x 1000 (difference and CI scale, weights
+unchanged), a shift of every value, swapping control and test (sign
+flips), swapping the two pairs of a delta-delta (sign flips); equal
+repeats weigh one third each; 2 values per group and missing values;
+refusals with a reason (an effect size other than the mean difference,
+paired designs, one comparison, a delta-delta without exactly 2, shared
+groups, a repeat with no spread, an unknown option).
+
+Web: `src/report/estimation/__tests__/combined.test.ts` (options,
+payloads, the results row, methods, legend and the plot's combined
+column with the engine's CI ends); e2e-figures switches the grouped
+estimation analysis of the three repeats to the mini-meta and reads the
+weighted delta -1.741 with a CI within Monte Carlo error of DABEST's, the
+plot's "Weighted delta" column at the same values, and the 2 x 2
+delta-delta 5.942.
 """
 
 

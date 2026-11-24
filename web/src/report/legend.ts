@@ -13,6 +13,7 @@ import { familyLegendClause, resultFamily } from "./family.ts";
 import { describeResult, type GroupN, type TestInfo } from "./describe.ts";
 import { starScale, type PStyle } from "./pformat.ts";
 import { withheldInfo, withheldPhrase } from "../sheets/common/withheld.ts";
+import { combinedLegend } from "./estimation/combined.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -71,7 +72,8 @@ export function whatIsPlotted(graphType: string | null | undefined,
         + `${cumming ? "Lower panel" : "Right axis"}: the ${e?.effects?.[0] === "median_diff" ? "median" : "mean"} difference from the control (dot) `
         + `with its ${lvl} ${ci} bootstrap confidence interval (vertical bar) and the bootstrap `
         + `distribution of the difference (${n} resamples, half-violin)`
-        + `${cumming ? "" : ", on an axis whose zero is aligned with the control mean"}.`;
+        + `${cumming ? "" : ", on an axis whose zero is aligned with the control mean"}.`
+        + combinedLegend(e ?? {});
     }
     case "xy":
       return `${xyPointsClause(bars)}; the curve is the fitted model.`;
