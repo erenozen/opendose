@@ -141,7 +141,8 @@ export function checkLines(cs: DesignCheck[]): string[] {
 /** The wizard's answers as the three "Describe the experiment" answers
  *  (guide/designToTable.ts), so the table choice is the same. */
 export function tableAnswers(d: Design): DesignAnswers {
-  const value = d.outcome === "counts" ? "count" : d.outcome === "survival" ? "time-to-event" : "measurement";
+  const value = d.outcome === "counts" ? "count" : d.outcome === "survival" ? "time-to-event"
+    : d.outcome === "scores" && !d.paired && d.groups !== "one" ? "variables" : "measurement";
   const factors = d.outcome === "curve" ? "x" : d.factors !== "one" || d.differential ? "two" : "one";
   const repeats = d.paired || d.repeated !== "none" || d.blocked ? "repeated"
     : d.replicates !== "independent" ? "nested" : "independent";

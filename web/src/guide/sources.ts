@@ -325,6 +325,25 @@ export const SRC = {
   // expected count per unit of exposure (McCullagh & Nelder, ch. 6).
   mccullaghNelder1989: { label: "McCullagh & Nelder 1989, Generalized Linear Models, 2nd ed., chapter 6 (log-linear models)",
     url: "https://doi.org/10.1007/978-1-4899-3242-6" },
+  // Ordinal (proportional-odds) regression (P-88): the cumulative logit
+  // model for ordered scores, its proportional-odds check against a
+  // separate effect at each cut point, and the reference implementation
+  // (ordinal::clm). Crossref: J R Stat Soc B 42(2):109-127 and Appl Stat
+  // 39(2):205, read 2026-11-24.
+  mccullagh1980: { label: "McCullagh 1980, Regression models for ordinal data, J R Stat Soc B 42:109",
+    url: "https://doi.org/10.1111/j.2517-6161.1980.tb01109.x" },
+  petersonHarrell1990: { label: "Peterson & Harrell 1990, Partial proportional odds models for ordinal response variables, Appl Stat 39:205",
+    url: "https://doi.org/10.2307/2347760" },
+  christensenOrdinal: { label: "Christensen, Cumulative link models for ordinal regression with the R package ordinal (CRAN vignette)",
+    url: "https://cran.r-project.org/package=ordinal" },
+  // Uncertainty carried through Remove baseline and Normalize (P-98): the
+  // first-order propagation law, and why normalised or baseline-corrected
+  // values are not independent replicates. Crossref: Br J Pharmacol
+  // 175(7):987-993, read 2026-11-24.
+  gum2008: { label: "JCGM 100:2008, Evaluation of measurement data: Guide to the expression of uncertainty in measurement (GUM), section 5.1",
+    url: "https://www.bipm.org/en/committees/jc/jcgm/publications" },
+  curtis2018: { label: "Curtis et al. 2018, Experimental design and analysis and their reporting II, Br J Pharmacol 175:987",
+    url: "https://doi.org/10.1111/bph.14153" },
   // Quantal response: the ED50 (LD50) is the dose at which half of the
   // subjects respond; probits are normal deviates of the response share.
   bliss1934: { label: "Bliss 1934, The method of probits, Science 79:38",

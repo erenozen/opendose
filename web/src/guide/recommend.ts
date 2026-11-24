@@ -23,7 +23,7 @@ import { blockedRecommendation } from "./blocking.ts";
 import { interactionRecommendation } from "./interaction.ts";
 import { METHODS } from "./methodsWording.ts";
 
-export type Outcome = "continuous" | "counts" | "survival" | "curve";
+export type Outcome = "continuous" | "counts" | "survival" | "curve" | "scores";
 export type GroupCount = "one" | "two" | "three_plus";
 export type Factors = "one" | "two" | "three";
 /** Two factors: which of them is measured repeatedly on the same subjects. */
@@ -368,6 +368,17 @@ function draft(d: Design, checks: DataChecks | null): Draft {
   const base = { notes, tails: tails(d) };
 
   if (d.outcome === "counts") return counts(d, base);
+  if (d.outcome === "scores") {
+    // Paired scores and one group: the rank tests on the same subjects
+    // (Wilcoxon, Friedman), as for any non-Gaussian measurement.
+    if (d.paired || d.groups === "one") {
+      const r = draft({ ...d, outcome: "continuous", distribution: "not_normal", factors: "one",
+        differential: false, blocked: false, baseline: false }, checks);
+      return { ...r, notes: [...r.notes, "Scores are ordered categories, not measurements: the rank test "
+        + "uses their order only."] };
+    }
+    return scores(d, base);
+  }
   if (d.outcome === "survival") return survival(d, base);
   if (d.outcome === "curve") return curve(d, base);
   // Does the treatment effect differ between groups? The interaction.
@@ -871,6 +882,37 @@ function ancova(d: Design, base: Base): Draft {
       inOpenDose: "These P values are not corrected for multiple comparisons: with several groups, "
         + "interpret them with that in mind or correct them by hand (Bonferroni or Holm)." },
     sources: src("vickersAltman2001"), explainers: [] };
+}
+
+/** Scores on an ordered scale (histology 0 to 4, clinical EAE score) in
+ *  independent groups (P-88): ordinal (proportional-odds) regression, the
+ *  experiment as a block; the rank test as the simpler alternative. */
+function scores(d: Design, base: Base): Draft {
+  const two = d.groups === "two";
+  const rank = two ? "Mann-Whitney test" : "Kruskal-Wallis test";
+  const cells = d.replicates !== "independent";
+  return { ...base, rule: "ordinal_regression",
+    test: "Ordinal regression (proportional odds), experiment as a block",
+    reason: "Scores such as a histology grade or a clinical EAE score are ordered categories: a 3 is worse "
+      + "than a 2, but the step from 2 to 3 need not equal the step from 0 to 1, so a mean score and a t test "
+      + "or ANOVA assume a spacing the scale does not have. Ordinal (proportional-odds) regression uses only the "
+      + "order: it gives the odds ratio of a higher score between groups with its confidence interval, takes "
+      + "the experiment as a block when the animals were scored over several experiments, and checks whether "
+      + "one odds ratio fits every cut point (McCullagh 1980)."
+      + (cells ? " Use one score per animal (decide before looking whether it is the median or the worst "
+        + "section): sections or fields of the same animal are not independent." : ""),
+    target: { tableType: "multivariable", analysisId: "mv_ordinal", options: {},
+      layout: "Multiple variables table: one row per animal (or sample) with its group, its score (0, 1, 2, …) "
+        + "and, if scored over several experiments, the experiment." },
+    alternatives: [
+      { test: rank, when: `simpler, with no experiment block: compares the groups by ranks${two ? ""
+        : ", then Dunn's multiple comparisons"}, without an effect size on the score scale`,
+      target: { tableType: COLUMN, analysisId: A_COLUMN,
+        options: two ? { analysis: "ttest", ttestKind: "mann_whitney" }
+          : { analysis: "anova", anovaKind: "nonparametric", dunnCorrected: true },
+        layout: LAYOUT.column } },
+    ],
+    postHoc: null, sources: src("mccullagh1980", "christensenOrdinal", "gpNonparametric"), explainers: [] };
 }
 
 function counts(d: Design, base: Base): Draft {

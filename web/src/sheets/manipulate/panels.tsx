@@ -20,6 +20,7 @@ import { CopyButton } from "../../components/CiteBlock";
 import { Button } from "../../components/ui";
 import { maxOf } from "../../lib/extent";
 import type { ReferenceRow } from "./references";
+import type { Propagation } from "./propagation";
 
 // ------------------------------------------------------------ helpers
 
@@ -283,6 +284,29 @@ export function BaselineControls({ sheet, table, options: o, onChange, readOnly 
           disabled={readOnly} onChange={(replicates) => set({ replicates })}
           options={[["mean", "Use their mean"], ["each", "Match each replicate with its own"]]} />
       </section>
+      <section>
+        <h3>Uncertainty</h3>
+        <label className="check-row">
+          <input type="checkbox" checked={o.propagate === true} disabled={readOnly}
+            onChange={(e) => set({ propagate: e.target.checked })} />
+          <span>Carry the baseline's uncertainty into each row (propagated SD and SEM)</span>
+        </label>
+        {o.propagate && o.baseline === "value" && (
+          <div className="field-pair">
+            <NumField label="SD of the baseline" value={o.valueSd ?? ""} readOnly={readOnly}
+              onChange={(valueSd) => set({ valueSd })} />
+            <NumField label="n of the baseline" value={o.valueN ?? ""} readOnly={readOnly}
+              onChange={(valueN) => set({ valueN })} />
+          </div>
+        )}
+        {o.propagate && (
+          <p className="hint-block">
+            {o.baseline === "value" ? "Leave SD and n blank for an exact constant. " : ""}
+            For reporting each derived value with its error. To compare groups, analyse the raw values with
+            the control as a block instead.
+          </p>
+        )}
+      </section>
     </div>
   );
 }
@@ -319,6 +343,18 @@ export function NormalizeControls({ sheet, options: o, onChange, readOnly }:
           disabled={readOnly} onChange={(subcolumns) => set({ subcolumns })}
           options={[["mean", "Define 0% and 100% from the row means"],
             ["separate", "Normalize each subcolumn separately"]]} />
+      </section>
+      <section>
+        <h3>Uncertainty</h3>
+        <label className="check-row">
+          <input type="checkbox" checked={o.propagate === true} disabled={readOnly || o.subcolumns === "separate"}
+            onChange={(e) => set({ propagate: e.target.checked })} />
+          <span>Carry the 0% and 100% references' uncertainty into each row (propagated SD and SEM)</span>
+        </label>
+        {o.subcolumns === "separate" && (
+          <p className="hint-block">Needs 0% and 100% from the row means: single values carry no replicate
+            error.</p>
+        )}
       </section>
     </div>
   );
@@ -547,11 +583,45 @@ function ResultPreview({ result, table }: { result: ManipResult; table: DataTabl
   );
 }
 
+/** P-98: each derived row with its propagated SD and SEM, and what was
+ *  not propagated. */
+function PropagationBlock({ result: r, what }: { result: ManipResult; what: "baseline" | "references" }) {
+  const p = (r.extra as { propagation?: Propagation | null } | undefined)?.propagation;
+  if (!p) return null;
+  return (
+    <div className="manip-preview" role="region" aria-label="Propagated uncertainty" tabIndex={0}>
+      <h4>Propagated uncertainty</h4>
+      {p.rows.length > 0 && (
+        <table className="results-table manip-refs">
+          <thead><tr>
+            <th scope="col">Data set</th><th scope="col">Row</th><th scope="col">n</th>
+            <th scope="col">Value (mean)</th><th scope="col">SD</th><th scope="col">SEM</th>
+            <th scope="col">SEM from the {what}</th>
+          </tr></thead>
+          <tbody>
+            {p.rows.map((x, i) => (
+              <tr key={i}><th scope="row">{x.dataset}</th><td>{x.row}</td><td>{x.n}</td><td>{x.value}</td>
+                <td>{x.sd}</td><td>{x.se}</td><td>{x.fromRef}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {p.notes.map((n) => <p key={n} className="hint-block">{n}</p>)}
+      <p className="hint-block">
+        First-order (delta method) propagation over the replicate values (GUM, JCGM 100:2008, section 5.1). The SD
+        is that of one derived value; the SEM that of the row mean. Both include the {what}'s error, which every
+        value of a row shares, so they are not replicates to test.
+      </p>
+    </div>
+  );
+}
+
 /** P-57: the 0% and 100% each data set was normalized to. */
 export function NormalizeExtra({ result: r }: { result: ManipResult }) {
   const rows = (r.extra as { references?: ReferenceRow[] } | undefined)?.references;
-  if (!rows?.length) return null;
+  if (!rows?.length) return <PropagationBlock result={r} what="references" />;
   return (
+    <>
     <div className="manip-preview" role="region" aria-label="References used" tabIndex={0}>
       <h4>References used</h4>
       <table className="results-table manip-refs">
@@ -563,14 +633,17 @@ export function NormalizeExtra({ result: r }: { result: ManipResult }) {
         </tbody>
       </table>
     </div>
+    <PropagationBlock result={r} what="references" />
+    </>
   );
 }
 
 /** P-57: the baseline taken from each data set. */
 export function BaselineExtra({ result: r }: { result: ManipResult }) {
   const rows = (r.extra as { baselines?: { dataset: string; text: string }[] } | undefined)?.baselines;
-  if (!rows?.length) return null;
+  if (!rows?.length) return <PropagationBlock result={r} what="baseline" />;
   return (
+    <>
     <div className="manip-preview" role="region" aria-label="Baseline used" tabIndex={0}>
       <h4>Baseline used</h4>
       <table className="results-table manip-refs">
@@ -580,6 +653,8 @@ export function BaselineExtra({ result: r }: { result: ManipResult }) {
         </tbody>
       </table>
     </div>
+    <PropagationBlock result={r} what="baseline" />
+    </>
   );
 }
 

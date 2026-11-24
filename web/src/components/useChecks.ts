@@ -12,6 +12,7 @@ import { findSexFactor, sexChip } from "../guide/sex";
 import { dispersionChip } from "../sheets/multivariable/dispersion";
 import { equalSlopesChip } from "../sheets/multivariable/ancova";
 import { binomialDispersionChip, firthChip } from "../sheets/multivariable/glm";
+import { proportionalOddsChip } from "../sheets/multivariable/ordinal";
 
 export interface Counts { ok: number; warn: number; info: number; questions: number }
 
@@ -39,7 +40,9 @@ export function useChecks({ sheet, data, result, options, readOnly }: {
     // binomial regression's dispersion check and Firth's shrinkage (sheets/multivariable/glm.ts)
     const binomial = binomialDispersionChip(sheet.analysis, result, sheet.id);
     const firth = firthChip(sheet.analysis, result);
-    const extra = [chip, margin, sex, dispersion, slopes, binomial, firth].filter((c) => c !== null);
+    // ordinal regression's proportional-odds check (sheets/multivariable/ordinal.ts)
+    const po = proportionalOddsChip(sheet.analysis, result);
+    const extra = [chip, margin, sex, dispersion, slopes, binomial, firth, po].filter((c) => c !== null);
     return extra.length ? { ...base, chips: [...base.chips, ...extra] } : base;
   }, [base, graph, result, data.table, sheet.analysis, sheet.id, options]);
   const plan = useMemo(() => planCheckState(project, sheet, data), [project, sheet, data]);

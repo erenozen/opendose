@@ -1,6 +1,7 @@
 """Native engine results for the statistics table (statsTable.test.ts,
 P-66) and the "What this means" readers added in Wave 2 (meaning.test.ts,
 P-69): Poisson, quasi-Poisson, negative binomial and binomial regression,
+ordinal (proportional-odds) regression (P-88),
 three-way ANOVA, the nested two-way and grouping-column mixed models, the
 time-course mixed model and quantal fits, beside the classic tests of
 fixtures.py re-run on the current engine (with their family blocks).
@@ -63,6 +64,10 @@ TOT = [40, 42, 38, 41, 40, 43, 39, 42]
 DOSE = ["Low"] * 4 + ["High"] * 4
 BINOM_MV = [{"name": "Positive", "values": POS}, {"name": "Counted", "values": TOT},
             {"name": "Dose", "values": DOSE}]
+# Histology scores 0 to 4 in two groups: ordinal (proportional-odds) regression
+SCORES = [2, 3, 3, 4, 2, 3, 1, 3, 1, 2, 1, 0, 2, 1, 0, 2]
+SCORE_GROUP = ["Vehicle"] * 8 + ["Drug"] * 8
+SCORES_MV = [{"name": "Score", "values": SCORES}, {"name": "Group", "values": SCORE_GROUP}]
 
 TIME = [5, 8, 12, 14, 20, 22, 25, 30, 33, 40, 6, 9, 15, 18, 26, 31, 35, 42, 48, 50]
 EVENT = [1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0]
@@ -149,6 +154,8 @@ CASES = {
     "binomial": ("binomial_regression", {"variables": BINOM_MV},
                  {"outcome": "Positive", "totals": "Counted", "predictors": ["Dose"],
                   "reference_levels": {"Dose": "Low"}}),
+    "ordinal": ("ordinal_regression", {"variables": SCORES_MV},
+                {"outcome": "Score", "predictors": ["Group"], "reference_levels": {"Group": "Vehicle"}}),
     "mixed_nested": ("mixed_nested_two_way", NESTED2,
                      {"factor_a_name": "Diet", "factor_b_name": "Sex", "unit_name": "mice",
                       "comparisons": "sidak", "comparison_scope": "b_within_a"}),

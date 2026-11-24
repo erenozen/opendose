@@ -11,6 +11,7 @@ import { withheldInfo } from "../sheets/common/withheld.ts";
 import { blockBanner, blockRemoved, MATCHED_BY, pairedBlockBanner } from "./blocking.ts";
 import { withheldBanner } from "./smallN.ts";
 import { rankFloorBanner } from "./rankFloor.ts";
+import { propagationBanner } from "../sheets/manipulate/propagation.ts";
 
 export interface Banner {
   id: string;
@@ -144,8 +145,10 @@ function normalizeBanner(n: R): Banner {
   return { id: "normalized", tone: "info", title: "What normalising did to SD and SEM",
     body: "Each data set was rescaled so its 0% reference becomes 0 and its 100% reference "
       + "becomes 100: every value is shifted and multiplied by 100 / (100% − 0% reference), "
-      + "so SDs and SEMs are multiplied by the same factor. The references themselves are "
-      + "treated as exact; their uncertainty is not carried over."
+      + "so SDs and SEMs are multiplied by the same factor. "
+      + (n.propagate && !sep ? "The output table treats the references as exact; the propagated SD and SEM "
+        + "in the results carry their uncertainty."
+        : "The references themselves are treated as exact; their uncertainty is not carried over.")
       + (sep ? " Replicates were normalised separately, so the reference rows have SD 0: "
         + "don't test other rows against them as if they were measured." : ""),
     fixes: sep ? ["To compare with the 100% reference, use a one-sample t test against 100."] : [],
@@ -247,8 +250,12 @@ export function resultBanners(ctx: ResultContext): Banner[] {
   if (pairing) out.push(pairing);
   if (kind === "normalize") {
     out.push(normalizeBanner(ctx.options));
+    const prop = propagationBanner(kind, ctx.options as R, r);
+    if (prop) out.push(prop);
     return out;
   }
+  const baselineProp = kind === "remove_baseline" ? propagationBanner(kind, ctx.options as R, r) : null;
+  if (baselineProp) out.push(baselineProp);
   const dis = disagreementBanner(kind, r);
   if (dis) out.push(dis);
 

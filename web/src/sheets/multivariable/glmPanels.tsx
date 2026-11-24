@@ -10,7 +10,7 @@ import type { BinomialOptions, BinomialResult, NegBinOptions, NegBinResult } fro
 import { pLabel } from "../../report/pformat";
 import type { Coefficient } from "./run";
 
-function CiMethod({ value, onChange, disabled, note }: {
+export function CiMethod({ value, onChange, disabled, note }: {
   value: "profile" | "wald"; onChange: (v: "profile" | "wald") => void; disabled?: boolean; note?: string;
 }) {
   return (

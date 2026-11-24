@@ -24,8 +24,8 @@ from . import (anova, columnstats, contingency, correlation, descriptive,
                methodcomp, nlfit, normalize, outliers, plate, plate_io,
                prism_project, pzfx, repeated, schild, survival, transform,
                ttests, twoway)
-from . import multivar, partsofwhole
-from . import formulas, manipulate, simulate
+from . import multivar, ordinal, partsofwhole
+from . import formulas, manipulate, propagate, simulate
 from . import summary
 from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
@@ -490,7 +490,8 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
 def _normalize(data, options):
     """Normalize every data set (normalize.normalize_dataset). Each output
     data set also carries "references": the 0% and 100% values it used,
-    their rule and row (normalize.normalize_references)."""
+    their rule and row (normalize.normalize_references). options.propagate
+    adds "propagation": the references' error carried to each row."""
     out = []
     for ds in data["datasets"]:
         out.append({
@@ -513,7 +514,18 @@ def _normalize(data, options):
                 subcolumns=options.get("subcolumns", "mean"),
             ),
         })
-    return {"analysis": "normalize", "x": data["x"], "datasets": out}
+    result = {"analysis": "normalize", "x": data["x"], "datasets": out}
+    if options.get("propagate"):
+        # the references' error carried to each row (propagate.normalize)
+        result["propagation"] = propagate.normalize(
+            data["datasets"],
+            zero_mode=options.get("zero_mode", "smallest"),
+            zero_value=options.get("zero_value"),
+            hundred_mode=options.get("hundred_mode", "largest"),
+            hundred_value=options.get("hundred_value"),
+            as_percent=options.get("as_percent", True),
+            subcolumns=options.get("subcolumns", "mean"))
+    return result
 
 
 def _transform(data, options):
@@ -2539,17 +2551,25 @@ def _remove_baseline(data, options):
     "operation": "subtract"|"divide"|"fraction_difference"|
     "percent_difference"|"percent_of_baseline"|"add"|"multiply",
     "replicates": "mean"|"each", "pairs": "total_first"|"baseline_first",
-    "linear_baseline": bool}. Returns {"x", "datasets",
-    "baseline_lines"?} (baseline data sets omitted)."""
-    return {"analysis": "remove_baseline", **manipulate.remove_baseline(
-        data["x"], data["datasets"],
-        baseline=options.get("baseline", "column"),
-        baseline_dataset=options.get("baseline_dataset", 0),
-        k=options.get("k", 1), value=options.get("value"),
-        operation=options.get("operation", "subtract"),
-        replicates=options.get("replicates", "mean"),
-        pairs=options.get("pairs", "total_first"),
-        linear_baseline=options.get("linear_baseline", False))}
+    "linear_baseline": bool, "propagate"?: bool, "value_sd"?, "value_n"?}.
+    Returns {"x", "datasets", "baseline_lines"?} (baseline data sets
+    omitted); with propagate, "propagation": the delta-method SD and SE of
+    each derived row (propagate.remove_baseline; value_sd and value_n
+    describe a typed baseline's replicates)."""
+    kw = dict(baseline=options.get("baseline", "column"),
+              baseline_dataset=options.get("baseline_dataset", 0),
+              k=options.get("k", 1), value=options.get("value"),
+              operation=options.get("operation", "subtract"),
+              replicates=options.get("replicates", "mean"),
+              pairs=options.get("pairs", "total_first"),
+              linear_baseline=options.get("linear_baseline", False))
+    out = {"analysis": "remove_baseline", **manipulate.remove_baseline(
+        data["x"], data["datasets"], **kw)}
+    if options.get("propagate"):
+        out["propagation"] = propagate.remove_baseline(
+            data["x"], data["datasets"], value_sd=options.get("value_sd"),
+            value_n=options.get("value_n"), **kw)
+    return out
 
 
 def _transpose(data, options):
@@ -2824,6 +2844,28 @@ def _negative_binomial_regression(data, options):
              exposure=options.get("exposure") or None,
              ci_level=options.get("ci_level", 0.95),
              ci_method=options.get("ci_method", "profile"))},
+        variables, [options["outcome"], *options["predictors"]])
+
+
+def _ordinal_regression(data, options):
+    """data: multiple-variables table. options: {outcome (scores on an
+    ordered scale), predictors, interactions?, reference_levels?,
+    outcome_order? ([levels], lowest first: needed for text levels),
+    ci_level?, ci_method?: profile|wald, proportional_odds_test?: true}.
+    Cumulative logit (proportional-odds) model as ordinal::clm fits it
+    (ordinal.ordinal_regression). A refusal for separation carries
+    error_kind = "separation"."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "ordinal_regression",
+         **ordinal.ordinal_regression(
+             variables, options["outcome"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             outcome_order=options.get("outcome_order") or None,
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"),
+             proportional_odds_test=bool(options.get("proportional_odds_test", True)))},
         variables, [options["outcome"], *options["predictors"]])
 
 
@@ -3556,6 +3598,7 @@ _HANDLERS = {
     "poisson_regression": _poisson_regression,
     "binomial_regression": _binomial_regression,
     "negative_binomial_regression": _negative_binomial_regression,
+    "ordinal_regression": _ordinal_regression,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,
