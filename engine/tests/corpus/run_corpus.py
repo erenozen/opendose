@@ -5266,6 +5266,62 @@ tool: RM within effect a priori (Berti example) to 10 per group, 20 in
 total at 95.14% power, Faul et al.'s within effect at N 90 (99.66%,
 critical F 3.048), Hsieh's logistic example (N 317) and the regression
 omnibus example (67.36%).
+
+### P-96 Simulation power for nested designs
+
+`opendose.nested_power` plans animals (the experimental unit) against
+cells (their repeated measurements) from the between- and within-animal
+SDs, or the total SD and the ICC. The test compares animal means: for a
+balanced design the app's nested t test equals the t test on the animal
+means (checked against `nested.py`), whose variance is sigma_b^2 +
+sigma_w^2 / m = sigma_t^2 (1 + (m - 1) ICC) / m. The closed form solves
+the noncentral t (t test), the A.R.E. approximation (Mann-Whitney on
+animal means) or the per-comparison power with Dunnett's critical value
+(Dunnett's test, k - 1 treated groups against one control), and reports
+the design effect, the cells a naive count would ask for, the
+design-effect hand check and the cells-against-animals trade-off.
+`simulate_power` simulates the planned experiment cell by cell (seeded,
+vectorised, capped at 10000 repeats per call) and runs the test the app
+runs (Student's t, Mann-Whitney with exact P up to 100 animals per
+group, Dunnett with the same critical value), returning counts that the
+app pools chunk by chunk (`pool`) into the power with its Monte Carlo SE
+and Wilson 95% CI. `simulate.simulate_nested` adds a "nested" kind to
+the generic Monte Carlo, so `monte_carlo` can run the app's own
+nested_ttest on simulated animals and cells.
+
+References: the design-effect identity (Aarts et al. 2014, Nat Neurosci
+17:491; Kish 1965) as the hand check; R simr is not installed, so the
+simulation reference is `engine/tests/reference/nested_power.py`, a
+plain-Python Monte Carlo (cells drawn one by one with random.gauss,
+scipy ttest_ind / mannwhitneyu / dunnett on the animal means).
+`engine/tests/test_nested_power.py`:
+
+| Input | Reference | Engine |
+|---|---|---|
+| ICC 0.3, 10 cells per animal, difference 0.5 total SD, power .8 (the plan's acceptance test) | design effect 3.7; 62.79 cells per group by the normal approximation, x 3.7 / 10 = 23.23 animals; variance of an animal mean 0.37 | 25 animals per group (81.26%); exact t needs 24.23; the check from the t test's 63.77 cells gives 23.59; 64 cells if cells were independent |
+| Same at 25 animals per group, 6000 simulated experiments | 0.8095 | closed form 0.8126; engine simulation within Monte Carlo error |
+| Mann-Whitney on animal means, 8 per group, difference 1 | 0.8435 (6000) | A.R.E. 0.8447; simulation within error |
+| Dunnett, 3 treated + control, 12 per group, difference 1 | 0.9396 per comparison (1500 x 3) | closed form 0.9402; simulation within error; all-detected <= per comparison <= any |
+| The generic Monte Carlo with the app's nested_ttest, 8 animals x 10 cells, difference 1, 400 runs | rejection fraction | within 4 SE of the closed form |
+
+Also tested: the design-effect agreement at differences 1 to 0.15 (the
+exact n lies between the check and the check + 1); the normal
+approximation equals cells x DE / m exactly; two SD inputs equal total
+SD + ICC; ICC 0 (design effect 1) and 1 (extra cells add nothing);
+more cells never need more animals and never fewer than the
+between-animal floor; units x 1e-12 and x 1e12; the effect solve
+round-trips; seeds reproduce; pooled chunks sum; the null rejects at
+alpha; the repeat cap; negative or zero SDs, ICC outside 0 to 1, no
+cells, one animal and 3 groups with a t test are messages.
+
+Web: `src/power/__tests__/power.test.ts` (payloads, summary rows, the
+simulation options) and `chunks.test.ts` (chunk sizes, consecutive
+seeds, progress, Stop, errors); e2e-check selects the nested design and
+reads 25 animals per group, design effect 3.7, the 64-cell naive count
+and the 23.59-animal check, the trade-off table (1 cell: 64 animals, 10
+cells: 25), a 2000-run simulation with seed 7 within 4 Monte Carlo SE
+of 81.26%, and Stop ending a 10000-run simulation early; ui-stage scene
+guided-power-nested.
 """
 
 

@@ -7,7 +7,7 @@ import { DEFAULT_PREFS } from "../../project/prefs.ts";
 import {
   defaultForm, dFromMeans, effectGrid, fFromMeans, findSampleSizeJustification, hFromProportions,
   hrFromMedians, effectName, JUSTIFICATION_CONSTANT, justificationSheetContent, moreSummaryRows, nForCurve, nGrid,
-  nLabel, nParam, pooledSd, powerOptions, powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN, type PowerResult,
+  nestedSimOptions, nestedSummaryRows, nLabel, nParam, pooledSd, powerOptions, powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN, type PowerResult,
 } from "../power.ts";
 
 test("G*Power (Faul 2007) inputs: two groups, d = 0.5, one-sided, power 0.95", () => {
@@ -245,4 +245,45 @@ test("more designs: summary rows, unrounded n and the effect's name", () => {
   assert.equal(effectName("f2"), "f²");
   assert.equal(effectName("odds_ratio"), "odds ratio");
   assert.equal(effectName("d"), "d");
+});
+
+test("nested design (P-96): payload from ICC or the two SDs; Dunnett has no tails", () => {
+  const icc = powerOptions({ ...defaultForm(), kind: "nested" });
+  assert.ok("options" in icc);
+  assert.deepEqual(icc.options, { kind: "nested", solve: "n", alpha: 0.05, power: 0.8, tails: 2, test: "t", k: 2,
+    m: 10, sd_total: 1, icc: 0.3, delta: 0.5 });
+  const comp = powerOptions({ ...defaultForm(), kind: "nested", sdMode: "components", sdBetween: "0.5",
+    sdWithin: "1.2", nestedTest: "dunnett", nestedK: "4", solve: "power", n: "12" });
+  assert.ok("options" in comp);
+  assert.equal(comp.options.tails, undefined);
+  assert.equal(comp.options.k, 4);
+  assert.equal(comp.options.n, 12);
+  assert.equal(comp.options.sd_between, 0.5);
+  assert.equal(comp.options.icc, undefined);
+  assert.match((powerOptions({ ...defaultForm(), kind: "nested", icc: "-0.1" }) as { error: string }).error,
+    /ICC: between 0 and 1/);
+  assert.match((powerOptions({ ...defaultForm(), kind: "nested", sdMode: "components", sdBetween: "0",
+    sdWithin: "0" }) as { error: string }).error, /at least one must be above 0/);
+  assert.match((powerOptions({ ...defaultForm(), kind: "nested", cells: "0" }) as { error: string }).error,
+    /Cells per animal/);
+});
+
+test("nested design: summary rows, the design-effect check and the simulation options", () => {
+  const r = { ...base, kind: "nested", solve: "n", test: "t", n: 25, n_per_group: [25, 25], n_total: 50,
+    n_exact: 24.23, k: 2, m: 10, icc: 0.3, design_effect: 3.7, sd_unit_mean: 0.6083, sd_between: 0.5477,
+    sd_within: 0.8367, cells_per_group: 250, cells_if_independent: 64, cells_if_independent_exact: 63.77,
+    n_design_effect: 23.59, effect: { name: "delta", value: 0.5 } } as PowerResult;
+  assert.deepEqual(nestedSummaryRows(r), [
+    ["Test", "t test on animal means"], ["Cells per animal", "10"], ["Cells per group", "250"], ["ICC", "0.3"],
+    ["Design effect 1 + (m − 1) ICC", "3.7"], ["SD of an animal’s mean", "0.6083"],
+    ["Cells per group if cells were independent (wrong)", "64"],
+    ["Design-effect check (normal approximation)", "63.77 × 3.7 ÷ 10 = 23.59 animals"],
+  ]);
+  assert.deepEqual(unroundedN(r), [["Unrounded animals per group", 24.23]]);
+  assert.deepEqual(nestedSimOptions(defaultForm(), r), { test: "t", k: 2, n: 25, m: 10, delta: 0.5,
+    sd_between: 0.5477, sd_within: 0.8367, alpha: 0.05, tails: 2 });
+  const d = nestedSimOptions(defaultForm(), { ...r, test: "dunnett", k: 4 } as PowerResult);
+  assert.equal(d?.tails, undefined);
+  assert.equal(nestedSimOptions(defaultForm(), null), null);
+  assert.deepEqual(nestedSummaryRows({ ...r, kind: "t_two_sample" } as PowerResult), []);
 });

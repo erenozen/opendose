@@ -2405,6 +2405,37 @@ await pwv.getByLabel("R² of the model").fill("0.1");
 expect("power, multiple regression (G*Power manual 13.3.1): 67.36%, critical F 2.317",
   await powerText(/Power achieved\s+67\.36%[\s\S]*Critical F\s+2\.317/),
   await pwv.locator(".power-summary").innerText().catch(() => ""));
+// P-96 nested design (engine/tests/test_nested_power.py): ICC 0.3, 10
+// cells per animal, a difference of 0.5 total SD, 80% power -> 25 animals
+// per group (81.26%); the design effect 1 + 9 x 0.3 = 3.7 turns the 64
+// cells a naive count asks for (63.77 unrounded) into 23.59 animals.
+await pwv.getByLabel("Test", { exact: true }).selectOption("nested");
+await pwv.getByLabel("Solve for").selectOption("n");
+await pwv.getByLabel("Power (1 − β)").fill("0.8");
+expect("power, nested design (acceptance): 25 animals per group, design effect 3.7, check 23.59",
+  await powerText(/Power achieved\s+81\.26%[\s\S]*n per group\s+25 and 25[\s\S]*Design effect 1 \+ \(m − 1\) ICC\s+3\.7[\s\S]*if cells were independent \(wrong\)\s+64[\s\S]*63\.77 × 3\.7 ÷ 10 = 23\.59 animals/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+expect("power, nested design: cells vs animals trade-off (10 cells -> 25 animals, 1 cell -> 64)",
+  await pwv.locator(".power-tradeoff").innerText().then((t) => /^1\s+64$/m.test(t) && /^10\s+25$/m.test(t), () => false));
+// Simulation: 2000 experiments, seed 7, within 4 Monte Carlo SE of the
+// closed form; Stop keeps what was simulated.
+await pwv.getByLabel("Simulated experiments").fill("2000");
+await pwv.locator(".power-nested-sim").getByLabel("Seed", { exact: true }).fill("7");
+await pwv.getByRole("button", { name: "Simulate power" }).click();
+const simText = await pwv.locator(".power-nested-sim .power-kv").innerText({ timeout: 120000 }).catch(() => "");
+const simPw = Number(/Simulated power\s+([\d.]+)%/.exec(simText)?.[1]);
+const simSe = Number(/Monte Carlo SE\s+([\d.]+)%/.exec(simText)?.[1]);
+expect("power, nested design simulation: 2000 runs within 4 SE of 81.26%",
+  /Simulated experiments\s+2,000/.test(simText) && /Seed\s+7/.test(simText)
+  && Math.abs(simPw - 81.26) <= 4 * simSe && simSe > 0.5 && simSe < 1.2, simText);
+await pwv.getByLabel("Simulated experiments").fill("10000");
+await pwv.getByRole("button", { name: "Simulate again" }).click();
+await pwv.getByRole("progressbar", { name: "Simulation progress" }).waitFor({ timeout: 30000 });
+await pwv.getByRole("button", { name: "Stop", exact: true }).click();
+expect("power, nested design simulation: Stop ends the run early with its count",
+  await page.waitForFunction(() => /Stopped after [\d,]+ simulated experiments/.test(
+    document.querySelector("dialog.power-dialog .power-nested-sim [role=status]")?.textContent ?? ""),
+  null, { timeout: 60000 }).then(() => true, () => false));
 await pwv.getByRole("button", { name: "Done" }).click();
 
 // qPCR: Livak & Schmittgen (2001) Table 1 as a QuantStudio-style export

@@ -11,7 +11,9 @@ export type PowerKind =
   | "logrank" | "chi_square"
   // More designs (engine/opendose/power_designs.py)
   | "anova_rm" | "ancova" | "tost" | "mann_whitney" | "wilcoxon_signed_rank"
-  | "regression_r2" | "logistic";
+  | "regression_r2" | "logistic"
+  // Animals x cells (engine/opendose/nested_power.py)
+  | "nested";
 
 export type Solve = "n" | "power" | "effect";
 
@@ -24,6 +26,7 @@ export const FAMILIES: PowerFamily[] = [
   { label: "Proportions", kinds: ["two_proportions", "one_proportion", "mcnemar", "chi_square"] },
   { label: "Correlation and regression", kinds: ["correlation", "regression_r2", "logistic"] },
   { label: "Survival", kinds: ["logrank"] },
+  { label: "Nested designs", kinds: ["nested"] },
 ];
 
 export const KIND_LABELS: Record<PowerKind, string> = {
@@ -44,11 +47,12 @@ export const KIND_LABELS: Record<PowerKind, string> = {
   wilcoxon_signed_rank: "Paired or one group, ranks (Wilcoxon signed-rank)",
   regression_r2: "Multiple regression (R²)",
   logistic: "Logistic regression, one covariate",
+  nested: "Animals × cells (nested design)",
 };
 
 /** The designs whose inputs live in MoreDesigns.tsx (P-95). */
 export const MORE_KINDS: readonly PowerKind[] = [
-  "anova_rm", "ancova", "tost", "mann_whitney", "wilcoxon_signed_rank", "regression_r2", "logistic",
+  "anova_rm", "ancova", "tost", "mann_whitney", "wilcoxon_signed_rank", "regression_r2", "logistic", "nested",
 ];
 
 /** Kinds whose test can be one- or two-sided (the F and χ² tests cannot). */
@@ -57,7 +61,7 @@ export const HAS_TAILS: Record<PowerKind, boolean> = {
   two_proportions: true, one_proportion: true, mcnemar: true, chi_square: false,
   correlation: true, logrank: true,
   anova_rm: false, ancova: true, tost: false, mann_whitney: true, wilcoxon_signed_rank: true,
-  regression_r2: false, logistic: true,
+  regression_r2: false, logistic: true, nested: true,
 };
 
 /** Every input as typed (strings), so the form keeps what the user wrote. */
@@ -107,6 +111,14 @@ export interface PowerForm {
    *  R² of the covariate on the others. */
   covariate: "normal" | "binary";
   lgOr: string; lgP0: string; xProp: string; r2Other: string;
+  /** Nested design: the test on the animal means, the groups (Dunnett:
+   *  the control and the treated groups), the difference that matters,
+   *  the SDs as two components or as the total SD with the ICC, and the
+   *  measurements (cells) per animal. */
+  nestedTest: "t" | "mann_whitney" | "dunnett";
+  nestedK: string; nestedDelta: string;
+  sdMode: "components" | "icc";
+  sdBetween: string; sdWithin: string; sdTotal: string; icc: string; cells: string;
 }
 
 export function defaultForm(): PowerForm {
@@ -130,6 +142,8 @@ export function defaultForm(): PowerForm {
     tostDesign: "two_sample", margin: "0.5", theta: "0", tostSd: "1",
     predictors: "3", tested: "3", r2: "0.1", r2Full: "",
     covariate: "normal", lgOr: "1.5", lgP0: "0.5", xProp: "0.5", r2Other: "0",
+    nestedTest: "t", nestedK: "3", nestedDelta: "0.5",
+    sdMode: "icc", sdBetween: "", sdWithin: "", sdTotal: "1", icc: "0.3", cells: "10",
   };
 }
 
@@ -183,7 +197,7 @@ export const EFFECT_PARAM: Record<PowerKind, string> = {
   two_proportions: "p2", one_proportion: "p", mcnemar: "odds_ratio", correlation: "rho",
   logrank: "hr", chi_square: "w",
   anova_rm: "f", ancova: "d", tost: "margin", mann_whitney: "d", wilcoxon_signed_rank: "d",
-  regression_r2: "f2", logistic: "odds_ratio",
+  regression_r2: "f2", logistic: "odds_ratio", nested: "delta",
 };
 
 /** Name of the sample-size parameter for solve = power / effect. */
@@ -192,7 +206,7 @@ export const N_PARAM: Record<PowerKind, string> = {
   two_proportions: "n1", one_proportion: "n", mcnemar: "n", correlation: "n",
   logrank: "n", chi_square: "n",
   anova_rm: "n_total", ancova: "n1", tost: "n1", mann_whitney: "n1", wilcoxon_signed_rank: "n",
-  regression_r2: "n_total", logistic: "n",
+  regression_r2: "n_total", logistic: "n", nested: "n",
 };
 
 export const N_LABEL: Record<PowerKind, string> = {
@@ -202,7 +216,7 @@ export const N_LABEL: Record<PowerKind, string> = {
   chi_square: "Total sample size",
   anova_rm: "Subjects in total", ancova: "n per group (group 1)", tost: "n per group (group 1)",
   mann_whitney: "n per group (group 1)", wilcoxon_signed_rank: "Subjects or pairs",
-  regression_r2: "Total sample size", logistic: "Total sample size",
+  regression_r2: "Total sample size", logistic: "Total sample size", nested: "Animals per group",
 };
 
 /** Log-rank without survival times counts events, not subjects. */
@@ -233,7 +247,7 @@ export function powerOptions(f: PowerForm, override: { solve?: Solve; n?: number
     if (pw === null || !(pw > alpha && pw < 1)) return { error: "Power must be between α and 1 (e.g. 0.8 or 80%)." };
     o.power = pw;
   }
-  if (HAS_TAILS[f.kind]) o.tails = f.tails === "1" ? 1 : 2;
+  if (HAS_TAILS[f.kind] && !(f.kind === "nested" && f.nestedTest === "dunnett")) o.tails = f.tails === "1" ? 1 : 2;
   if (solve !== "n") {
     const n = override.n ?? num(f.n);
     if (n === null || n < 2) return { error: `${nLabel(f)}: enter a whole number of at least 2.` };
@@ -350,6 +364,25 @@ export function powerOptions(f: PowerForm, override: { solve?: Solve; n?: number
         }
         break;
       }
+      case "nested": {
+        o.test = f.nestedTest;
+        o.k = f.nestedTest === "dunnett"
+          ? need("Groups, control included", num(f.nestedK), (x) => x >= 2 && x <= 20 && Number.isInteger(x),
+            "enter a whole number from 2 to 20")
+          : 2;
+        o.m = need("Cells per animal", num(f.cells), (x) => x >= 1 && x <= 10000 && Number.isInteger(x),
+          "enter a whole number of at least 1");
+        if (f.sdMode === "components") {
+          o.sd_between = need("SD between animals", num(f.sdBetween), (x) => x >= 0, "enter 0 or more");
+          o.sd_within = need("SD within an animal", num(f.sdWithin), (x) => x >= 0, "enter 0 or more");
+          if (o.sd_between === 0 && o.sd_within === 0) throw new Error("SDs: at least one must be above 0");
+        } else {
+          o.sd_total = need("Total SD", num(f.sdTotal), (x) => x > 0, "enter a number above 0");
+          o.icc = need("ICC", prob(f.icc), (x) => x >= 0 && x <= 1, "between 0 and 1");
+        }
+        if (!solvingEffect) o.delta = need("Difference that matters", effect ?? num(f.nestedDelta), (x) => x > 0, "enter a positive number");
+        break;
+      }
       case "logistic":
         o.covariate = f.covariate;
         o.p0 = need(f.covariate === "binary" ? "Event rate when X = 0" : "Event rate at the covariate’s mean",
@@ -398,6 +431,12 @@ export interface PowerResult {
   design?: string; lower?: number; upper?: number; theta?: number; sd?: number;
   predictors?: number; tested?: number;
   covariate?: "normal" | "binary"; critical_z?: number;
+  /** Nested design (nested_power.py). */
+  test?: "t" | "mann_whitney" | "dunnett";
+  icc?: number; design_effect?: number; sd_unit_mean?: number; sd_between?: number; sd_within?: number;
+  cells_per_group?: number; cells_if_independent?: number; cells_if_independent_exact?: number;
+  n_design_effect?: number | null; critical_dunnett?: number;
+  tradeoff?: { m: number; n: number }[];
   kind: PowerKind;
   solve: Solve;
   alpha: number;
@@ -470,6 +509,8 @@ export function unroundedN(r: PowerResult): [string, number][] {
     }
     case "wilcoxon_signed_rank":
       return ok(r.n_exact) ? [["Unrounded n", r.n_exact]] : [];
+    case "nested":
+      return ok(r.n_exact) ? [["Unrounded animals per group", r.n_exact]] : [];
     case "regression_r2": case "logistic":
       return ok(r.n_exact) ? [["Unrounded total N", r.n_exact]] : [];
     case "anova_oneway": {
@@ -534,6 +575,42 @@ export function moreSummaryRows(r: PowerResult): [string, string][] {
     if (r.critical_z !== undefined) rows.push(["Critical z", fmtSig(r.critical_z)]);
   }
   return rows;
+}
+
+/** Rows of a nested design: the variance components, the design effect
+ *  and its hand check against a count that treats cells as n. */
+export function nestedSummaryRows(r: PowerResult): [string, string][] {
+  if (r.kind !== "nested") return [];
+  const g = (v: number | null | undefined, sig = 4) => formatSig(v ?? null, sig);
+  const rows: [string, string][] = [
+    ["Test", r.test === "t" ? "t test on animal means" : r.test === "mann_whitney"
+      ? "Mann-Whitney test on animal means (A.R.E. 0.955)" : `Dunnett’s test, ${(r.k ?? 2) - 1} treated vs control, on animal means`],
+    ["Cells per animal", String(r.m)],
+    ["Cells per group", String(r.cells_per_group)],
+    ["ICC", g(r.icc, 3)],
+    ["Design effect 1 + (m − 1) ICC", g(r.design_effect, 4)],
+    ["SD of an animal’s mean", g(r.sd_unit_mean, 4)],
+  ];
+  if (r.critical_dunnett !== undefined) rows.push(["Dunnett critical value", g(r.critical_dunnett, 4)]);
+  if (r.cells_if_independent !== undefined && r.n_design_effect != null && r.m !== undefined
+    && r.cells_if_independent_exact !== undefined && r.design_effect !== undefined) {
+    rows.push(["Cells per group if cells were independent (wrong)", String(r.cells_if_independent)]);
+    rows.push(["Design-effect check (normal approximation)",
+      `${g(r.cells_if_independent_exact)} × ${g(r.design_effect)} ÷ ${r.m} = ${g(r.n_design_effect)} animals`]);
+  }
+  return rows;
+}
+
+/** Options for the nested simulation at the closed form's answer, or
+ *  null while there is no answer to check. */
+export function nestedSimOptions(f: PowerForm, r: PowerResult | null): Record<string, number | string> | null {
+  if (!r || r.kind !== "nested" || r.sd_between === undefined || r.sd_within === undefined
+    || !Number.isFinite(r.effect?.value)) return null;
+  return {
+    test: r.test ?? "t", k: r.k ?? 2, n: r.n ?? r.n_per_group?.[0] ?? 2, m: r.m ?? 1, delta: r.effect.value,
+    sd_between: r.sd_between, sd_within: r.sd_within, alpha: r.alpha,
+    ...(r.test === "dunnett" ? {} : { tails: r.tails ?? (f.tails === "1" ? 1 : 2) }),
+  };
 }
 
 /** The effect parameter's display name ("f2" reads f²). */

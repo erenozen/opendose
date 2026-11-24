@@ -49,3 +49,12 @@
 .power-pilot-choice .constraint-value { margin-left: 26px; width: 140px; max-width: calc(100% - 26px); }
 .power-pilot .field-note { color: var(--muted); font-size: var(--text-body-s); }
 
+/* Simulation checks (nested design, dose series): run, progress, Stop. */
+.power-run { display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap; margin-top: var(--space-4); }
+.power-run progress { flex: 1 1 160px; height: var(--space-8); accent-color: var(--accent); }
+.power-count { font-variant-numeric: tabular-nums; font-size: var(--text-body-s); color: var(--ink-2); }
+.power-sim-inputs { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); align-items: flex-start; }
+.power-sim-inputs .ui-field { flex: 1 1 180px; min-width: 0; }
+.power-nested-sim h3 { margin-top: 0; }
+.power-tradeoff .clin-scroll { max-width: 360px; }
+.power-method { color: var(--muted); }

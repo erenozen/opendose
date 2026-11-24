@@ -361,9 +361,53 @@ def simulate_column(groups, *, error=None, random_means=None, seed=None,
             "datasets": datasets, "seed": seed}
 
 
+# -------------------------------------------------------- simulate nested
+
+def simulate_nested(groups, *, units=None, measurements=None,
+                    sd_between=None, sd_within=None, seed=None,
+                    rng=None) -> dict:
+    """Simulate a nested table: units (animals, cultures) within groups,
+    several measurements (cells, wells) per unit. Each unit gets a
+    normal effect N(0, sd_between^2) around its group mean, each of its
+    measurements adds N(0, sd_within^2) (the random-intercept model of
+    nested.py; Aarts et al. 2014, Nat Neurosci 17:491).
+
+    groups: [{"name", "mean"}] (optional per-group "units"); units and
+    measurements: per group and per unit. Returns the nested_ttest /
+    nested_anova data shape {"groups": [{"name", "subgroups": [[values
+    of unit 1], ...], "subgroup_names"}], "seed"}."""
+    if rng is None:
+        seed = _resolve_seed(seed)
+        rng = np.random.default_rng(seed)
+    sb = float(sd_between if sd_between is not None else 0.0)
+    sw = float(sd_within if sd_within is not None else 1.0)
+    if sb < 0 or sw < 0:
+        raise ValueError("the SDs cannot be negative")
+    m = int(measurements if measurements is not None else 1)
+    if m < 1:
+        raise ValueError("each unit needs at least 1 measurement")
+    total = sum(int(g.get("units", units or 0)) for g in groups) * m
+    if total > MAX_POINTS:
+        raise ValueError(f"simulation larger than {MAX_POINTS} values")
+    out = []
+    for i, g in enumerate(groups):
+        n = int(g.get("units", units or 0))
+        if n < 1:
+            raise ValueError("each group needs at least 1 unit")
+        mu = float(g.get("mean", 0.0))
+        eff = rng.standard_normal(n) * sb
+        cells = rng.standard_normal((n, m)) * sw
+        vals = mu + eff[:, None] + cells
+        out.append({"name": g.get("name") or f"Group {_letter(i)}",
+                    "subgroups": [[_out(v) for v in row] for row in vals],
+                    "subgroup_names": [f"Unit {j + 1}" for j in range(n)],
+                    "population_mean": mu})
+    return {"groups": out, "seed": seed}
+
+
 # --------------------------------------------------- simulate contingency
 
-DESIGNS = ("cross_sectional", "prospective", "experimental", "case_control")
+DESIGNS =("cross_sectional", "prospective", "experimental", "case_control")
 
 
 def _probs(p, width, what):
@@ -573,12 +617,14 @@ def _summary(vals: list) -> dict:
 
 def simulate(spec: dict, *, seed=None, rng=None) -> dict:
     """Run one simulation from a spec {"kind": "xy"|"column"|
-    "contingency", ...keyword arguments of that simulate_* function}."""
+    "contingency"|"nested", ...keyword arguments of that simulate_*
+    function}."""
     spec = dict(spec)
     kind = spec.pop("kind", "xy")
     spec.pop("seed", None)
     fn = {"xy": simulate_xy, "column": simulate_column,
-          "contingency": simulate_contingency}.get(kind)
+          "contingency": simulate_contingency,
+          "nested": simulate_nested}.get(kind)
     if fn is None:
         raise ValueError(f"unknown simulation kind: {kind}")
     return fn(**spec, seed=seed, rng=rng)
@@ -588,6 +634,10 @@ def _as_data(kind: str, sim: dict) -> dict:
     if kind == "contingency":
         return {"table": sim["table"], "row_titles": sim["row_titles"],
                 "column_titles": sim["column_titles"]}
+    if kind == "nested":
+        return {"groups": [{k: g[k] for k in ("name", "subgroups",
+                                               "subgroup_names")}
+                           for g in sim["groups"]]}
     return {"x": sim["x"],
             "datasets": [{"name": d["name"], "ys": d["ys"]}
                          for d in sim["datasets"]]}

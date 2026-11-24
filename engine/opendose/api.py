@@ -4309,6 +4309,26 @@ def _power(data, options):
     return out
 
 
+def _nested_power_sim(data, options):
+    """Simulation power of a nested design (nested_power.simulate_power).
+    data is ignored. options: test ("t" | "mann_whitney" | "dunnett"),
+    k, n (units per group), m (measurements per unit), delta,
+    sd_between + sd_within or sd_total + icc, alpha, tails, n_repeats
+    (capped at 10000), seed. With "pool": [chunk results] instead, the
+    chunks of one run (consecutive seeds) are pooled (nested_power.pool).
+    Result: {"analysis": "nested_power_sim", "power", "mc_se", "ci95",
+    "n_repeats", "hits", "comparisons", "seed"?, "power_all"?,
+    "power_any"?}."""
+    from . import nested_power
+    if options.get("pool") is not None:
+        return {"analysis": "nested_power_sim", **nested_power.pool(
+            options["pool"], options.get("test", "t"))}
+    keys = ("test", "k", "n", "m", "delta", "sd_between", "sd_within",
+            "sd_total", "icc", "alpha", "tails", "n_repeats", "seed")
+    return {"analysis": "nested_power_sim", **nested_power.simulate_power(
+        **{k: options[k] for k in keys if k in options})}
+
+
 def _randomize(data, options):
     """Randomisation list (power.randomization_list). data is ignored.
     options: n, groups (["A", "B"]), ratio ([1, 1]), method ("block" |
@@ -4330,6 +4350,7 @@ _HANDLERS.update({
     "estimation": _estimation,
     "power": _power,
     "randomize": _randomize,
+    "nested_power_sim": _nested_power_sim,
 })
 
 

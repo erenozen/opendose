@@ -975,6 +975,11 @@ from . import power_designs as _designs  # noqa: E402
 
 KINDS.update(_designs.KINDS)
 
+# Nested designs (animals x cells): nested_power.nested_design.
+from . import nested_power as _nested  # noqa: E402
+
+KINDS["nested"] = _nested.nested_design
+
 
 def power_analysis(kind: str, solve: str = "n", **params) -> dict:
     """Dispatch to one design (see KINDS); "generic" ignores solve."""
@@ -1101,6 +1106,8 @@ _TEST_TEXT = {
                      "multiple regression",
     "logistic": "a {tails} Wald test in a logistic regression ({covariate} "
                 "covariate; Hsieh et al. 1998)",
+    "nested": "{nested_test} on the unit means ({m} measurements each, "
+              "ICC {icc:.2g}, design effect {de:.3g})",
 }
 
 _METHOD_TEXT = {
@@ -1158,6 +1165,10 @@ def _effect_text(res):
                     f"vs {e['p1']:.3g})")
         return (f"an odds ratio of {v:.3g} per SD of the covariate (event "
                 f"rate {e['p0']:.3g} at its mean)")
+    if kind == "nested":
+        return (f"a difference between group means of {v:.3g} (SD "
+                f"{res['sd_between']:.3g} between units and "
+                f"{res['sd_within']:.3g} within units)")
     return "the specified effect"
 
 
@@ -1196,7 +1207,13 @@ def justification(result: dict, *, unit: str = "animals",
                                                        ""),
                tested=result.get("tested"),
                predictors=result.get("predictors"),
-               covariate=result.get("covariate"))
+               covariate=result.get("covariate"),
+               nested_test={"t": f"a {tails} t test",
+                            "mann_whitney": f"a {tails} Mann-Whitney test",
+                            "dunnett": "Dunnett's test against the control"}
+               .get(result.get("test"), "the planned test"),
+               icc=result.get("icc", 0.0) or 0.0,
+               de=result.get("design_effect", 1.0) or 1.0)
     test = _TEST_TEXT.get(kind, "the planned test").format(**fmt)
     test = test.replace("  ", " ")
     alpha = result["alpha"]

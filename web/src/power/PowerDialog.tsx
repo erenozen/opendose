@@ -24,13 +24,14 @@ import { baseLayout, chromeFor, useDark } from "../sheets/multivariable/chart";
 import { PlotlyChart } from "../sheets/multivariable/plotkit";
 import {
   defaultForm, defaultRandomForm, dFromMeans, effectGrid, effectName, FAMILIES, fFromMeans,
-  hFromProportions, hrFromMedians, justificationSheetContent, KIND_LABELS, HAS_TAILS, MORE_KINDS, moreSummaryRows,
+  hFromProportions, hrFromMedians, justificationSheetContent, KIND_LABELS, HAS_TAILS, MORE_KINDS, moreSummaryRows, nestedSummaryRows,
   nForCurve, nGrid, nLabel, powerOptions, powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN,
   type PowerForm,
   type PowerKind, type PowerResult, type RandomForm, type RandomResult,
 } from "./power";
 import { Select, TextNum } from "./fields";
 import { MoreDesignInputs } from "./MoreDesigns";
+import NestedSimCard, { NestedTradeoff } from "./NestedSimCard";
 import { pilotForm, type PilotData } from "./pilot";
 import PilotCard from "./PilotCard";
 import "./power.css";
@@ -52,6 +53,7 @@ const EFFECT_LABEL: Record<PowerKind, string> = {
   correlation: "ρ", logrank: "Hazard ratio (treated vs control)", chi_square: "Cohen's w",
   anova_rm: "Cohen's f", ancova: "Cohen's d", tost: "Equivalence margin", mann_whitney: "Cohen's d",
   wilcoxon_signed_rank: "Cohen's d", regression_r2: "Cohen's f²", logistic: "Odds ratio",
+  nested: "Difference that matters",
 };
 
 export default function PowerDialog({ initial, pilot, onClose }: {
@@ -182,7 +184,7 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
               ["effect", "Detectable effect (sensitivity)"]]}
             onChange={(solve) => set({ solve })} />
           <TextNum label="α (significance level)" value={form.alpha} onChange={(alpha) => set({ alpha })} />
-          {HAS_TAILS[k] && (
+          {HAS_TAILS[k] && !(k === "nested" && form.nestedTest === "dunnett") && (
             <Select label="Tails" value={form.tails}
               options={[["2", "Two-sided"], ["1", "One-sided"]]} onChange={(tails) => set({ tails })} />
           )}
@@ -214,6 +216,8 @@ function PowerTool({ pilot }: { pilot?: PilotData }) {
       <div className="power-output">
         {error && effectChosen && <div className="results-error" role="alert">{error}</div>}
         {result && <PowerSummary r={result} form={form} />}
+        {result?.kind === "nested" && <NestedTradeoff r={result} />}
+        {result?.kind === "nested" && <NestedSimCard form={form} result={result} />}
         {result?.justification && (
           <div className="result-card power-just">
             <h3>Sample-size justification</h3>
@@ -433,7 +437,7 @@ function PowerSummary({ r, form }: { r: PowerResult; form: PowerForm }) {
     rows.push(["Effect size", `${effectName(r.effect.name)} = ${f(r.effect.value)}${r.solve === "effect" ? " (detectable)" : ""}`]);
   }
   for (const raw of rawDetectable(form, r)) rows.push([raw.label, raw.text]);
-  rows.push(...moreSummaryRows(r));
+  rows.push(...moreSummaryRows(r), ...nestedSummaryRows(r));
   if (typeof r.effect.cohens_h === "number") rows.push(["Cohen's h", f(Math.abs(r.effect.cohens_h as number))]);
   if (typeof r.effect.eta_squared === "number") rows.push(["η²", f(r.effect.eta_squared as number)]);
   if (r.ncp !== undefined) rows.push(["Noncentrality", f(r.ncp)]);

@@ -20,6 +20,41 @@ export function MoreDesignInputs({ form, set, solvingEffect }: {
     ? <p className="hint-block">{label}: solved for.</p>
     : <TextNum label={label} value={form[key] as string} note={note}
       onChange={(v) => set({ [key]: v } as Partial<PowerForm>)} />);
+  if (k === "nested") {
+    return (
+      <>
+        <Select label="Test on the animal means" value={form.nestedTest}
+          options={[["t", "t test, 2 groups"], ["mann_whitney", "Mann-Whitney, 2 groups"],
+            ["dunnett", "Dunnett, treated groups vs control"]]}
+          onChange={(nestedTest) => set({ nestedTest })} />
+        {form.nestedTest === "dunnett" && (
+          <TextNum label="Groups, control included" value={form.nestedK} onChange={(nestedK) => set({ nestedK })} />
+        )}
+        {effectField("Difference that matters", "nestedDelta")}
+        <TextNum label="Cells per animal" value={form.cells} onChange={(cells) => set({ cells })}
+          note="Or wells per culture, fields per slide: the repeated measurements of one unit." />
+        <Select label="Variability from" value={form.sdMode}
+          options={[["icc", "Total SD and ICC"], ["components", "SD between and within animals"]]}
+          onChange={(sdMode) => set({ sdMode })} />
+        {form.sdMode === "icc" ? (
+          <>
+            <TextNum label="Total SD (one cell)" value={form.sdTotal} onChange={(sdTotal) => set({ sdTotal })} />
+            <TextNum label="ICC" value={form.icc} onChange={(icc) => set({ icc })}
+              note="The share of the variance that lies between animals (0 to 1)." />
+          </>
+        ) : (
+          <>
+            <TextNum label="SD between animals" value={form.sdBetween} onChange={(sdBetween) => set({ sdBetween })} />
+            <TextNum label="SD within an animal" value={form.sdWithin} onChange={(sdWithin) => set({ sdWithin })} />
+          </>
+        )}
+        <Method>The animal is the experimental unit: the test compares animal means, whose variance
+          is SD²between + SD²within / m, so extra cells help only while the within-animal part
+          dominates (Lazic 2010, BMC Neurosci 11:5; Aarts et al. 2014, Nat Neurosci 17:491). The
+          design effect 1 + (m − 1) ICC says what a count of cells is worth.</Method>
+      </>
+    );
+  }
   if (k === "anova_rm") {
     return (
       <>

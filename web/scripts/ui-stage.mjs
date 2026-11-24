@@ -1734,6 +1734,22 @@ const scenes = [
     await pw.locator(".power-curve .plot").nth(1).waitFor({ timeout: 60000 }).catch(() => {});
     await settle(s);
   } },
+  // P-96: the nested design (ICC 0.3, 10 cells per animal) with its
+  // trade-off table and a finished simulation check.
+  { name: "guided-power-nested", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Power and sample size…");
+    const pw = s.page.locator("dialog.power-dialog");
+    await pw.waitFor();
+    await pw.getByLabel("Test", { exact: true }).selectOption("nested");
+    await pw.locator(".power-tradeoff").waitFor({ timeout: 60000 });
+    await pw.getByLabel("Simulated experiments").fill("500");
+    await pw.locator(".power-nested-sim").getByLabel("Seed", { exact: true }).fill("7");
+    await pw.getByRole("button", { name: "Simulate power" }).click();
+    await pw.locator(".power-nested-sim .power-kv").waitFor({ timeout: 120000 });
+    await pw.locator(".power-nested-sim").scrollIntoViewIfNeeded();
+    await settle(s);
+  } },
 ];
 
 // ------------------------------------------------------------ runner
