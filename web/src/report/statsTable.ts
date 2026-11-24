@@ -745,7 +745,13 @@ export function statsRows(entry: StatsEntry, opts: { style?: PStyle; prefs?: Pic
   try { rows = map(ctx, r); } catch (e) {
     return only(`Not tabulated: the result could not be read (${e instanceof Error ? e.message : String(e)}); see its results sheet.`);
   }
-  return rows.length ? rows : only("No comparison or estimate in this result; see its results sheet.");
+  if (!rows.length) return only("No comparison or estimate in this result; see its results sheet.");
+  // P-84: the log scale from means and SDs is approximate; say so on every row
+  if (r.log_scale && typeof r.log_scale === "object" && r.log_scale.approximate === true) {
+    const approx = "approximate: log scale estimated from means and SDs (lognormal moment conversion)";
+    rows = rows.map((row) => ({ ...row, note: row.note ? `${row.note}; ${approx}` : approx }));
+  }
+  return rows;
 }
 
 export interface StatsTable {

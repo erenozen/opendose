@@ -1490,6 +1490,78 @@ const analyzeWith = async (re) => {
       && pe.some((r) => r.startsWith(`rx 2 Median (50%) Extrapolated ${sig4(cf["rx 2"])} `)), pe.join(" | "));
 }
 
+// --- P-84: mean / SD / N tables get the options of raw data ---------------
+{
+  // engine/tests/reference/summary_parity.py: data with exactly the entered
+  // means, SDs and Ns through statsmodels OLS + multipletests (Holm,
+  // Sidak); the lognormal moment conversion checked by scipy.stats.lognorm;
+  // the mixed model's contrasts from statsmodels MixedLM
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/summary_parity.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  const pTxt = (p) => (p < 0.0001 ? "< 0.0001" : p < 0.001 ? p.toExponential(3) : sig4(p));
+  const open = async (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const cmpRows = async (sel = ".pane-results .comparisons-table") => (await page.locator(sel).first()
+    .locator("tbody tr").allInnerTexts().catch(() => [])).map((t) => t.replace(/\s+/g, " ").trim());
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "summary-parity.json"));
+  await open("One-way ANOVA of Four groups");
+  await liveResults(/each of 3 groups vs\. the control Control/, 180000);
+  const holm = await cmpRows();
+  const want = REF.ols.holm_vs_control.map((r) => `${r.pair} ${sig4(r.difference)} n/a ${pTxt(r.p_adjusted)}`);
+  expect("P-84 acceptance: 4 groups as mean, SD, N; Holm vs. control equals statsmodels on data with exactly "
+    + "those means, SDs and Ns", want.every((w, i) => holm[i]?.startsWith(w)), `${holm.join(" | ")} vs ${want.join(" | ")}`);
+  expect(`P-84 the F test from the summaries: F(3, 19) = ${sig4(REF.ols.F)}`,
+    await liveResults(new RegExp(`F\\(3, 19\\) = ${sig4(REF.ols.F).replace(".", "\\.")}`)));
+  // planned pairs, driven through the comparisons picker
+  const controls = page.locator(".pane-controls");
+  await controls.getByLabel("Multiple comparisons").selectOption("sidak");
+  await controls.getByLabel("Comparisons", { exact: true }).selectOption("pairs");
+  await controls.getByRole("checkbox", { name: "Control vs. High" }).check();
+  await controls.getByRole("checkbox", { name: "Low vs. Mid" }).check();
+  await liveResults(/Šídák, 2 planned comparisons|adjusted for 2 comparisons \(Šídák\)/, 120000);
+  const sid = await cmpRows();
+  const [hc, ml] = REF.ols.sidak_planned;
+  expect("P-84 planned pairs with Šídák correct for the 2 pairs ticked (statsmodels multipletests sidak)",
+    sid.length === 2 && sid[0].startsWith("Control vs. High ") && sid[0].includes(` ${pTxt(hc.p_adjusted)} `)
+      && sid[1].startsWith("Low vs. Mid ") && sid[1].includes(` ${pTxt(ml.p_adjusted)} `), sid.join(" | "));
+
+  // the log scale from means and SDs: approximate, said next to the numbers
+  await open("Log-scale ANOVA of Titres");
+  await liveResults(/Geometric means and ratios/, 180000);
+  const gm = (await page.locator(".pane-results .geometric-means").first().locator("tbody tr").allInnerTexts())
+    .map((t) => t.replace(/\s+/g, " ").trim());
+  expect("P-84 geometric means = 10^(mean of log10) from the lognormal moment conversion (scipy lognorm)",
+    REF.lognorm.every((g, i) => gm[i]?.startsWith(`${g.name} ${REF.log_groups[i].n} ${sig4(10 ** g.mu_log10)} `)),
+    gm.join(" | "));
+  const note = page.locator(".pane-results .log-note [data-approximate]").first();
+  expect("P-84 the log-scale result from means and SDs says it is approximate, with its source",
+    /Approximate: computed from the entered means and SDs, assuming each group is lognormal.*Higgins, White & Anzures-Cabrera 2008/
+      .test(await note.innerText().catch(() => "")));
+
+  // the mixed-model RM path (missing values) with Holm and a control family
+  await open("Mixed model of Weekly scores");
+  await liveResults(/each of 3 groups vs\. the control Baseline/, 180000);
+  const mixed = await cmpRows(".pane-results .results-table:has(th:text('Mean difference'))");
+  expect("P-84 mixed model with missing values: Holm vs. Baseline, differences as statsmodels MixedLM",
+    REF.mixed.holm_vs_baseline.every((r, i) => mixed[i]?.startsWith(`${r.pair} ${sig4(r.difference)} n/a `)),
+    mixed.join(" | "));
+
+  // Compare a parameter on a mean / SD / N table equals the replicates
+  const cmpText = async (name) => {
+    await open(name);
+    await liveResults(/Difference in LogEC50 \(B − A\)/, 180000);
+    return (await page.locator(".pane-results").first().innerText()).replace(/\s+/g, " ");
+  };
+  const pick = (t) => [/Difference in LogEC50 \(B − A\) [^;]+; t = [\d.]+, df = \d+/, /F\(1, \d+\) = [\d.]+/,
+    /Separate fits .*? converged .*? converged/].map((re) => (re.exec(t) ?? [""])[0]);
+  const raw = pick(await cmpText("Compare logEC50 of Agonist (replicates)"));
+  const sum = pick(await cmpText("Compare logEC50 of Agonist (mean, SD, N)"));
+  expect("P-84 Compare a parameter from mean, SD, N equals the comparison of the replicates "
+    + "(difference, t, df, F test, separate fits)", raw.every((r, i) => r && r === sum[i]), `${raw} || ${sum}`);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

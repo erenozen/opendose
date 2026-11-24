@@ -43,7 +43,7 @@ test("the option applies to unpaired / Welch t tests and ordinary one-way ANOVA"
   assert.equal(logScaleApplies(o({ analysis: "anova" })), true);
   assert.equal(logScaleApplies(o({ analysis: "anova", anovaSd: "unequal" })), false);
   assert.equal(logScaleApplies(o({ analysis: "anova", anovaKind: "nonparametric" })), false);
-  assert.equal(logScaleApplies(o({ analysis: "anova" }), true), false, "summary data");
+  assert.equal(logScaleApplies(o({ analysis: "anova" }), true), true, "summary data (approximate)");
   assert.deepEqual(logScaleOptions(o({ analysis: "anova" })), {});
   assert.deepEqual(logScaleOptions(o({ analysis: "anova", logScale: true })), { log_scale: true });
   assert.deepEqual(logScaleOptions(o({ analysis: "ttest", ttestKind: "paired", logScale: true })), {});

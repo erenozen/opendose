@@ -2284,7 +2284,25 @@ def _ttest_summary(data, options):
     kind = options.get("kind", "unpaired")
     ci_level = options.get("ci_level", 0.95)
     ia, ib = options.get("dataset_a", 0), options.get("dataset_b", 1)
-    if kind == "unpaired":
+    if kind == "unpaired" and options.get("log_scale"):
+        # P-84: the test on the logarithms, their means and SDs estimated
+        # by the lognormal moment conversion (approximate; summary.py)
+        base = options.get("log_base", "log10")
+        la, lb = summary.log_scale_groups([groups[ia], groups[ib]], fmt,
+                                          base)
+        result = summary.unpaired_t_summary(
+            la, lb, welch=options.get("welch", False), ci_level=ci_level)
+        result["names"] = [names[ia], names[ib]]
+        result["exact"] = False
+        result["log_scale"] = summary.log_scale_summary_block(base)
+        result["geometric_means"] = logscale.geometric_means_from_stats(
+            [(g["mean"], g["sd"], g["n"]) for g in (la, lb)],
+            result["names"], base, ci_level)
+        result.update(logscale.ratio_entry(result["difference"],
+                                           result["ci_difference"], base))
+        result["ratio_label"] = (f"ratio of geometric means {names[ia] or 'A'}"
+                                 f" / {names[ib] or 'B'}")
+    elif kind == "unpaired":
         result = summary.unpaired_t_summary(
             groups[ia], groups[ib], welch=options.get("welch", False),
             ci_level=ci_level, fmt=fmt)
@@ -2315,22 +2333,51 @@ def _anova_summary(data, options):
 
     data: as for ttest_summary (one group per dataset or data.groups).
     options: {"comparisons": "tukey"|"dunnett"|"bonferroni"|"sidak"|
-              "holm_sidak" (optional), "control_index": 0,
-              "ci_level": 0.95}
+              "holm_sidak"|"holm"|"fisher_lsd"|"newman_keuls" (optional),
+              "control_index": 0, "ci_level": 0.95,
+              "comparisons_family": "all"|"control"|"pairs", "pairs":
+              [[i, j], ...] (as anova: Sidak, Bonferroni, Holm-Sidak, Holm,
+              Fisher's LSD), "log_scale": false, "log_base": "log10"}
     Result: same keys as the parametric "anova" analysis (table,
     group_summaries, brown_forsythe = None values, bartlett,
-    multiple_comparisons) plus "exact".
+    multiple_comparisons) plus "exact". With log_scale the ANOVA runs on
+    the means and SDs of the logarithms from the lognormal moment
+    conversion (summary.lognormal_log_moments; approximate, so "exact"
+    is false and log_scale.approximate is true) and adds
+    "geometric_means" and per-comparison "ratio" / "ratio_ci" as the
+    raw-data analysis does; without it the result adds "scale_check"
+    (only the means can be checked for positivity).
     """
     if options.get("kind", "parametric") != "parametric":
         raise ValueError("nonparametric and repeated-measures ANOVA need the "
                          "raw data, not mean, SD and N")
     fmt = summary.payload_format(data, options)
     groups, names = summary.groups_from_payload(data, fmt, options.get("row"))
-    return {"analysis": "anova_summary", "kind": "parametric",
-            **summary.one_way_anova_summary(
-                groups, names, comparisons=options.get("comparisons"),
-                control_index=options.get("control_index", 0),
-                ci_level=options.get("ci_level", 0.95), fmt=fmt)}
+    ci_level = options.get("ci_level", 0.95)
+    base = options.get("log_base", "log10")
+    on_logs = bool(options.get("log_scale"))
+    if on_logs:
+        groups = summary.log_scale_groups(groups, fmt, base)
+    result = summary.one_way_anova_summary(
+        groups, names, comparisons=options.get("comparisons"),
+        control_index=options.get("control_index", 0),
+        ci_level=ci_level, fmt=fmt,
+        comparisons_family=options.get("comparisons_family"),
+        pairs=options.get("pairs"))
+    if on_logs:
+        result["exact"] = False
+        result["log_scale"] = summary.log_scale_summary_block(base)
+        result["geometric_means"] = logscale.geometric_means_from_stats(
+            [(g["mean"], g["sd"], g["n"]) for g in groups],
+            [g["name"] for g in result["group_summaries"]], base, ci_level)
+        if result.get("multiple_comparisons"):
+            logscale.add_ratios_to_comparisons(
+                result["multiple_comparisons"], base)
+    else:
+        gs = result["group_summaries"]
+        result["scale_check"] = logscale.scale_check_from_stats(
+            gs, all(g["mean"] > 0 for g in gs))
+    return {"analysis": "anova_summary", "kind": "parametric", **result}
 
 
 def _two_way_anova_summary(data, options):
@@ -2871,7 +2918,10 @@ def _mixed_rm_oneway(data, options):
     ("mixed" always | "auto" = RM ANOVA unless values are missing |
     "anova"), comparisons, control_index, ci_level, negative_variance
     ("allow" | "remove"), ddf ("containment" | "kenward_roger" |
-    "satterthwaite": denominator df, opendose.ddfm)."""
+    "satterthwaite": denominator df, opendose.ddfm), comparisons_family
+    ("all" | "control" | "pairs") and pairs [[i, j], ...] (the planned
+    family for bonferroni / sidak / holm_sidak / holm / fisher; P-84).
+    """
     names = [ds.get("name", "") for ds in data["datasets"]]
     aligned = [[row[0] if row else None for row in ds["ys"]]
                for ds in data["datasets"]]
@@ -2883,7 +2933,9 @@ def _mixed_rm_oneway(data, options):
                   "ci_level": options.get("ci_level", 0.95),
                   "negative_variance": options.get("negative_variance",
                                                    "allow"),
-                  "ddf": options.get("ddf", "containment")}
+                  "ddf": options.get("ddf", "containment"),
+                  "family": options.get("comparisons_family", "all"),
+                  "pairs": options.get("pairs")}
     result = mixedmodel.rm_one_way(aligned, names, method=method, **kwargs)
     out = {"analysis": result.get("analysis", "rm_one_way_anova"), **result}
     res = out.pop("residuals", None)
@@ -4741,7 +4793,14 @@ def _compare_parameter(data, options):
     "Top" | "Bottom" | any model parameter), dataset_a (0), dataset_b
     (1), constraints, weighting, x_is_log (true), ci_level (0.95);
     datasets: [3+ indices] instead of a / b compares the parameter across
-    all of them (compare_params.compare_parameter_sets)."""
+    all of them (compare_params.compare_parameter_sets).
+    options.summary_format (P-84): ds["ys"] rows hold that format's
+    subcolumns (mean, SD / SEM / %CV / CI and N). Each row then enters
+    the fits as summary.synthetic_replicates, n values with exactly its
+    mean and SD: every least-squares quantity (best fits, SEs, the
+    shared-vs-separate sums of squares, df) depends on replicates only
+    through each row's mean, SD and n, so the comparison equals the one
+    of the raw replicates. Formats without N are refused."""
     model = options.get("model", "log_inhibitor_vs_response_4pl")
     spec = nlfit.MODELS.get(model)
     if spec is None:
@@ -4751,6 +4810,22 @@ def _compare_parameter(data, options):
     x_col = data["x"]
     if spec.x_is_log and not options.get("x_is_log", True):
         x_col = transform.transform_list(x_col, "log10")
+    summary_fmt = options.get("summary_format")
+    if summary_fmt == "replicates":
+        summary_fmt = None
+    if summary_fmt:
+        summary._check_format(summary_fmt)
+        if not summary.FORMATS[summary_fmt]["has_n"]:
+            raise ValueError(
+                "Compare a parameter needs N with the means and errors "
+                f"(this table is {summary.FORMATS[summary_fmt]['label']}): "
+                "enter N, or the replicate values")
+
+    def expand(x_col, rows):
+        if summary_fmt:
+            return summary.replicate_view(x_col, {"ys": rows}, summary_fmt)
+        return _expand(x_col, rows)
+
     many = options.get("datasets")
     if many is not None and len(many) >= 3:
         # three or more curves: one F test for a parameter shared by all
@@ -4760,7 +4835,7 @@ def _compare_parameter(data, options):
         sets = []
         for i in idx:
             ds = data["datasets"][i]
-            xs, ys = _expand(x_col, ds["ys"])
+            xs, ys = expand(x_col, ds["ys"])
             sets.append({"name": ds.get("name") or f"Data set {i + 1}",
                          "x": xs, "y": ys})
         out = compare_params.compare_parameter_sets(
@@ -4774,7 +4849,7 @@ def _compare_parameter(data, options):
     sets = []
     for i in (ia, ib):
         ds = data["datasets"][i]
-        xs, ys = _expand(x_col, ds["ys"])
+        xs, ys = expand(x_col, ds["ys"])
         sets.append({"name": ds.get("name") or f"Data set {i + 1}",
                      "x": xs, "y": ys})
     warnings = _nan_warnings(data, {ia, ib})

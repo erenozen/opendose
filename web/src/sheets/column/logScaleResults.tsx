@@ -6,7 +6,9 @@ import { formatSig } from "../../types";
 import { tableP, tableStars } from "../../report/pformat";
 import { adjustedHeader, familyOf, hasUnadjusted } from "../../report/family";
 import FamilyLine from "../common/FamilyLine";
-import { droppedValues, foldNumber, logBase, pairNames, ttestFold } from "./logScale";
+import {
+  approximateLog, droppedValues, foldNumber, logBase, LOGNORMAL_SOURCE, pairNames, ttestFold,
+} from "./logScale";
 import "./logScale.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -44,6 +46,11 @@ function LogNote({ result }: { result: any }) {
       Analysed on {logBase(result)}(values): t, F and P are those of the test on the
       logarithms; geometric means and ratios are their antilogs.
       {d && ` ${d.label}${d.groups.length ? ` (${d.groups.map(([g, n]) => `${g}: ${n}`).join(", ")})` : ""}.`}
+      {approximateLog(result) && (
+        <span className="log-approx" data-approximate>
+          {" "}{approximateLog(result)} <span className="source-line">Source: {LOGNORMAL_SOURCE}.</span>
+        </span>
+      )}
     </p>
   );
 }

@@ -1,0 +1,650 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Summary data",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r002",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Four groups (mean, SD, N)",
+   "table": {
+    "type": "column",
+    "x": [
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "12",
+        "2.5",
+        "6"
+       ]
+      ]
+     },
+     {
+      "name": "Low",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "14.1",
+        "3",
+        "6"
+       ]
+      ]
+     },
+     {
+      "name": "Mid",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "17.8",
+        "3.6",
+        "5"
+       ]
+      ]
+     },
+     {
+      "name": "High",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "22.4",
+        "4.9",
+        "6"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "mean_sd_n",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "anovaKind": "parametric",
+    "comparisons": "holm",
+    "comparisonsFamily": "control",
+    "controlIndex": 0
+   },
+   "name": "One-way ANOVA of Four groups"
+  },
+  {
+   "id": "d003",
+   "kind": "data",
+   "name": "Titres (mean, SD, N)",
+   "table": {
+    "type": "column",
+    "x": [
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "3.2",
+        "1.1",
+        "8"
+       ]
+      ]
+     },
+     {
+      "name": "Dose 1",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "6.9",
+        "2.6",
+        "8"
+       ]
+      ]
+     },
+     {
+      "name": "Dose 2",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "15.4",
+        "6.8",
+        "7"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "mean_sd_n",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r004",
+   "kind": "results",
+   "parentId": "d003",
+   "analysis": "column",
+   "options": {
+    "analysis": "anova",
+    "anovaKind": "parametric",
+    "comparisons": "holm",
+    "comparisonsFamily": "control",
+    "controlIndex": 0,
+    "logScale": true
+   },
+   "name": "Log-scale ANOVA of Titres"
+  },
+  {
+   "id": "d005",
+   "kind": "data",
+   "name": "Weekly scores",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Baseline",
+      "rows": [
+       [
+        "7.2"
+       ],
+       [
+        "6.8"
+       ],
+       [
+        "7.9"
+       ],
+       [
+        "6.5"
+       ],
+       [
+        "7"
+       ],
+       [
+        "7.6"
+       ],
+       [
+        "6.9"
+       ]
+      ]
+     },
+     {
+      "name": "Week 1",
+      "rows": [
+       [
+        "8.1"
+       ],
+       [
+        "7"
+       ],
+       [
+        ""
+       ],
+       [
+        "7.3"
+       ],
+       [
+        "7.9"
+       ],
+       [
+        "8.5"
+       ],
+       [
+        "7.4"
+       ]
+      ]
+     },
+     {
+      "name": "Week 2",
+      "rows": [
+       [
+        "9"
+       ],
+       [
+        "8.4"
+       ],
+       [
+        "9.6"
+       ],
+       [
+        "7.9"
+       ],
+       [
+        "8.8"
+       ],
+       [
+        ""
+       ],
+       [
+        "8.1"
+       ]
+      ]
+     },
+     {
+      "name": "Week 4",
+      "rows": [
+       [
+        "9.8"
+       ],
+       [
+        "9.1"
+       ],
+       [
+        "10.4"
+       ],
+       [
+        ""
+       ],
+       [
+        "9.9"
+       ],
+       [
+        "10.2"
+       ],
+       [
+        "8.8"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r006",
+   "kind": "results",
+   "parentId": "d005",
+   "analysis": "column",
+   "options": {
+    "analysis": "rm_anova",
+    "rmKind": "parametric",
+    "comparisons": "holm",
+    "comparisonsFamily": "control",
+    "controlIndex": 0,
+    "rmMixed": true
+   },
+   "name": "Mixed model of Weekly scores"
+  },
+  {
+   "id": "d007",
+   "kind": "data",
+   "name": "Agonist (replicates)",
+   "table": {
+    "type": "xy",
+    "x": [
+     "-9",
+     "-8.5",
+     "-8",
+     "-7.5",
+     "-7",
+     "-6.5",
+     "-6",
+     "-5.5"
+    ],
+    "xTitle": "log[Agonist]",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Response",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "A",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "2",
+        "4",
+        "3"
+       ],
+       [
+        "8",
+        "6",
+        "9"
+       ],
+       [
+        "18",
+        "21",
+        "16"
+       ],
+       [
+        "41",
+        "38",
+        "45"
+       ],
+       [
+        "70",
+        "66",
+        "73"
+       ],
+       [
+        "88",
+        "91",
+        "85"
+       ],
+       [
+        "96",
+        "98",
+        "95"
+       ],
+       [
+        "99",
+        "101",
+        "100"
+       ]
+      ]
+     },
+     {
+      "name": "B",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "1",
+        "2",
+        "3"
+       ],
+       [
+        "3",
+        "4",
+        "2"
+       ],
+       [
+        "7",
+        "9",
+        "8"
+       ],
+       [
+        "19",
+        "17",
+        "22"
+       ],
+       [
+        "42",
+        "47",
+        "40"
+       ],
+       [
+        "72",
+        "69",
+        "75"
+       ],
+       [
+        "90",
+        "88",
+        "92"
+       ],
+       [
+        "97",
+        "99",
+        "96"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r008",
+   "kind": "results",
+   "parentId": "d007",
+   "analysis": "compare_fits",
+   "options": {
+    "mode": "parameter",
+    "model1": "log_agonist_vs_response_4pl",
+    "parameter": "logEC50",
+    "datasetA": 0,
+    "datasetB": 1,
+    "xIsLog": true,
+    "method": "both"
+   },
+   "name": "Compare logEC50 of Agonist (replicates)"
+  },
+  {
+   "id": "d009",
+   "kind": "data",
+   "name": "Agonist (mean, SD, N)",
+   "table": {
+    "type": "xy",
+    "x": [
+     "-9",
+     "-8.5",
+     "-8",
+     "-7.5",
+     "-7",
+     "-6.5",
+     "-6",
+     "-5.5"
+    ],
+    "xTitle": "log[Agonist]",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Response",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "A",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "3",
+        "1",
+        "3"
+       ],
+       [
+        "7.666666666666667",
+        "1.5275252316519465",
+        "3"
+       ],
+       [
+        "18.333333333333332",
+        "2.5166114784235836",
+        "3"
+       ],
+       [
+        "41.333333333333336",
+        "3.511884584284246",
+        "3"
+       ],
+       [
+        "69.66666666666667",
+        "3.511884584284246",
+        "3"
+       ],
+       [
+        "88",
+        "3",
+        "3"
+       ],
+       [
+        "96.33333333333333",
+        "1.5275252316519468",
+        "3"
+       ],
+       [
+        "100",
+        "1",
+        "3"
+       ]
+      ]
+     },
+     {
+      "name": "B",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "2",
+        "1",
+        "3"
+       ],
+       [
+        "3",
+        "1",
+        "3"
+       ],
+       [
+        "8",
+        "1",
+        "3"
+       ],
+       [
+        "19.333333333333332",
+        "2.5166114784235836",
+        "3"
+       ],
+       [
+        "43",
+        "3.605551275463989",
+        "3"
+       ],
+       [
+        "72",
+        "3",
+        "3"
+       ],
+       [
+        "90",
+        "2",
+        "3"
+       ],
+       [
+        "97.33333333333333",
+        "1.5275252316519468",
+        "3"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "mean_sd_n",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r010",
+   "kind": "results",
+   "parentId": "d009",
+   "analysis": "compare_fits",
+   "options": {
+    "mode": "parameter",
+    "model1": "log_agonist_vs_response_4pl",
+    "parameter": "logEC50",
+    "datasetA": 0,
+    "datasetB": 1,
+    "xIsLog": true,
+    "method": "both"
+   },
+   "name": "Compare logEC50 of Agonist (mean, SD, N)"
+  }
+ ]
+}

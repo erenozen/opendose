@@ -5085,6 +5085,47 @@ cancer-death incidence 0.173469 at month 20, the engine's 0.1735; the
 exponential AFT medians from the closed form ln 2 x (total time /
 events) on ovarian are 665.92 and 1228.67 days for rx 1 and 2, the
 values the engine's exponential fit is pinned to.
+
+## Feature validation: mean, SD and N tables get the options of raw data (2026-11-24)
+
+P-84. One-way ANOVA from mean, SD and N takes planned families (each vs.
+a control, planned pairs) and every post test the raw-data ANOVA takes,
+Holm included; the unpaired t test and one-way ANOVA from mean and SD
+run on the log scale; Compare a parameter accepts XY tables of mean,
+SD / SEM / %CV / CI and N; the mixed-model RM path (missing values)
+takes Holm and planned families. R is not installed: the oracles are
+statsmodels and scipy (`engine/tests/reference/summary_parity.py`),
+tested in `engine/tests/test_summary_parity.py`.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Control 12.0 (SD 2.5, n 6), Low 14.1 (3.0, 6), Mid 17.8 (3.6, 5), High 22.4 (4.9, 6); Holm, each vs. Control (acceptance) | data with exactly those means, SDs and Ns through statsmodels OLS: F(3, 19) = 9.52933, P = 0.000470255; Holm P 0.326828, 0.0315708, 0.000246896 (multipletests) | 1e-8; equal to the raw-data path of the engine to 1e-9 |
+| the same, Holm-Šídák vs. control, Bonferroni and Šídák on 2 planned pairs, Holm on every pair | multipletests holm-sidak, bonferroni, sidak, holm over exactly that family | 1e-8 |
+| Tukey, Dunnett, Newman-Keuls, Fisher's LSD on planned pairs | the engine's raw-data path on the exact-moment data | 1e-7 |
+| Vehicle 3.2 (1.1, 8), Dose 1 6.9 (2.6, 8), Dose 2 15.4 (6.8, 7), log scale | lognormal moment conversion sigma^2 = ln(1 + SD^2/mean^2), mu = ln(mean) - sigma^2/2 (Higgins, White & Anzures-Cabrera 2008, Stat Med 27:6072): scipy.stats.lognorm(s = sigma, scale = e^mu) has exactly the entered mean and SD; ANOVA, Holm, geometric means and ratios equal the raw log-scale path on values whose log10 have exactly mu and sigma | 1e-12 (conversion), 1e-8 (pipeline) |
+| a lognormal sample, n = 10 per group, sigma_ln 0.45 | sample log10 mean and SD vs. the converted ones: within 0.03 log10 units and 25% | the approximation, stated as such in the results, methods, legend and statistics table |
+| two dose-response sets, 8 doses x 3 replicates, as mean, SD, N and as mean, SEM, N; Compare a parameter (logEC50) | the engine's comparison of the replicates: difference, SE, df, P, ratio, F test | 1e-6 |
+| 7 subjects x 4 weeks, 3 missing values; mixed model, Holm vs. Baseline | statsmodels MixedLM (REML) variance components, GLS contrasts on the containment df 15, multipletests holm: differences 0.702706, 1.59831, 2.46502; Holm P 8.92e-6, 4.11e-10, 1.21e-12 | 1e-5 (SE), 1e-4 (P) |
+
+Also tested: with complete subjects the mixed model's Holm vs. Baseline
+equals RM ANOVA's pooled-error Holm; Bonferroni on planned pairs is 2 x
+the uncorrected P; Tukey and Dunnett refuse a planned family; reversing
+the group order with the control moved gives the same P values; means
+and SDs x 1e-9 leave F and P unchanged and scale the differences; a
+mean of 0 or below refuses the log scale ("needs every mean > 0"), n =
+1 refuses with "n >= 2"; a format without N refuses Compare a parameter
+with what to do. e2e (`e2e-results.mjs`): the acceptance table (Holm vs.
+Control) against statsmodels; Šídák on two pairs ticked in the
+comparisons picker; the geometric means and the "Approximate" sentence
+with its source; the mixed model's differences; Compare a parameter on
+the mean, SD, N table identical to the replicate table.
+
+Independent check values (for the lead): in
+`web/e2e-fixtures/stage/summary-parity.json`, "One-way ANOVA of Four
+groups": F(3, 19) = 9.529, Holm adjusted P 0.3268 (Low), 0.03157 (Mid),
+2.469e-4 (High) vs. Control. "Log-scale ANOVA of Titres": geometric
+means 3.026, 6.457, 14.09; Dose 2 / Vehicle 4.66-fold. "Mixed model of
+Weekly scores": differences 0.7027, 1.598, 2.465 vs. Baseline.
 """
 
 

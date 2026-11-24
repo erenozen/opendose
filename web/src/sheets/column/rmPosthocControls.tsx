@@ -5,9 +5,7 @@ import type { ColumnOptionsState, ComparisonsMethod } from "../../types";
 import ComparisonsPicker from "./comparisonsPicker";
 import DdfSelect from "../common/DdfSelect";
 import { RM_POSTHOC_SOURCES } from "./logScaleSources";
-import {
-  mixedLimitations, RM_METHOD_LABELS, RM_METHODS, rmBaseline, rmError, rmMethod,
-} from "./rmPosthoc";
+import { RM_METHOD_LABELS, RM_METHODS, rmBaseline, rmError, rmMethod } from "./rmPosthoc";
 
 export default function RmPosthocControls({ options, datasetNames, onChange, incomplete = 0 }: {
   options: ColumnOptionsState;
@@ -21,7 +19,6 @@ export default function RmPosthocControls({ options, datasetNames, onChange, inc
   const method = rmMethod(options);
   const name = (i: number) => datasetNames[i] || `Dataset ${i + 1}`;
   const mixed = !!options.rmMixed && incomplete > 0;
-  const limits = mixed ? mixedLimitations(options, k) : "";
   return (
     <div className="rm-posthoc">
       <label className="check-row">
@@ -42,7 +39,7 @@ export default function RmPosthocControls({ options, datasetNames, onChange, inc
           </select>
         </label>
       )}
-      {method && !mixed && (
+      {method && (
         <ComparisonsPicker options={options} datasetNames={datasetNames} onChange={onChange} />
       )}
       {method && !mixed && (
@@ -80,7 +77,6 @@ export default function RmPosthocControls({ options, datasetNames, onChange, inc
       {mixed && (
         <DdfSelect value={options.mixedDdf} onChange={(m) => set({ mixedDdf: m })} />
       )}
-      {limits && <p className="hint-block">{limits}</p>}
     </div>
   );
 }

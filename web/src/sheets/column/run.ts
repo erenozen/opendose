@@ -342,6 +342,7 @@ export function runColumnSummary(engine: EngineBridge, table: DataTableModel,
         kind: o.ttestKind === "welch" ? "unpaired" : o.ttestKind,
         welch: o.ttestKind === "welch",
         dataset_a: o.datasetA, dataset_b: o.datasetB,
+        ...logScaleOptions(o, true),
       }, "ttest");
     case "anova":
       if (o.anovaKind === "parametric" && o.anovaSd === "unequal") {
@@ -352,6 +353,8 @@ export function runColumnSummary(engine: EngineBridge, table: DataTableModel,
         kind: o.anovaKind,
         comparisons: o.comparisons === "none" ? null : o.comparisons,
         control_index: o.controlIndex,
+        ...familyOptions(o, sets.length, true),
+        ...logScaleOptions(o, true),
       }, "anova");
     case "two_way_anova": {
       // cells without a mean are blank, and trailing empty rows are dropped

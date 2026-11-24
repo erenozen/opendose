@@ -1193,10 +1193,6 @@ What the packages left undone, with the reason:
 - **Comparisons and residuals**
   - RM ANOVA with more than two treatments has no residual plots: needs
     a subject + treatment residual model in the engine.
-  - Planned families are not available for mean / SD / N data
-    (`anova_summary` has no family option).
-- **Assays**
-  - Compare a parameter refuses mean / SD / N tables.
 - **Import**
   - No Thermo .eds reader (a binary format).
   - SoftMax Pro wavelengths laid side by side in one row band are not
@@ -1216,12 +1212,8 @@ What the packages left undone, with the reason:
   - OpenDose has no one-tailed t test option, so the sidedness check
     covers one-sided correlations and declared plans only.
 - **Log scale and RM post hoc**
-  - The log-scale option is not offered for mean / SD / N data: no
-    engine summary handler.
   - Column graphs on a log axis still plot the arithmetic mean ± SD (the
     legend says so).
-  - The mixed-model RM path (missing values) takes a method and a
-    control only: no Holm, no planned families.
   - RM one-way ANOVA now defaults to Tukey comparisons like the ordinary
     one-way ANOVA; review that default (the overall F and P are
     unchanged).
