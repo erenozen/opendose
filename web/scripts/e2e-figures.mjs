@@ -796,6 +796,9 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     sheets: fitFamily("crv", "Curve range", {}, { format: { datasets: { 0: { lineDash: "dash" } } } }),
   }));
   await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', CRV);
+  // The previous section's plot (with its own fit) is still on screen
+  // until the opened project replaces it: wait for this project first.
+  await page.getByRole("treeitem", { name: "Curve range", exact: true }).first().waitFor({ timeout: 60000 });
   await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
     .some((t) => t.meta?.odTag?.role === "fit"), null, { timeout: 120000 });
   const fits = () => page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
