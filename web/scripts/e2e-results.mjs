@@ -1404,9 +1404,9 @@ const axeOn = (sel) => page.evaluate(async ([src, s]) => {
     await appears(block.getByRole("button", { name: "Leave out of this analysis…" })));
   // duplicate the results sheet; the copy opens
   const navItem = (name) => page.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row");
-  await navItem("t test of Pipetting").click({ button: "right" });
+  await navItem("Column stats of Pipetting").click({ button: "right" });
   await page.getByRole("menuitem", { name: "Duplicate sheet" }).click();
-  await navItem("t test of Pipetting copy").click();
+  await navItem("Column stats of Pipetting copy").click();
   await liveResults(new RegExp(tRow(ref.all_values)), 60000);
   await block.getByRole("button", { name: "Leave out of this analysis…" }).click();
   const dlg = page.getByRole("dialog", { name: "Leave a value out of this analysis" });
@@ -1452,7 +1452,7 @@ const axeOn = (sel) => page.evaluate(async ([src, s]) => {
   const axBlock = await axeOn(".exclusions-card");
   expect("P-68 axe-core: the Exclusions block passes", axBlock.length === 0, axBlock.join(" | "));
   // the original is unchanged, and the value stays in the table
-  await navItem("t test of Pipetting").click();
+  await navItem("Column stats of Pipetting").click();
   expect("P-68 the original analysis is unchanged",
     await liveResults(new RegExp(tRow(ref.all_values)), 60000)
     && await page.locator(".exclusions-card.exclusions-none").count() === 1);
@@ -1471,7 +1471,7 @@ const axeOn = (sel) => page.evaluate(async ([src, s]) => {
   expect("P-68 identity: excluding 21.8 in the table gives the copy's numbers, every row",
     tableLevel === copyText, `${tableLevel.slice(0, 200)} / ${copyText.slice(0, 200)}`);
   // the copy now says the value is excluded in the table itself
-  await navItem("t test of Pipetting copy").click();
+  await navItem("Column stats of Pipetting copy").click();
   expect("P-68 the copy says the value is now excluded in the table itself",
     await appears(block.getByText(/Now excluded in the table itself/), 20000));
 }
