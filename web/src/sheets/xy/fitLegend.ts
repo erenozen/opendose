@@ -8,10 +8,11 @@
 // Statistical wording is scientific output (ruling 10): e2e-figures and
 // __tests__/fitLegend.test.ts pin it. Pure.
 import { nStatement, xyPointsClause, type ErrorBars } from "../../report/legend.ts";
+import type { GroupN } from "../../report/describe.ts";
 import { numericData } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
 import { formatSig } from "../../types.ts";
-import { maxOf } from "../../lib/extent.ts";
+import { maxOf, minOf } from "../../lib/extent.ts";
 import { dropLegend, type XYGraphSettings } from "./fitGraph.ts";
 import { unknownMarkers } from "./interpolation.ts";
 import { beyondData } from "./curveRange.ts";
@@ -104,15 +105,29 @@ export function fitLegendClause(table: DataTableModel, result: unknown, options:
   return parts.join(" ");
 }
 
+/** Replicates at each X of every data set: `n` is the fewest at any X
+ *  holding a value and `nMax` the most, so a table whose counts differ
+ *  between X values (R's cars: 1 to 5 per speed) says so instead of
+ *  stating its largest count as everyone's n. */
+export function xyReplicateGroups(table: DataTableModel): GroupN[] {
+  return numericData(table).datasets.map((d) => {
+    const counts = d.ys.map((row) => row.filter((v) => v !== null).length).filter((k) => k > 0);
+    if (!counts.length) return { name: d.name, n: 0 };
+    const lo = minOf(counts), hi = maxOf(counts);
+    return { name: d.name, n: lo, ...(hi !== lo ? { nMax: hi } : {}) };
+  }).filter((g) => g.n > 0);
+}
+
+/** "replicate per X value" when every X holds one value, else the plural. */
+export function xyReplicateUnit(groups: GroupN[]): string {
+  return groups.length && groups.every((g) => (g.nMax ?? g.n) === 1) ? "replicate per X value" : "replicates per X value";
+}
+
 /** n at each X, as the legend states it for XY tables ("n = 3 replicates
- *  per X value"). */
+ *  per X value", "n = 1 to 5 replicates per X value"). */
 export function xyN(table: DataTableModel): string | null {
-  const groups = numericData(table).datasets.map((d) => ({
-    name: d.name, n: Math.max(0, maxOf(d.ys.map((row) => row.filter((v) => v !== null).length))),
-  })).filter((g) => g.n > 0);
-  const unit = groups.length && groups.every((g) => g.n === 1)
-    ? "replicate per X value" : "replicates per X value";
-  return nStatement(groups, { nUnit: "values" }, { unit });
+  const groups = xyReplicateGroups(table);
+  return nStatement(groups, { nUnit: "values" }, { unit: xyReplicateUnit(groups) });
 }
 
 /** The legend sentence drawn inside the figure ("In the figure"). */

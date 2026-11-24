@@ -20,9 +20,8 @@ import {
 } from "./replicates.ts";
 import { compareParameterLegend } from "../sheets/xy/compareParameter.ts";
 import { logLegendClause } from "../sheets/column/logScale.ts";
-import { maxOf } from "../lib/extent.ts";
 import { dropLegend, normalizeXYGraph } from "../sheets/xy/fitGraph.ts";
-import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
+import { fitLegendClause, xyReplicateGroups, xyReplicateUnit } from "../sheets/xy/fitLegend.ts";
 import { ctBracketLegend, ctBracketsDrawn } from "../sheets/contingency/brackets.ts";
 import { estimationMargins, marginsLegend, type EquivalenceLink } from "./estimation/margins.ts";
 import { GRAPH_ESTIMATION } from "./estimation/run.ts";
@@ -144,9 +143,7 @@ export function legendFor(c: LegendContext): string {
   const longitudinal = ra === "mixed_timecourse" || ra === "subject_auc";
   // XY tables: n is the replicates at each X, not every value of a curve.
   const xy = c.table.type === "xy" && !longitudinal;
-  const groups = xy ? numericData(c.table).datasets.map((d) => ({
-    name: d.name, n: Math.max(0, maxOf(d.ys.map((r) => r.filter((v) => v !== null).length))),
-  })).filter((g) => g.n > 0) : tableGroups(c.table);
+  const groups = xy ? xyReplicateGroups(c.table) : tableGroups(c.table);
   // Unit and experiments: typed in Reporting details, else from the
   // table's replicate map (report/replicates.ts).
   const superplot = !!c.graph && legendSpec(c.graph, c.table, c.result)?.display === "superplot";
@@ -154,11 +151,9 @@ export function legendFor(c: LegendContext): string {
   const facts = replicateFacts(c.table, c.result, { superplot });
   // XY with repeats inside experiments: the points are experiment means.
   const xyByExp = xy && !!facts && !c.data.report?.unit;
-  const xyGroups = xyByExp ? groups.map((g) => ({ ...g, n: facts!.experiments })) : groups;
+  const xyGroups = xyByExp ? groups.map((g) => ({ name: g.name, n: facts!.experiments })) : groups;
   const unit = meta.unit ?? (c.result as any)?.unit_words?.plural
-    ?? (longitudinal ? "subjects" : xy
-      ? (groups.length && groups.every((g) => g.n === 1) ? "replicate per X value" : "replicates per X value")
-      : undefined);
+    ?? (longitudinal ? "subjects" : xy ? xyReplicateUnit(groups) : undefined);
   // Statistics on experiment means with one value per experiment (a flow
   // summary's donors) and the experiment named in Reporting details: n
   // already counts the experiments, so "(3 donors)" and "from 3

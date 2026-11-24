@@ -8,7 +8,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
 
-export interface GroupN { name: string; n: number }
+export interface GroupN {
+  name: string;
+  /** n of the group; where it differs between X values or rows, the
+   *  smallest (what a small-n check needs). */
+  n: number;
+  /** The largest n, when it differs between X values or rows (XY
+   *  replicates, multiple t tests): the legend then states the range. */
+  nMax?: number;
+}
+
+/** "5", or "1 to 5" for a group whose n differs between X values or rows:
+ *  one count is never stated for unequal counts. */
+export function nCount(g: GroupN): string {
+  return g.nMax !== undefined && g.nMax !== g.n ? `${g.n} to ${g.nMax}` : `${g.n}`;
+}
 
 export interface TestInfo {
   /** "unpaired t test", "ordinary one-way ANOVA", ... (null: no test). */
@@ -257,7 +271,12 @@ export function describeResult(result: unknown): TestInfo {
       if (rows.length && names.length === 2) {
         const nA = rows.map((x) => x.n_a).filter(num), nB = rows.map((x) => x.n_b).filter(num);
         if (nA.length && nB.length) {
-          info.groups = [{ name: names[0], n: Math.min(...nA) }, { name: names[1], n: Math.min(...nB) }];
+          // n differs between rows when a row has blanks: state the range (nCount)
+          const span = (name: string, ns: number[]): GroupN => {
+            const lo = Math.min(...ns), hi = Math.max(...ns);
+            return { name, n: lo, ...(hi !== lo ? { nMax: hi } : {}) };
+          };
+          info.groups = [span(names[0], nA), span(names[1], nB)];
         }
       }
       return info;

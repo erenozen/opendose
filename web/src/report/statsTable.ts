@@ -15,7 +15,7 @@
 // nothing. Pure, unit-tested against native engine results
 // (__tests__/statsTable.test.ts).
 import { formatSig } from "../types.ts";
-import { describeResult, type GroupN } from "./describe.ts";
+import { describeResult, nCount, type GroupN } from "./describe.ts";
 import { effectGroups, primaryEffect, type EffectRow } from "./effects.ts";
 import { familyOf, type Family } from "./family.ts";
 import { pNumber, type PStyle } from "./pformat.ts";
@@ -158,7 +158,7 @@ function finish(ctx: Ctx, part: Part): StatsRow {
 }
 
 function nText(groups: GroupN[]): string {
-  return groups.map((g) => `${g.name} ${g.n}`).join("; ");
+  return groups.map((g) => `${g.name} ${nCount(g)}`).join("; ");
 }
 
 /** The groups of an "A vs. B" pair, when both are known. */

@@ -751,6 +751,23 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
   await shot("fit-legend-caption");
 }
 
+// --- an XY table whose replicates differ between X values states n as a
+// range (R's cars, 1 to 5 distances per speed: e2e-fixtures/stage
+// smoothing.json). Before: "n = 5 replicates per X value" (the largest
+// count). After: "n = 1 to 5 replicates per X value". Equal counts keep
+// "n = 3 replicates per X value" byte for byte (the block above).
+{
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "smoothing.json"));
+  await page.getByRole("treeitem", { name: "Smoothing spline graph of Cars", exact: true }).first()
+    .locator(":scope > .nav-row").click({ timeout: 60000 });
+  await page.waitForFunction(() => /replicates? per X value/.test(document.querySelector(".plot-card .figure-legend-text")
+    ?.textContent ?? ""), null, { timeout: 60000 }).catch(() => {});
+  const leg = await fitLegendText();
+  expect("unequal replicates per X: n = 1 to 5 replicates per X value (cars), never the largest count alone",
+    /(^|\. )n = 1 to 5 replicates per X value\./.test(leg) && !/n = 5 replicates/.test(leg), leg);
+}
+
 // --- interpolated unknowns drawn on the curve (P-22). Reference:
 // engine/tests/reference/interpolate_unknowns.py (BCA quadratic, statsmodels
 // OLS; X of each unknown and its 95% CI from investr's inversion interval).

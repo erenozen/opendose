@@ -10,7 +10,7 @@
 // replicates defined), JCB / Lord et al. 2020 (independent experiments
 // stated), SAMPL (state the test and the scale of the asterisks). Pure.
 import { familyLegendClause, resultFamily } from "./family.ts";
-import { describeResult, type GroupN, type TestInfo } from "./describe.ts";
+import { describeResult, nCount, type GroupN, type TestInfo } from "./describe.ts";
 import { starScale, type PStyle } from "./pformat.ts";
 import { withheldInfo, withheldPhrase } from "../sheets/common/withheld.ts";
 import { combinedLegend } from "./estimation/combined.ts";
@@ -124,7 +124,8 @@ const UNIT_WORDS: Record<NonNullable<TestInfo["nUnit"]>, string> = {
 };
 
 /** "n = 6 per group", "n = 6 mice per group from 3 independent
- *  experiments", "n = 6 (Control), 5 (Treated)". */
+ *  experiments", "n = 6 (Control), 5 (Treated)", and for XY tables whose
+ *  replicates differ between X values "n = 1 to 5 replicates per X value". */
 export function nStatement(groups: GroupN[], info: Pick<TestInfo, "nUnit">,
   unit: ReportUnit = {}): string | null {
   // Groups without values (e.g. a data set of experiment labels) say nothing.
@@ -133,19 +134,20 @@ export function nStatement(groups: GroupN[], info: Pick<TestInfo, "nUnit">,
   const word = unit.unit?.trim() || (info.nUnit ? UNIT_WORDS[info.nUnit] : "");
   const exp = unit.experiments && unit.experiments > 0 && !/experiment/i.test(word)
     ? ` from ${unit.experiments} independent experiment${unit.experiments === 1 ? "" : "s"}` : "";
-  const same = g.every((x) => x.n === g[0].n);
+  // "1 to 5" where the count differs between X values or rows (describe.ts nCount)
+  const same = g.every((x) => nCount(x) === nCount(g[0]));
   if (info.nUnit === "pairs" && same && unit.unit?.trim() && unit.within?.trim()) {
-    return `n = ${g[0].n} ${unit.unit.trim()} (${unit.within.trim()}) per group, paired${exp}`;
+    return `n = ${nCount(g[0])} ${unit.unit.trim()} (${unit.within.trim()}) per group, paired${exp}`;
   }
   if (info.nUnit === "pairs" && same) {
-    return `n = ${g[0].n} ${unit.unit?.trim() ? `${unit.unit.trim()} (paired)` : "pairs"}${exp}`;
+    return `n = ${nCount(g[0])} ${unit.unit?.trim() ? `${unit.unit.trim()} (paired)` : "pairs"}${exp}`;
   }
   if (same) {
     const within = unit.within?.trim() ? ` (${unit.within.trim()})` : "";
     const per = unit.per ? ` per ${unit.per}` : g.length > 1 ? " per group" : "";
-    return `n = ${g[0].n}${word ? ` ${word}` : ""}${within}${per}${exp}`;
+    return `n = ${nCount(g[0])}${word ? ` ${word}` : ""}${within}${per}${exp}`;
   }
-  return `n = ${g.map((x) => `${x.n} (${x.name})`).join(", ")}${word ? ` ${word}` : ""}${exp}`;
+  return `n = ${g.map((x) => `${nCount(x)} (${x.name})`).join(", ")}${word ? ` ${word}` : ""}${exp}`;
 }
 
 export interface LegendInput {
