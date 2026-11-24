@@ -4743,6 +4743,53 @@ interaction F); the P-87 sleepstudy random-intercept fixed effects
 agree with lme4's published fit (Days 10.4673, SE 0.8042; intercept
 251.4051, SE 9.7467) and lmerTest's Satterthwaite df (22.81 for the
 intercept); the P-94 EP05 components agree with VCA's validated values.
+
+## Feature validation: competing risks and parametric survival (2026-11-24)
+
+### P-90 Competing risks: cumulative incidence and Gray's test
+
+`competing_risks.competing_risks` (API handler `competing_risks`; the
+survival table's "Competing risks" analysis, event codes 0 = censored,
+1, 2, ... one per kind of event): the Aalen-Johansen cumulative
+incidence F_k(t) = sum S(t_j-) d_kj / n_j (Aalen & Johansen 1978;
+Kalbfleisch & Prentice 2002, section 8.2), the delta-method variance of
+Gray's cmprsk `cinc` with the tied-events correction, log(-log) CIs
+(Choudhury 2002, Stat Med 21:1129, as tidycmprsk prints), values at a
+chosen time as cmprsk's `timepoints`, and Gray's K-sample test (Gray
+1988, Ann Stat 16:1141; rho = 0, the covariance of cmprsk's `crstm`).
+1 - Kaplan-Meier is never shown as an incidence; the Kaplan-Meier
+analysis now leaves rows with codes other than 0 / 1 out with a warning
+that names Competing risks (before, a code 2 made it loop for ever).
+
+Reference: `engine/tests/reference/competing_risks.py` (R is not
+installed: an independent Aalen-Johansen product-integral of the
+multi-state transition matrices; published cmprsk output on
+tidycmprsk's `trial` data, tidycmprsk reference page for `cuminc()`;
+published survfit output on survival::mgus2, Therneau's "Multi-state
+models and competing risks" vignette). `engine/tests/test_competing_risks.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| trial by trt, 200 patients (acceptance: codes 1 death from cancer, 2 other death) | Gray's test 1.99, df 1, p 0.16 (cancer); 0.089, p 0.77 (other); engine 1.98847, 0.08857 (published cmprsk) | printed precision |
+| same, months 5, 10, 15, 20 | every estimate, SE and 95% CI cmprsk prints (Drug A cancer at 20: 0.173, SE 0.039, 0.106 to 0.255; Drug B 0.255, 0.043, 0.175 to 0.343) | 3 decimals as published |
+| same, pooled | estimates and SEs of `cuminc(... ~ 1, trial)` (published); the product-integral's estimates | 3 decimals; 1e-12 |
+| mgus2 by sex, PCM and death | restricted mean time in each state to 240 months (years): PCM F 1.323284, M 1.064693; death F 8.823108, M 10.260294; event-free F 9.853608, M 8.675012 (published survfit) | 5e-7 |
+| same, months 60, 120, 240 | the product-integral's cumulative incidences | 1e-12 |
+
+Also tested: F_1 + F_2 + S = 1 at every time; Gray's statistic does not
+change with the order of the groups (2 and 3 groups); times x 1e-12,
+1/7, 1e12 keep every estimate, SE and statistic; identical groups give
+a zero score and P = 1; tied events of both kinds at one time; one kind
+of event only says the incidence equals 1 - Kaplan-Meier; a kind with
+no events in any group gives no test and says why; negative times,
+non-whole codes, missing cells and empty groups are left out with the
+row and the reason; all censored and no data are refused with a
+sentence; groups of 1 and 2 subjects. e2e (`e2e-results.mjs`): the trial
+table with code 1 named "Tumour" from the results sheet, Gray's P per
+kind (rounding to cmprsk's 1.99, 0.16, 0.089, 0.77), the incidences at
+month 20, the cumulative incidence graph of Tumour and then of Other
+death (each curve at month 20 equal to the engine's value).
+
 """
 
 

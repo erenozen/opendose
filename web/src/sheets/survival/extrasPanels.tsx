@@ -6,11 +6,9 @@
 // sheet (updateResultsOptions), so frozen and shared sheets show them
 // read-only.
 import { useEffect, useState, type ReactNode } from "react";
-import { useProject } from "../../app/context";
 import { softwareSentence } from "../../export/cite";
 import { SRC } from "../../guide/sources";
 import { getRuntimeVersions } from "../../lib/engine";
-import { updateResultsOptions } from "../../project/ops";
 import type { DataTableModel } from "../../project/types";
 import { pLabel, tableP } from "../../report/pformat";
 import { formatSig } from "../../types";
@@ -24,6 +22,7 @@ import {
   survivalMethodsText, survivalWarnings, type PairwiseCorrection,
   type SurvivalExtras, type SurvivalOptions,
 } from "./extras";
+import { useOptionSetter } from "./useOptionSetter";
 import "./survival.css";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -37,30 +36,19 @@ const pctOf = (v: unknown) => (num(v) ? `${formatSig(v * 100)}%` : "n/a");
 const raw = (v: unknown) => (num(v) ? String(v) : "");
 
 /** A cited source: a link for a verified URL, else the reference in words. */
-function Cite({ children, href }: { children: ReactNode; href?: string }) {
+export function Cite({ children, href }: { children: ReactNode; href?: string }) {
   return href
     ? <a href={href} target="_blank" rel="noreferrer">{children}</a>
     : <cite>{children}</cite>;
 }
 
-function Method({ children }: { children: ReactNode }) {
+export function Method({ children }: { children: ReactNode }) {
   return <p className="hint-block surv-method">{children}</p>;
-}
-
-/** Edit this results sheet's options (null when it is locked). */
-function useOptionSetter(sheet: ResultsProps["sheet"]):
-  ((patch: Partial<SurvivalOptions>, key?: string) => void) | null {
-  const api = useProject();
-  if (sheet.frozen || api.readOnly) return null;
-  return (patch, key) => {
-    api.apply((p) => updateResultsOptions(p, sheet.id,
-      (o) => ({ ...(o && typeof o === "object" ? o : {}), ...patch })), key ? `surv:${sheet.id}:${key}` : null);
-  };
 }
 
 /** A number field that commits on Enter or when it loses focus (each
  *  commit runs the engine); empty = the default. */
-function CommitNumber({ label, value, placeholder, onCommit, disabled, note }: {
+export function CommitNumber({ label, value, placeholder, onCommit, disabled, note }: {
   label: string; value: number | null; placeholder: string;
   onCommit: (v: number | null) => void; disabled?: boolean; note?: ReactNode;
 }) {

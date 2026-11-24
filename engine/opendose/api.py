@@ -41,6 +41,7 @@ from . import frequency
 from . import effectsize, estimation, power
 from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
+from . import competing_risks
 from . import logscale, rm_posthoc, twoway_contrasts
 from . import compare_params, flow, qpcr_refs
 from . import potency
@@ -1625,9 +1626,13 @@ def _survival(data, options):
     for ds in data["datasets"]:
         times, events = [], []
         partial = []
+        other = {}  # event codes other than 0 / 1: left out (P-90)
         for r, row in enumerate(ds["ys"]):
             if len(row) >= 2 and not _is_missing(row[0]) \
                     and not _is_missing(row[1]):
+                if float(row[1]) not in (0.0, 1.0):
+                    other.setdefault(row[1], []).append(r)
+                    continue
                 times.append(float(row[0]))
                 events.append(int(row[1]))
             elif any(not _is_missing(v) for v in (row or [])):
@@ -1637,6 +1642,17 @@ def _survival(data, options):
                 f"{ds.get('name', '') or 'unnamed group'}: "
                 + _incomplete_warning(partial, "row")
                 + " (each subject needs a time and an event code)")
+        if other:
+            codes = ", ".join(f"{float(c):g}" for c in other)
+            n_other = sum(len(v) for v in other.values())
+            warnings.append(
+                f"{ds.get('name', '') or 'unnamed group'}: {n_other} "
+                f"row{'s' if n_other != 1 else ''} with event code {codes} "
+                "left out of Kaplan-Meier (1 = event, 0 = censored). If "
+                "these are other kinds of event, use Competing risks "
+                "(cumulative incidence): 1 - Kaplan-Meier is not the "
+                "probability of an event when another event can come "
+                "first.")
         if times:
             groups.append((times, events))
             names.append(ds.get("name", ""))
@@ -1738,6 +1754,41 @@ def _rmst(data, options):
     res["warnings"] = (warnings + list(res.get("warnings") or [])
                        + survival_extras.few_events_warnings(groups, names))
     return {"analysis": "rmst", **res}
+
+
+def _competing_risks(data, options):
+    """Cumulative incidence (Aalen-Johansen) of each kind of event and
+    Gray's test (competing_risks). Payload as "survival", with event codes
+    0 = censored and 1, 2, ... one per kind of event. options: causes
+    ([codes]; default every code in the data), times ([t, ...] for the
+    at-a-time table), ci_level (0.95). Result: {"analysis":
+    "competing_risks", "causes": [{code, groups: [{name, n, events,
+    competing, censored, last_time, steps: [{time, at_risk, events,
+    competing, censored, cif, se, lower, upper}], points, at_times}],
+    gray: {chi2, df, p, score, variance, rho} | null, note?}],
+    "group_names", "codes_seen", "competing_present", "ci_level",
+    "method", "warnings"}."""
+    groups, names, dropped = competing_risks.groups_from_datasets(
+        data["datasets"])
+    warnings = []
+    for d in dropped:
+        where = (f"row {d['row'] + 1}" if d.get("row") is not None
+                 else "group")
+        warnings.append(f"{d['group'] or 'unnamed group'}, {where} left "
+                        f"out: {d['reason']}")
+    if not groups:
+        raise ValueError("no survival data (need time + event code "
+                         "subcolumns)")
+    causes = options.get("causes")
+    times = options.get("times") or []
+    if not isinstance(times, (list, tuple)):
+        times = [times]
+    res = competing_risks.competing_risks(
+        groups, names, causes=None if causes is None else list(causes),
+        times=[float(t) for t in times],
+        ci_level=float(options.get("ci_level", 0.95)))
+    res["warnings"] = warnings + list(res.get("warnings") or [])
+    return {"analysis": "competing_risks", **res}
 
 
 def _residuals_column(data, options):
@@ -4477,6 +4528,7 @@ _HANDLERS.update({
     "survival_at_time": _survival_at_time,
     "rmst": _rmst,
     "residuals_column": _residuals_column,
+    "competing_risks": _competing_risks,
 })
 
 

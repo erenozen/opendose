@@ -7,7 +7,8 @@ import { useGraphSetting } from "../grouped/plotting";
 import {
   normalizeSurvivalGraph, survivalYTitle, type SurvivalCi, type SurvivalScale, type SurvivalShow,
 } from "./graphSettings";
-import { CoxLink } from "../../components/ResultsLinks";
+import { CompetingLink, CoxLink } from "../../components/ResultsLinks";
+import { causeCodes } from "./competing";
 import { timeUnitOf } from "./entry";
 import { notReachedByGroup } from "./extras";
 import { MedianNotes, SurvivalExtrasBlocks } from "./extrasPanels";
@@ -22,9 +23,29 @@ export function SurvivalControls(_: ControlsProps) {
         <h3>How to enter data</h3>
         <p className="hint-block">
           Each dataset is one group; each row is one subject:
-          Y1 = time, Y2 = event code (1 = event, 0 = censored).
+          Y1 = time, Y2 = event code (1 = event, 0 = censored; 2, 3, … for other
+          kinds of event, analysed by Competing risks).
           Counts of animals alive per day, or start and end dates, can be
           turned into these rows with “Survival data from…” above the table.
+        </p>
+      </section>
+    </div>
+  );
+}
+
+/** Competing risks (P-90): how the event codes are read. The names of the
+ *  kinds of event are set on the results sheet. */
+export function CompetingControls(_: ControlsProps<any>) {
+  void _;
+  return (
+    <div className="controls">
+      <section>
+        <h3>How to enter data</h3>
+        <p className="hint-block">
+          Each dataset is one group; each row is one subject: Y1 = time, Y2 = event code:
+          0 = censored, 1 = the first kind of event, 2, 3, … the other kinds (for example
+          1 = death from the tumour, 2 = death from another cause). The first event a subject
+          has ends its follow-up. Name the kinds of event above the results.
         </p>
       </section>
     </div>
@@ -40,6 +61,7 @@ export function SurvivalResultsPanel(props: ResultsProps<unknown, any>) {
         afterMedians={<MedianNotes result={result} table={table} />}
         extras={<SurvivalExtrasBlocks {...props} />} />
       {result && !result.error && <CoxLink sheet={sheet} />}
+      {result && !result.error && causeCodes(table).some((c) => c >= 2) && <CompetingLink sheet={sheet} />}
     </>
   );
 }

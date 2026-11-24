@@ -153,16 +153,20 @@ test("survivalTableFrom writes Time/Event per group, keeps the unit, drops covar
 
 test("readTable: per-group counts, other codes and the reading of each row", () => {
   const t = normalizeTable({ type: "survival", xUnit: "days", datasets: [
-    { name: "A", subTitles: ["Time", "Event"], rows: [["12", "1"], ["30", "0"], ["", ""], ["8", "2"], ["9", ""]] },
+    { name: "A", subTitles: ["Time", "Event"],
+      rows: [["12", "1"], ["30", "0"], ["", ""], ["8", "2"], ["9", ""], ["10", "1.5"], ["11", "3"]] },
     { name: "B", subTitles: ["Time", "Event"], rows: [["4", "0"]], excluded: [] },
   ] });
   const r = readTable(t);
   assert.equal(r[0].events, 1);
   assert.equal(r[0].censored, 1);
-  assert.deepEqual(r[0].otherCodes, [{ row: 4, code: "2" }]);
+  // P-90: whole codes 2, 3, ... are other kinds of event (competing risks)
+  assert.deepEqual(r[0].competing, [{ row: 4, code: 2 }, { row: 7, code: 3 }]);
+  assert.deepEqual(r[0].otherCodes, [{ row: 6, code: "1.5" }]);
   assert.equal(r[0].incomplete, 1);
   assert.deepEqual(r[0].rows.map((x) => x.text), ["event on day 12", "censored on day 30",
-    "event code “2” is not 1 or 0", "no event code: left out"]);
+    "event of kind 2 on day 8: competing risks only", "no event code: left out",
+    "event code “1.5” is not 1 or 0", "event of kind 3 on day 11: competing risks only"]);
   assert.equal(r[1].events, 0);
   assert.equal(timeUnitOf(emptyTable("survival")), "");
 });

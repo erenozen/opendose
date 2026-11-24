@@ -164,6 +164,21 @@ export function CoxLink({ sheet }: { sheet: ResultsSheet }) {
   );
 }
 
+/** Survival results on a table with event codes 2, 3, … (P-90): the
+ *  competing-risks analysis on the same table. */
+export function CompetingLink({ sheet }: { sheet: ResultsSheet }) {
+  const { open, readOnly } = useOpenAnalysis(sheet);
+  return (
+    <p className="results-crosslink">
+      <button type="button" data-still className="linkish" disabled={readOnly}
+        onClick={() => open("competing_risks", {}, true)}>
+        Competing risks (cumulative incidence)</button>{" "}
+      <span>on the same table: the rows with event codes 2, 3, … are other kinds of event,
+        left out above. The cumulative incidence of each kind and Gray&apos;s test use them.</span>
+    </p>
+  );
+}
+
 /** Curve-fit results: Compare fits on the same table, set up from this fit. */
 export function CompareFitsLinks({ sheet, table, model, xIsLog, weighting = "none", weightK }: {
   sheet: ResultsSheet;

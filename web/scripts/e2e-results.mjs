@@ -1238,6 +1238,73 @@ const analyzeWith = async (re) => {
       && row2.endsWith("Scheffé (3, 12 df)"), row2);
 }
 
+// --- P-90: competing risks: cumulative incidence and Gray's test ----------
+{
+  // engine/tests/reference/competing_risks.py: tidycmprsk's trial data
+  // (Drug A / Drug B, months; codes 1 = death from cancer, 2 = other
+  // death). Published cmprsk::cuminc output (tidycmprsk reference page):
+  // Gray's test 1.99 (p 0.16) and 0.089 (p 0.77); at month 20 Drug A
+  // 0.173 (0.106 to 0.255), Drug B 0.255 (0.175 to 0.343) for cancer.
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/competing_risks.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  const pub = REF.trial.published;
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "survival-models.json"));
+  const gray = page.getByRole("group", { name: "Gray's test per kind of event" });
+  await appears(gray, 180000);
+  // the acceptance test: code 1 named "Tumour" from the results sheet
+  const name1 = page.getByRole("textbox", { name: "Name of event code 1" });
+  await name1.fill("Tumour");
+  await name1.press("Enter");
+  await liveResults(/Tumour/);
+  const rows = async (loc) => (await loc.locator("tbody tr").allInnerTexts()).map((x) => x.replace(/\s+/g, " ").trim());
+  const g = await rows(gray);
+  const [c1, , p1] = g[0]?.split(" ").slice(-3) ?? [];
+  const [c2, , p2] = g[1]?.split(" ").slice(-3) ?? [];
+  expect(`P-90 acceptance: Gray's P for each kind of event, as cmprsk publishes (1.99, p 0.16; 0.089, p 0.77)`,
+    g[0]?.startsWith("Tumour ") && g[1]?.startsWith("Other death ")
+      && Number(c1).toFixed(2) === "1.99" && Number(p1).toFixed(2) === String(pub.gray["1"].p)
+      && Number(c2).toFixed(3) === String(pub.gray["2"].stat) && Number(p2).toFixed(2) === String(pub.gray["2"].p),
+    g.join(" | "));
+  const at = await rows(page.getByRole("group", { name: "Cumulative incidence at month 20" }));
+  const cif = REF.trial.cif;
+  const want = [["Drug A", "Tumour", cif["Drug A"]["1"][3]], ["Drug B", "Tumour", cif["Drug B"]["1"][3]],
+    ["Drug A", "Other death", cif["Drug A"]["2"][3]], ["Drug B", "Other death", cif["Drug B"]["2"][3]]];
+  expect("P-90 cumulative incidence at month 20 (Aalen-Johansen, the reference's product-integral)",
+    want.every(([gr, kind, v], i) => at[i]?.startsWith(`${gr} ${kind} ${sig4(v)} `)), at.join(" | "));
+  const ciA = at[0]?.match(/ (\S+) to (\S+) (\S+)$/);
+  expect("P-90 Drug A's CI and SE at month 20 round to cmprsk's published 0.106 to 0.255, SE 0.039",
+    !!ciA && Number(ciA[1]).toFixed(3) === "0.106" && Number(ciA[2]).toFixed(3) === "0.255"
+      && Number(ciA[3]).toFixed(3) === "0.039", at[0]);
+  expect("P-90 the methods say 1 − Kaplan-Meier was not used",
+    /1 − Kaplan-Meier was not used/.test(await page.locator(".methods-text").first().innerText().catch(() => "")));
+  // the graph: one kind of event at a time, named in the Y title
+  await page.getByRole("treeitem", { name: "Cumulative incidence of Trial by drug", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const plot = page.locator(".plot-card .js-plotly-plot").first();
+  await appears(plot, 120000);
+  const yTitle = () => page.locator(".plot-card .ytitle").first().textContent().catch(() => "");
+  await page.waitForFunction(() => /Tumour/.test(document.querySelector(".plot-card .ytitle")?.textContent ?? ""),
+    null, { timeout: 30000 }).catch(() => {});
+  // each group's curve at month 20, as drawn (percent)
+  const at20 = () => plot.evaluate((el) => (el.data ?? []).filter((t) => t.meta?.odTag?.role === "line")
+    .map((t) => { let y = null; t.x.forEach((x, i) => { if (x <= 20) y = t.y[i]; }); return y; }));
+  const ys = await at20();
+  const near = (got, code) => got.length === 2 && ["Drug A", "Drug B"]
+    .every((gr, i) => Math.abs(got[i] - 100 * REF.trial.cif[gr][code][3]) < 1e-9);
+  expect("P-90 acceptance: a cumulative incidence graph of Tumour, Y title naming it",
+    (await yTitle()) === "Cumulative incidence of Tumour (%)" && near(ys, "1"), `${await yTitle()} ${ys}`);
+  await page.locator(".plot-card").getByRole("button", { name: "Settings" }).click();
+  await page.getByRole("dialog", { name: "Graph settings" }).getByLabel("Kind of event").selectOption({ label: "Other death" });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => /Other death/.test(document.querySelector(".plot-card .ytitle")?.textContent ?? ""),
+    null, { timeout: 30000 }).catch(() => {});
+  const ys2 = await at20();
+  expect("P-90 the graph switches to the other kind of event (a graph per cause)",
+    (await yTitle()) === "Cumulative incidence of Other death (%)" && near(ys2, "2"), `${await yTitle()} ${ys2}`);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

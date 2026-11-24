@@ -384,8 +384,12 @@ export interface GroupReading {
   name: string;
   events: number;
   censored: number;
-  /** Rows with a time but an event code other than 0 or 1. */
+  /** Rows with a time but an event code that is not a whole number
+   *  >= 0. */
   otherCodes: { row: number; code: string }[];
+  /** Rows with a whole-number code 2, 3, ...: another kind of event
+   *  (P-90). Kaplan-Meier leaves them out; Competing risks uses them. */
+  competing: { row: number; code: number }[];
   /** Rows with only one of time and event. */
   incomplete: number;
   rows: RowReading[];
@@ -400,7 +404,8 @@ export function readTable(t: DataTableModel, eventWord = "event"): GroupReading[
     const ex = new Set(d.excluded ?? []);
     const cell = (r: number, c: number) => (ex.has(`${r}:${c}`) ? "" : (d.rows[r]?.[c] ?? "").trim());
     const out: GroupReading = {
-      name: d.name.trim() || `Group ${gi + 1}`, events: 0, censored: 0, otherCodes: [], incomplete: 0, rows: [],
+      name: d.name.trim() || `Group ${gi + 1}`, events: 0, censored: 0, otherCodes: [], competing: [],
+      incomplete: 0, rows: [],
     };
     d.rows.forEach((_, r) => {
       const ts = cell(r, 0);
@@ -413,6 +418,13 @@ export function readTable(t: DataTableModel, eventWord = "event"): GroupReading[
         out.rows.push({ row: r + 1, used: false,
           text: time === null && ts ? `time “${ts}” is not a number: left out`
             : !ts ? "no time: left out" : "no event code: left out" });
+        return;
+      }
+      if (Number.isInteger(ev) && ev >= 2) {
+        out.competing.push({ row: r + 1, code: ev });
+        const when = unit ? `on ${timePhrase(time, unit)}` : `at ${timePhrase(time, unit)}`;
+        out.rows.push({ row: r + 1, used: false,
+          text: `event of kind ${ev} ${when}: competing risks only` });
         return;
       }
       if (ev !== 0 && ev !== 1) {
