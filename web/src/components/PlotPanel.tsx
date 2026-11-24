@@ -19,6 +19,7 @@ import { maxOf, minOf } from "../lib/extent";
 import { addDropLines, type DropPoint } from "../sheets/xy/fitGraph";
 import { unknownMarkers } from "../sheets/xy/interpolation";
 import { splitCurve } from "../sheets/xy/curveRange";
+import { addZeroSegment, zeroPoints } from "../sheets/xy/zeroBreak";
 
 /** An extra fitted curve drawn with a data set (`altCurves` on a data
  *  set of the result): dotted, in the data set's colour or in ink. */
@@ -48,6 +49,8 @@ interface Props {
   /** A data point was clicked (or tapped): its data set in `result` and
    *  its row (P-68: leave it out of this analysis). On screen only. */
   onPointClick?: (dataset: number, row: number) => void;
+  /** Unit of the X values as entered, for the zero-dose segment's tick. */
+  xUnit?: string;
 }
 
 /** Plotly's click event, as far as it is read here. */
@@ -58,7 +61,7 @@ interface PlotClick {
 
 export default function PlotPanel({
   result, xTitle, yTitle, scheme = DEFAULT_SCHEME, xTickFormat, format = EMPTY_FORMAT,
-  onFormatChange, rowTitles, drop, caption, onPointClick,
+  onFormatChange, rowTitles, drop, caption, onPointClick, xUnit,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const pickRef = useRef(onPointClick);
@@ -287,13 +290,18 @@ export default function PlotPanel({
       dark, scheme, datasets: result.datasets.map((d) => d.name), rowTitles,
       results: resultBlocks(result, graphPStyle(format)), editRevision: rev, caption,
     });
+    // the zero dose left of an X axis break (P-104, sheets/xy/zeroBreak.ts)
+    const zero = format.x?.zeroBreak
+      ? addZeroSegment(out.traces as never, out.layout, zeroPoints(result), format.x,
+        { unit: xUnit ?? "", ink: chrome.ink })
+      : out;
     const shown = drop?.points.length
-      ? addDropLines(out.layout, drop.points, format, { dark, scheme, label: drop.label,
+      ? addDropLines(zero.layout, drop.points, format, { dark, scheme, label: drop.label,
         unit: drop.unit, ink: chrome.ink })
-      : out.layout;
+      : zero.layout;
     const div = el.current;
     void draw(async (P) => {
-      await P.react(div, densify(out.traces).traces as Plotly.Data[], shown, plotConfig({
+      await P.react(div, densify(zero.traces as never).traces as Plotly.Data[], shown, plotConfig({
         responsive: true,
         scrollZoom: true,
         displaylogo: false,
@@ -317,7 +325,7 @@ export default function PlotPanel({
       }
     });
   }, [result, dark, xTitle, yTitle, scheme, xTickFormat, format, rev, rowTitles, onFormatChange,
-    attach, draw, attempt, drop, caption, pickable]);
+    attach, draw, attempt, drop, caption, pickable, xUnit]);
 
   return (
     <div className="plot" ref={el}>

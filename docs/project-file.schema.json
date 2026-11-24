@@ -1501,6 +1501,18 @@
           ],
           "description": "Discontinuous axis: leave out the range between `from` and `to`."
         },
+        "segment": {
+          "type": "number",
+          "description": "Share of the axis length (0.1 to 0.9) given to the first segment of a broken axis: the lower segment of a Y gap, the zero-dose segment of the X axis. Absent = automatic."
+        },
+        "zeroBreak": {
+          "type": "boolean",
+          "description": "X axis of a log(X) curve fit (P-104): draw the X values that have no logarithm (a zero dose) in their own segment left of a break."
+        },
+        "zeroLabel": {
+          "type": "string",
+          "description": "Tick label of that segment; absent = the X value with its unit."
+        },
         "elapsedUnit": {
           "type": "string",
           "enum": [

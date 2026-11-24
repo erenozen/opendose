@@ -1708,6 +1708,36 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },
+  // the vehicle left of an X axis break, each Top held at its own wells (P-104)
+  { name: "graphs-zero-break", setup: async (s) => {
+    await fixture(s, "zero-break.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .filter((t) => t.xaxis === "x3").length === 2, null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-format-axes-zero", setup: async (s) => {
+    await fixture(s, "zero-break.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    // a formatted graph's button reads "Settings Formatted"
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: /^Settings/ }));
+    await click(s, dialog(s, "Graph settings").getByRole("button", { name: "Format axes…" }));
+    const d = s.page.locator("dialog.fmt-dialog");
+    await click(s, d.getByRole("tab", { name: "X axis" }));
+    await d.getByRole("checkbox", { name: "Draw the zero dose left of a break" })
+      .evaluate((e) => e.scrollIntoView({ block: "center" }));
+    await settle(s, 500);
+  } },
+  { name: "results-zero-dose-hold", setup: async (s) => {
+    await fixture(s, "zero-break.json", { live: true });
+    await click(s, s.page.getByRole("treeitem", { name: "Nonlin fit of Vehicle wells, not held", exact: true })
+      .first().locator(":scope > .nav-row"));
+    const note = s.page.getByRole("note", { name: "Zero dose left out" });
+    await note.getByRole("button", { name: "Hold each curve's Top at its own zero-dose wells" })
+      .waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .zero-dose", "center");
+  } },
   { name: "graphs-fit-drop-lines", setup: async (s) => {
     await fixture(s, "fit-graph.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();

@@ -9,7 +9,7 @@ import { engineWeighting, formatSig } from "../types";
 import { modelMeta, USER_MODEL_ID } from "../lib/modelLibrary";
 import { sharedParameters } from "../lib/userEquation";
 import { constraintKind, constraintState, rangeText } from "../sheets/xy/fitOptions";
-import { zeroDosePlan } from "../sheets/xy/zeroDose";
+import { heldEverywhere, heldMethodsClause, zeroDosePlan } from "../sheets/xy/zeroDose";
 import CiteBlock, { CopyButton } from "./CiteBlock";
 
 interface Props {
@@ -28,7 +28,12 @@ export default function MethodsText({ result, options, xUnit }: Props) {
   const constraints: string[] = [];
   let hasRange = false;
   const params = isUser ? Object.keys(options.userEquation?.rules ?? {}) : meta.constrainable;
+  // each curve's plateau held at its own zero-dose wells (P-104) replaces
+  // a typed constraint of it on every curve that has those wells
+  const zero = zeroDosePlan(result, options);
+  const replaced = heldEverywhere(zero, result) ? zero?.active?.param : undefined;
   for (const p of params) {
+    if (p === replaced) continue;
     const st = constraintState(options, p);
     const range = isUser ? null : rangeText(p, st);
     if (range) {
@@ -82,8 +87,9 @@ export default function MethodsText({ result, options, xUnit }: Props) {
         : " (weights from the fitted curve, iteratively reweighted)"));
   }
   // a plateau constrained to the zero-dose mean (sheets/xy/ZeroDoseBar)
-  const zero = zeroDosePlan(result, options);
-  if (zero?.constrained && zero.plateau) {
+  const held = heldMethodsClause(zero);
+  if (held) parts.push(held);
+  else if (zero?.constrained && zero.plateau) {
     parts.push(`${zero.plateau} = ${zero.value} being the mean of the zero-dose wells `
       + "(X = 0 has no logarithm, so those wells are not points on the curve)");
   }

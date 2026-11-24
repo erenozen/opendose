@@ -1173,7 +1173,9 @@ function splitAxis(layout: Layout, traces: Trace[], gap: { from: number; to: num
   if (!(g0 > lo && g1 < hi)) return;
   const lowSpan = g0 - lo, highSpan = hi - g1;
   const room = 0.95, sep = 0.05;
-  const f = Math.min(0.8, Math.max(0.2, room * lowSpan / (lowSpan + highSpan)));
+  // Format axes › the lower segment's share of the axis, else by the spans
+  const f = isNum(a.segment) ? room * a.segment
+    : Math.min(0.8, Math.max(0.2, room * lowSpan / (lowSpan + highSpan)));
   const y = layout.yaxis ?? {};
   const title = y.title;
   layout.yaxis = { ...y, range: [lo, g0], autorange: false, domain: [0, f], title: undefined };

@@ -70,7 +70,8 @@ export function useFormatDialogs({
       scheme={scheme} hasRowTitles={hasRowTitles} onApply={onFormat} onClose={close} />;
   } else if (open === "axes") {
     element = <FormatAxesDialog format={format} titles={titles} autoTitles={autoTitles}
-      categoricalX={!!features.categorical || !!features.categoryX} hasY2={hasY2} onClose={close}
+      categoricalX={!!features.categorical || !!features.categoryX} hasY2={hasY2}
+      zeroBreak={!!features.zeroBreak} onClose={close}
       onApply={(f, t) => onFormat(f, t.x !== titles.x || t.y !== titles.y ? t : undefined)} />;
   } else if (open === "annotations") {
     element = <AnnotationsDialog format={format} results={blocks} onApply={onFormat}

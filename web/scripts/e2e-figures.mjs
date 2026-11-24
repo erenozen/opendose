@@ -892,6 +892,127 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     `${JSON.stringify(across.shapes)} / ${await fitLegendText()}`);
 }
 
+// --- P-104: the zero dose left of an X axis break, and each curve's Top
+// held at its own zero-dose wells. Reference: engine/tests/reference/
+// zero_dose_plateau.py (scipy least_squares on the 4PL with Top fixed per
+// curve; R drc with a fixed d is not installed): Drug A Top 100.667 (the
+// mean of 98, 101, 103), LogIC50 -6.55448; Drug B Top 86.2, LogIC50
+// -5.57498. No dose is made up for the vehicle: it sits on its own axis.
+{
+  const ZX = ["0", "1e-9", "1e-8", "1e-7", "1e-6", "1e-5", "1e-4"];
+  const ZA = [[98.0, 101.0, 103.0], [97.5, 99.0, 100.2], [90.1, 92.4, 88.7], [70.2, 66.8, 72.5],
+    [31.0, 35.2, 29.4], [10.4, 12.9, 9.8], [6.1, 4.9, 7.3]];
+  const ZB = [[84.0, 88.5, 86.1], [85.2, 82.7, 84.9], [83.0, 80.6, 84.4], [76.1, 73.9, 78.0],
+    [58.2, 55.0, 60.3], [30.1, 27.7, 33.6], [14.2, 12.8, 16.5]];
+  const REF_ZERO = { "Drug A": { top: 100.666667, logic50: -6.554481 },
+    "Drug B": { top: 86.2, logic50: -5.574977 } };
+  const ZERO = join(tmp, "zero-break.json");
+  const str = (rows) => rows.map((r) => r.map(String));
+  writeFileSync(ZERO, JSON.stringify({
+    version: 2, title: "Zero dose check",
+    prefs: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", digits: 4 },
+    sheets: [
+      { id: "zd", kind: "data", name: "Vehicle wells", table: { type: "xy", x: ZX, xTitle: "[Conc.]",
+        xFormat: "numbers", xUnit: "M", yTitle: "Response", rowTitles: ZX.map(() => ""),
+        subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+        datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: str(ZA) },
+          { name: "Drug B", subTitles: ["", "", ""], rows: str(ZB) }] } },
+      { id: "zr", kind: "results", parentId: "zd", name: "Nonlin fit of Vehicle wells", analysis: "nonlin",
+        options: { model: "log_inhibitor_vs_response_4pl", errorBars: "sd", autoFit: "requested" } },
+      { id: "zg", kind: "graph", parentId: "zd", resultsId: "zr", graphType: "xy",
+        name: "Graph of Vehicle wells", settings: { titles: { x: "", y: "" }, scheme: "default",
+          xy: { caption: "below" } } },
+    ],
+  }));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]', ZERO);
+  await page.getByRole("treeitem", { name: "Vehicle wells", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.meta?.odTag?.role === "fit").length === 2, null, { timeout: 120000 }).catch(() => {});
+  const pop = await graphSettings();
+  await pop.getByRole("button", { name: "Format axes…" }).click();
+  const fa = page.locator("dialog.fmt-dialog");
+  await fa.getByRole("tab", { name: "X axis" }).click();
+  await fa.getByLabel("Draw the zero dose left of a break").check();
+  await fa.getByRole("button", { name: "Apply and close" }).click();
+  await page.waitForFunction(() => !!document.querySelector(".plot-card .plot")?.layout?.xaxis3, null,
+    { timeout: 60000 }).catch(() => {});
+  const zb = () => page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const l = gd?.layout ?? {};
+    const tr = (gd?.data ?? []).map((t) => ({ role: t.meta?.odTag?.role, ds: t.meta?.odTag?.ds,
+      xaxis: t.xaxis ?? "x", x: [...(t.x ?? [])], y: [...(t.y ?? [])] }));
+    return { x3: l.xaxis3 ? { domain: l.xaxis3.domain, range: l.xaxis3.range, ticktext: l.xaxis3.ticktext,
+      tickvals: l.xaxis3.tickvals } : null, xDomain: l.xaxis?.domain, yAnchor: l.yaxis?.anchor,
+    marks: (l.shapes ?? []).filter((s) => String(s.name ?? "").startsWith("xbreak"))
+      .map((s) => ({ name: s.name, xanchor: s.xanchor, yanchor: s.yanchor })),
+    traces: tr };
+  });
+  const z = await zb();
+  const mean = (r) => r.reduce((a, b) => a + b, 0) / r.length;
+  const inSeg = z.traces.filter((t) => t.xaxis === "x3");
+  expect("P-104 acceptance: the X break puts the vehicle point of each curve in its own segment, left of the break",
+    !!z.x3 && inSeg.length === 2 && inSeg.every((t) => t.role === "points" && t.x.length === 1 && t.x[0] === 0)
+      && z.x3.domain[1] < z.xDomain[0] && JSON.stringify(z.x3.ticktext) === '["0 M"]'
+      && z.yAnchor === "x3", JSON.stringify(z.x3) + JSON.stringify(z.xDomain));
+  expect("P-104 the vehicle points land at their values (98, 101, 103 -> 100.667; 84, 88.5, 86.1 -> 86.2)",
+    inSeg.length === 2 && Math.abs(inSeg[0].y[0] - mean(ZA[0])) < 1e-9
+      && Math.abs(inSeg[1].y[0] - mean(ZB[0])) < 1e-9, JSON.stringify(inSeg));
+  expect("P-104 break marks drawn where the X axis is cut",
+    z.marks.length === 2 && Math.abs(z.marks[0].xanchor - z.x3.domain[1]) < 1e-12
+      && Math.abs(z.marks[1].xanchor - z.xDomain[0]) < 1e-12, JSON.stringify(z.marks));
+  const main = z.traces.filter((t) => t.role === "points" && t.xaxis === "x");
+  const doses = ZX.slice(1).map((v) => Math.log10(Number(v)));
+  expect("P-104 every dose point lands at its value, right of the break",
+    main.length === 2 && [ZA, ZB].every((rows, i) => main[i].x.length === 6
+      && main[i].x.every((v, k) => Math.abs(v - doses[k]) < 1e-9)
+      && main[i].y.every((v, k) => Math.abs(v - mean(rows[k + 1])) < 1e-9)), JSON.stringify(main));
+  expect("P-104 no curve is drawn across the break",
+    z.traces.filter((t) => t.role === "fit").every((t) => t.xaxis === "x"));
+  expect("P-104 the legend says what the points left of the break are",
+    (await fitLegendText()).includes("Points left of the break in the X axis are at X = 0, which has no "
+      + "logarithm: they are not points on the curve, and the curve was fitted without them."),
+    await fitLegendText());
+  await shot("zero-dose-break");
+
+  // each curve's Top at its own zero-dose wells, with the stated reason
+  const bar = page.getByRole("note", { name: "Zero dose left out" });
+  await bar.getByLabel("Reason for the constraint").fill("Vehicle wells are each plate's response with no drug");
+  await bar.getByRole("button", { name: "Hold each curve's Top at its own zero-dose wells" }).click();
+  // the note changes at once; wait for the refit (both Top cells held)
+  await page.waitForFunction(() => [...document.querySelectorAll(".pane-results table.results-table tr")]
+    .filter((r) => r.cells[0]?.textContent?.trim() === "Top")
+    .filter((r) => r.cells[1]?.textContent?.trim().startsWith("=")).length === 2, null,
+  { timeout: 120000 }).catch(() => {});
+  // the best-fit value of a parameter in each data set's table ("= 100.7" when held)
+  const row = (name) => page.evaluate((n) => ["Drug A", "Drug B"].map((ds) => {
+    const t = [...document.querySelectorAll(".pane-results table.results-table")]
+      .find((x) => x.caption?.textContent?.trim() === `Best-fit values of ${ds}`);
+    const tr = t && [...t.rows].find((r) => r.cells[0]?.textContent?.trim() === n);
+    return tr ? tr.cells[1].textContent.trim() : null;
+  }), name);
+  const tops = await row("Top");
+  const logs = await row("LogIC50");
+  const near = (s, v, tol) => s !== null
+    && Math.abs(parseFloat(String(s).replace(/^=\s*/, "").replace("−", "-")) - v) <= tol;
+  expect("P-104 each curve's Top is held at the mean of its own vehicle wells (= 100.7, = 86.2)",
+    !!tops && tops.every((s) => String(s).startsWith("=")), JSON.stringify(tops));
+  expect("P-104 each curve's Top is the mean of its own vehicle wells (100.7, 86.20)",
+    !!tops && near(tops[0], REF_ZERO["Drug A"].top, 0.05) && near(tops[1], REF_ZERO["Drug B"].top, 0.005),
+    JSON.stringify(tops));
+  expect("P-104 LogIC50 with Top held per curve matches the scipy fit (-6.554, -5.575)",
+    !!logs && near(logs[0], REF_ZERO["Drug A"].logic50, 6e-4) && near(logs[1], REF_ZERO["Drug B"].logic50, 6e-4),
+    JSON.stringify(logs));
+  const methods = await page.locator(".methods-text p").first().innerText().catch(() => "");
+  expect("P-104 the methods name each curve's held Top and the stated reason",
+    methods.includes("Top of each curve held at the mean of that data set's own zero-dose wells "
+      + "(Drug A 100.7, n = 3; Drug B 86.2, n = 3; stated reason: Vehicle wells are each plate's "
+      + "response with no drug)"), methods);
+  expect("P-104 the legend says the Top is held at the wells left of the break",
+    (await fitLegendText()).includes("each curve's Top is held at the mean of its own wells there."),
+    await fitLegendText());
+}
+
 // --- geometric mean ×/÷ geometric SD on a log axis, and the Checks note
 // for bars on a log axis or an axis cut above zero (P-25). Reference:
 // src/sheets/column/__tests__/reference/geo_summary.py (numpy, scipy

@@ -5540,6 +5540,51 @@ Faul et al. 2007 (f 0.2572, N 90, 3 groups x 3 measurements, rho 0.3)
 from scipy's noncentral F: lambda = f^2 N m / (1 - rho) = 25.5157,
 critical F(2, 174) = 3.047906, power 0.996553; the nested design effect
 1 + (10 - 1) x 0.3 = 3.7 and 63.77 x 3.7 / 10 = 23.59 animals by hand.
+
+## Feature validation: zero-dose plateaus, stars at each time point, log-rank brackets (2026-11-24)
+
+### P-104 X-axis break and per-curve zero-dose plateaus
+
+With `options.zero_dose_plateau {"param": "Top" | "Bottom"}` each data
+set's plateau is held at the mean of its own zero-dose wells (X entered
+but with no logarithm under a log(X) model); the entry reports
+`zero_dose_constraint {param, value, n_values, x_values}`. The vehicle
+wells are never given a dose: they stay in `log_x_dropped`, which now
+names their table rows (`rows`, `row_x`) so the graph can draw them left
+of an X axis break. R `drc` (LL.4 with a fixed d) is not installed; the
+reference is `engine/tests/reference/zero_dose_plateau.py`, the 4PL
+written out with Top fixed per curve and Bottom, LogIC50 and HillSlope
+fitted by scipy `least_squares` (Levenberg-Marquardt), SEs from
+s^2 (J'J)^-1 on n - 3 df.
+
+| Data set (vehicle wells) | Reference (scipy) | Engine |
+|---|---|---|
+| Drug A (98, 101, 103) | Top 100.666667; Bottom 3.99998 (SE 1.2635); LogIC50 -6.554481 (SE 0.034306); HillSlope -0.692762 (SE 0.030292); SS 64.9853 on 15 df | the same values (rel 1e-6, SEs rel 2e-3); display Top = 100.7, LogIC50 -6.554 |
+| Drug B (84, 88.5, 86.1) | Top 86.2; Bottom 5.73973 (SE 2.8856); LogIC50 -5.574977 (SE 0.079423); HillSlope -0.588491 (SE 0.039702); SS 65.8603 on 15 df | the same values; display Top = 86.2, LogIC50 -5.575 |
+
+Also tested (`engine/tests/test_zero_dose_plateau.py`): an agonist's
+Bottom from its vehicle; a typed constant, range or start of that
+plateau replaced for the curves with vehicle wells while other held
+parameters stay; a data set without vehicle wells fitted as before with
+a warning; one vehicle well and missing values; all vehicle values
+equal; X already in logs (X = 0 is 1 M, nothing held); mean / SD / N
+rows (two vehicle rows, 100 with N 2 and 94 with N 4: 96 accounting for
+N, 97 for the means only); Y scaled by 1e6 scales Top and keeps the
+IC50; the order of the data sets does not matter; a parameter other than
+Top or Bottom is an error.
+
+Web: `src/sheets/xy/__tests__/zeroBreak.test.ts` (the rows drawn left of
+the break, the segment's layout, the break marks, a split Y axis, a
+hidden data set, the legend and methods sentences, when the per-curve
+hold is offered). The zero-dose note offers "Hold each curve's Top at
+its own zero-dose wells" with a reason, which the methods text records
+with each curve's value. e2e-figures: the acceptance test (the vehicle
+point of each curve in its own segment left of the break, the break
+marks drawn, every point at its value, the curve never across the
+break), then the hold, reading Top = 100.7 and = 86.2 and LogIC50
+-6.554 and -5.575 against the reference. e2e-export: the SVG export
+draws the 0 M tick and both vehicle points left of the two break marks
+and the twelve dose points right of them; the PDF keeps the tick order.
 """
 
 

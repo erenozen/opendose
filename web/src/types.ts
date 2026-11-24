@@ -130,6 +130,10 @@ export interface OptionsState {
    *  text; absent or blank (files saved before) = automatic, the
    *  model's rules. */
   initialValues?: Record<string, string>;
+  /** Hold one plateau of every curve at the mean of that data set's own
+   *  zero-dose wells (P-104, engine option zero_dose_plateau), with the
+   *  reason the user gave; absent (files saved before) = off. */
+  zeroDosePlateau?: { param: "Top" | "Bottom"; reason: string } | null;
 }
 
 export const DEFAULT_XY_OPTIONS: OptionsState = {
@@ -262,7 +266,11 @@ export interface DatasetResult {
   error?: string;
   points: { x: (number | null)[]; bars: ErrorBar[] };
   /** Points a log(X) model left out because X <= 0 has no logarithm. */
-  log_x_dropped?: { n_values: number; x_values: number[]; mean_y: number };
+  log_x_dropped?: { n_values: number; x_values: number[]; mean_y: number;
+    rows?: number[]; row_x?: number[] };
+  /** The plateau held at this data set's own zero-dose wells (P-104). */
+  zero_dose_constraint?: { param: "Top" | "Bottom"; value: number; n_values: number;
+    x_values: number[] };
 }
 
 export interface AnalysisResult {

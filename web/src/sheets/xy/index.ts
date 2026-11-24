@@ -105,7 +105,8 @@ export const xyGraph = defineGraph<OptionsState, AnalysisResult>({
   exportName: "dose-response",
   PlotPanel: XYPlot,
   OptionsPanel: XYGraphOptions,
-  formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true },
+  formatFeatures: { points: true, lines: true, connect: true, errorBars: true, xError: true,
+    zeroBreak: true },
 });
 
 export const demingAnalysis = defineAnalysis<DemingOptions, Record<string, unknown>>({

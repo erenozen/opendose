@@ -15,6 +15,7 @@ import { maxOf } from "../../lib/extent.ts";
 import { dropLegend, type XYGraphSettings } from "./fitGraph.ts";
 import { unknownMarkers } from "./interpolation.ts";
 import { beyondData } from "./curveRange.ts";
+import { zeroBreakLegend } from "./zeroBreak.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -50,9 +51,10 @@ const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one :
 
 /** The legend's description of a curve-fit graph ("" when the result
  *  has no fitted curve). `yGap`: the graph's Y axis break, if any (the
- *  drop lines skip a response inside it, fitGraph.ts dropLegend). */
+ *  drop lines skip a response inside it, fitGraph.ts dropLegend).
+ *  `xZero`: the zero dose is drawn left of an X axis break (P-104). */
 export function fitLegendClause(table: DataTableModel, result: unknown, options: unknown,
-  settings: XYGraphSettings, yGap?: { from: number; to: number } | null): string {
+  settings: XYGraphSettings, yGap?: { from: number; to: number } | null, xZero = false): string {
   const r = result as R | null;
   if (!r || r.error || !Array.isArray(r.datasets)) return "";
   const sets = (r.datasets as R[]).filter((d) => d?.fit && !d.error);
@@ -95,6 +97,8 @@ export function fitLegendClause(table: DataTableModel, result: unknown, options:
       + `at their measured Y, with horizontal bars for the 95% CI of X`
       + `${ext ? ` (${ext} beyond the standards, extrapolated)` : ""}.`);
   }
+  const zero = xZero ? zeroBreakLegend(result, options) : "";
+  if (zero) parts.push(zero);
   const drop = dropLegend(result, settings, yGap);
   if (drop) parts.push(drop);
   return parts.join(" ");
@@ -113,8 +117,8 @@ export function xyN(table: DataTableModel): string | null {
 
 /** The legend sentence drawn inside the figure ("In the figure"). */
 export function fitCaption(table: DataTableModel, result: unknown, options: unknown,
-  settings: XYGraphSettings, yGap?: { from: number; to: number } | null): string {
-  const clause = fitLegendClause(table, result, options, settings, yGap);
+  settings: XYGraphSettings, yGap?: { from: number; to: number } | null, xZero = false): string {
+  const clause = fitLegendClause(table, result, options, settings, yGap, xZero);
   if (!clause) return "";
   const n = xyN(table);
   return n ? `${clause} ${n}.` : clause;

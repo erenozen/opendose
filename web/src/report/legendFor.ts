@@ -202,8 +202,9 @@ export function legendFor(c: LegendContext): string {
 function xyFitPlotted(g: GraphSheet, table: DataTableModel, result: unknown, options: unknown,
   errorBars: ErrorBars | null): string | undefined {
   const s = normalizeXYGraph(g.settings.xy);
-  const yGap = readFormat(g.settings).y?.gap ?? null;
-  const fit = fitLegendClause(table, result, options, s, yGap);
+  const fmt = readFormat(g.settings);
+  const yGap = fmt.y?.gap ?? null;
+  const fit = fitLegendClause(table, result, options, s, yGap, !!fmt.x?.zeroBreak);
   if (fit) return fit;
   const drop = dropLegend(result, s, yGap);
   return drop ? `${whatIsPlotted("xy", { errorBars })} ${drop}` : undefined;

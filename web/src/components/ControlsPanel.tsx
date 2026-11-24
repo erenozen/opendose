@@ -203,6 +203,14 @@ export default function ControlsPanel({
           {Object.entries(fixedDefaults).map(([p, v]) => (
             <p key={p} className="hint-block">{p} is fixed at {v} by this model.</p>
           ))}
+          {/* P-104: the per-curve hold set in the results' zero-dose note */}
+          {options.zeroDosePlateau && constrainable.includes(options.zeroDosePlateau.param) && (
+            <p className="hint-block">
+              {options.zeroDosePlateau.param} of each curve is held at its own zero-dose wells (the
+              zero-dose note in the results); for curves with those wells it replaces a{" "}
+              {options.zeroDosePlateau.param} set here.
+            </p>
+          )}
         </section>
       )}
       {classic && (

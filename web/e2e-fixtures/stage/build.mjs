@@ -23,6 +23,8 @@
 //   estimation-margins.json  a t test with an equivalence margin of ±1 and
 //                      the estimation plot that draws it (P-12)
 //   fit-split-axis.json  IC50 drop lines on a Y axis with a break (P-23)
+//   zero-break.json    two curves with vehicle wells drawn left of an X axis
+//                      break, each Top held at its own wells (P-104)
 //   fit-legend.json    a weighted 4PL with a confidence band and one ROUT
 //                      outlier, its legend sentence drawn in the figure
 //   bar-axis.json      fold changes as bars of geometric means ×/÷ geometric
@@ -995,4 +997,29 @@ const longData = (name, names, rows, categorical) => data(name, {
   const ro = results(higgins, "grouped_two_way", { design: "none", rowFactor: "Moisture",
     colFactor: "Fertilizer" }, "Two-way ANOVA of Higgins 1990 Table 5");
   write("art-anova.json", project("Aligned rank transform", [higgins, ra, ro], { selected: ra.id }));
+}
+
+// zero-break.json (P-104; engine/tests/reference/zero_dose_plateau.py): two
+// curves whose first row is the vehicle (dose 0): the graph draws it left
+// of an X axis break and each curve's Top is held at its own vehicle
+// wells; a second family with the same data offers that hold in its
+// zero-dose note
+{
+  n = 0;
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/zero_dose_plateau.json"), "utf8"));
+  const x = ref.x.map(String);
+  const sets = Object.entries(ref.sets).map(([name, rows]) => ({ name, subTitles: ["", "", ""],
+    rows: rows.map((r) => r.map(String)) }));
+  const fit = { model: "log_inhibitor_vs_response_4pl", errorBars: "sd", autoFit: "requested" };
+  const t = data("Vehicle wells", table("xy", { x, xTitle: "[Inhibitor]", xUnit: "M", yTitle: "Response",
+    datasets: sets }));
+  const r = results(t, "nonlin", { ...fit, zeroDosePlateau: { param: "Top",
+    reason: "The zero-dose wells of each curve are its response with no drug" } }, "Nonlin fit of Vehicle wells");
+  const g = graph(t, r, "xy", "Graph of Vehicle wells");
+  g.settings.xy = { caption: "below" };
+  g.settings.format = { x: { zeroBreak: true } };
+  const t2 = data("Vehicle wells, not held", table("xy", { x, xTitle: "[Inhibitor]", xUnit: "M",
+    yTitle: "Response", datasets: sets }));
+  const r2 = results(t2, "nonlin", fit, "Nonlin fit of Vehicle wells, not held");
+  write("zero-break.json", project("Zero dose left of a break", [t, r, g, t2, r2], { selected: g.id }));
 }

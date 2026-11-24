@@ -158,7 +158,17 @@ converted on the way in and out.
   probability (normal-quantile axis for percentages).
 - Discontinuous axis: left Y axis only, drawn as two stacked subplots
   sharing X, with break marks and one rotated title. Not combined with
-  the right Y axis or offset frames.
+  the right Y axis or offset frames. `AxisFormat.segment` (0.1 to 0.9)
+  sets the lower segment's share of the axis; absent, it follows the
+  spans.
+- X axis break of the curve-fit graph (P-104, `sheets/xy/zeroBreak.ts`):
+  `x.zeroBreak` draws the X values a log(X) fit left out (no logarithm:
+  a zero dose) on their own axis `xaxis3` left of a break, at the X
+  entered (`x.zeroLabel` renames the tick; `x.segment` is its share,
+  default 0.12), with two slanted marks (`xbreak:left`, `xbreak:right`)
+  on the X axis line. The copies of each data set's formatted point
+  trace carry `meta.zeroDose`; the curve never crosses the break. A
+  general X gap (from / to) is not offered.
 - Date numbering sets Plotly's date axis and format. Tables with dates as
   X are read as numbers (days since the earliest date, project/xformat.ts)
   and the XY graph labels its own ticks with the dates, so this numbering
