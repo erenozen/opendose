@@ -4627,6 +4627,36 @@ _HANDLERS.update({
     "mixed_timecourse": _mixed_timecourse,
 })
 
+from . import lmm  # noqa: E402
+
+
+def _lmm(data, options):
+    """General linear mixed model on a long table (opendose.lmm, P-87):
+    outcome ~ factors (0-2, with interaction) + covariates + (1 [+
+    slopes] | group) [+ (1 | group:subgroup)]. data: {"variables":
+    [{"name", "values"}]}. options: outcome, group (required), subgroup,
+    factors, covariates, slopes (covariates with a random slope on
+    group), slope_structure ("correlated" | "independent"), ddf
+    ("kenward_roger" | "satterthwaite"), ci_level, levels, comparisons,
+    comparison_scope, control_index, group_word, subgroup_word. Result:
+    {"analysis": "lmm", "formula", "fixed_effects": [{term, estimate,
+    se, df, t, p, ci}], "anova": [{term, f, dfn, dfd, p}],
+    "random_effects", "correlations", "residual", "boundary",
+    "converged", "emmeans", "comparisons", "goodness_of_fit",
+    "warnings", ...}."""
+    for key in ("outcome", "group"):
+        if not options.get(key):
+            raise ValueError(f"lmm needs options.{key}")
+    return lmm.lmm_long(
+        _mv_variables(data), options["outcome"],
+        factors=options.get("factors") or [],
+        covariates=options.get("covariates") or [],
+        group=options["group"], subgroup=options.get("subgroup") or None,
+        slopes=options.get("slopes") or [], options=options)
+
+
+_HANDLERS["lmm"] = _lmm
+
 
 def analyze(payload: dict) -> dict:
     kind = payload.get("analysis")

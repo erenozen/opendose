@@ -1,0 +1,1435 @@
+{
+ "sleepstudy": {
+  "intercept": {
+   "reml_criterion": 1786.465085394951,
+   "subject_variance": 1378.1758439406985,
+   "residual_variance": 960.4567609712852,
+   "fixed": [
+    {
+     "term": "Intercept",
+     "estimate": 251.40510484848443,
+     "se": 9.746708839770754,
+     "se_phi": 9.746708839770747,
+     "df_satterthwaite": 22.810301446529653,
+     "df_kenward_roger": 22.810211355152965,
+     "se_kenward_roger": 9.74670883977075,
+     "p_satterthwaite": 2.241028244642935e-18
+    },
+    {
+     "term": "Days",
+     "estimate": 10.467285959595962,
+     "se": 0.8042215053144829,
+     "se_phi": 0.804221505314483,
+     "df_satterthwaite": 160.99989121130892,
+     "df_kenward_roger": 161.00000000000185,
+     "se_kenward_roger": 0.8042215053144829,
+     "p_satterthwaite": 6.412724850446292e-27
+    }
+   ],
+   "published_lmerTest": {
+    "intercept_df": 22.8102,
+    "days_df": 161.0,
+    "intercept_se": 9.7467,
+    "days_se": 0.8042
+   }
+  },
+  "slope": {
+   "reml_criterion": 1743.6282719591495,
+   "intercept_variance": 612.0964868880523,
+   "slope_variance": 35.07162272805253,
+   "correlation": 0.0655528202822074,
+   "residual_variance": 654.9404769803164,
+   "fixed": [
+    {
+     "term": "Intercept",
+     "estimate": 251.40510484848485,
+     "se": 6.824582411576025,
+     "se_phi": 6.824582411576025,
+     "df_satterthwaite": 16.999599359463154,
+     "df_kenward_roger": 17.00000000000002,
+     "se_kenward_roger": 6.824582411576026,
+     "p_satterthwaite": 1.1717742756885998e-17
+    },
+    {
+     "term": "Days",
+     "estimate": 10.46728595959601,
+     "se": 1.5457880977442258,
+     "se_phi": 1.5457880977442258,
+     "df_satterthwaite": 17.00022999917061,
+     "df_kenward_roger": 16.999999999999996,
+     "se_kenward_roger": 1.5457880977442258,
+     "p_satterthwaite": 3.263534272643226e-06
+    }
+   ],
+   "published_lme4": {
+    "reml_criterion": 1743.6,
+    "intercept_variance": 612.09,
+    "slope_variance": 35.07,
+    "correlation": 0.07,
+    "residual_variance": 654.94,
+    "intercept_se": 6.825,
+    "days_se": 1.546,
+    "df": 17.0
+   }
+  }
+ },
+ "pastes": {
+  "reml_criterion": 246.9907460899324,
+  "batch_variance": 1.658418302922192,
+  "cask_variance": 8.432859943419519,
+  "residual_variance": 0.6780041138350965,
+  "fixed": [
+   {
+    "term": "Intercept",
+    "estimate": 60.053333333333185,
+    "se": 0.6769322198739376,
+    "se_phi": 0.6769322198739354,
+    "df_satterthwaite": 8.99670734708518,
+    "df_kenward_roger": 8.999999999999961,
+    "se_kenward_roger": 0.6769322198739349,
+    "p_satterthwaite": 1.5035493524585126e-14
+   }
+  ],
+  "published_lme4": {
+   "intercept": 60.0533,
+   "se": 0.6769,
+   "batch_variance": 1.657,
+   "residual_variance": 0.678
+  }
+ },
+ "animals": {
+  "records": [
+   {
+    "animal": "M1",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 16.52,
+    "current": 22.003
+   },
+   {
+    "animal": "M1",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 16.17,
+    "current": 20.828
+   },
+   {
+    "animal": "M1",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 18.36,
+    "current": 23.346
+   },
+   {
+    "animal": "M1",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 19.3,
+    "current": 19.283
+   },
+   {
+    "animal": "M1",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 15.88,
+    "current": 19.103
+   },
+   {
+    "animal": "M1",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 15.0,
+    "current": 17.003
+   },
+   {
+    "animal": "M1",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 15.13,
+    "current": 16.551
+   },
+   {
+    "animal": "M1",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 17.39,
+    "current": 17.99
+   },
+   {
+    "animal": "M1",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 24.23,
+    "current": 22.28
+   },
+   {
+    "animal": "M1",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 19.18,
+    "current": 24.408
+   },
+   {
+    "animal": "M1",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 20.75,
+    "current": 22.356
+   },
+   {
+    "animal": "M1",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 31.29,
+    "current": 30.404
+   },
+   {
+    "animal": "M1",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 22.63,
+    "current": 25.551
+   },
+   {
+    "animal": "M2",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 10.62,
+    "current": 19.575
+   },
+   {
+    "animal": "M2",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 14.56,
+    "current": 19.457
+   },
+   {
+    "animal": "M2",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 21.6,
+    "current": 23.23
+   },
+   {
+    "animal": "M2",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 31.05,
+    "current": 29.726
+   },
+   {
+    "animal": "M2",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 28.6,
+    "current": 24.257
+   },
+   {
+    "animal": "M2",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 18.98,
+    "current": 24.519
+   },
+   {
+    "animal": "M2",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 15.73,
+    "current": 22.127
+   },
+   {
+    "animal": "M2",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 14.93,
+    "current": 20.54
+   },
+   {
+    "animal": "M2",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 24.36,
+    "current": 23.864
+   },
+   {
+    "animal": "M2",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 18.47,
+    "current": 21.445
+   },
+   {
+    "animal": "M2",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 19.14,
+    "current": 23.841
+   },
+   {
+    "animal": "M2",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 19.31,
+    "current": 20.037
+   },
+   {
+    "animal": "M2",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 20.67,
+    "current": 21.893
+   },
+   {
+    "animal": "M2",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 19.78,
+    "current": 21.948
+   },
+   {
+    "animal": "M2",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 16.87,
+    "current": 27.272
+   },
+   {
+    "animal": "M2",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 21.76,
+    "current": 22.852
+   },
+   {
+    "animal": "M3",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 23.29,
+    "current": 24.262
+   },
+   {
+    "animal": "M3",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 26.09,
+    "current": 23.472
+   },
+   {
+    "animal": "M3",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 16.31,
+    "current": 15.711
+   },
+   {
+    "animal": "M3",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 20.46,
+    "current": 21.634
+   },
+   {
+    "animal": "M3",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 26.87,
+    "current": 18.944
+   },
+   {
+    "animal": "M3",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 16.71,
+    "current": 13.657
+   },
+   {
+    "animal": "M3",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 9.16,
+    "current": 8.267
+   },
+   {
+    "animal": "M3",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 21.6,
+    "current": 18.597
+   },
+   {
+    "animal": "M3",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 19.14,
+    "current": 17.454
+   },
+   {
+    "animal": "M3",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 28.04,
+    "current": 22.074
+   },
+   {
+    "animal": "M3",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 19.22,
+    "current": 16.535
+   },
+   {
+    "animal": "M3",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 24.1,
+    "current": 21.919
+   },
+   {
+    "animal": "M3",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 17.02,
+    "current": 19.493
+   },
+   {
+    "animal": "M3",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 15.67,
+    "current": 13.555
+   },
+   {
+    "animal": "M3",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 20.69,
+    "current": 23.982
+   },
+   {
+    "animal": "M4",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 24.53,
+    "current": 20.175
+   },
+   {
+    "animal": "M4",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 15.87,
+    "current": 16.032
+   },
+   {
+    "animal": "M4",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 19.25,
+    "current": 20.284
+   },
+   {
+    "animal": "M4",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 17.81,
+    "current": 20.899
+   },
+   {
+    "animal": "M4",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 18.09,
+    "current": 22.357
+   },
+   {
+    "animal": "M4",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 20.41,
+    "current": 24.644
+   },
+   {
+    "animal": "M4",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 23.38,
+    "current": 24.033
+   },
+   {
+    "animal": "M4",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 19.86,
+    "current": 19.691
+   },
+   {
+    "animal": "M4",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 24.41,
+    "current": 23.459
+   },
+   {
+    "animal": "M4",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 20.59,
+    "current": 22.012
+   },
+   {
+    "animal": "M4",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 24.43,
+    "current": 22.11
+   },
+   {
+    "animal": "M4",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 17.68,
+    "current": 20.017
+   },
+   {
+    "animal": "M4",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 17.82,
+    "current": 19.737
+   },
+   {
+    "animal": "M4",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 22.11,
+    "current": 21.703
+   },
+   {
+    "animal": "M4",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 25.01,
+    "current": 22.472
+   },
+   {
+    "animal": "M4",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 22.19,
+    "current": 24.929
+   },
+   {
+    "animal": "M4",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 27.13,
+    "current": 23.657
+   },
+   {
+    "animal": "M5",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 17.39,
+    "current": 19.834
+   },
+   {
+    "animal": "M5",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 21.09,
+    "current": 24.146
+   },
+   {
+    "animal": "M5",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 16.57,
+    "current": 19.982
+   },
+   {
+    "animal": "M5",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 14.55,
+    "current": 17.444
+   },
+   {
+    "animal": "M5",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 16.22,
+    "current": 20.84
+   },
+   {
+    "animal": "M5",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 23.76,
+    "current": 25.636
+   },
+   {
+    "animal": "M5",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 18.4,
+    "current": 21.081
+   },
+   {
+    "animal": "M5",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 23.39,
+    "current": 22.081
+   },
+   {
+    "animal": "M5",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 22.6,
+    "current": 21.529
+   },
+   {
+    "animal": "M5",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 19.0,
+    "current": 17.905
+   },
+   {
+    "animal": "M5",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 14.3,
+    "current": 21.332
+   },
+   {
+    "animal": "M5",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 14.49,
+    "current": 17.204
+   },
+   {
+    "animal": "M5",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 23.83,
+    "current": 23.051
+   },
+   {
+    "animal": "M5",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 16.13,
+    "current": 21.91
+   },
+   {
+    "animal": "M5",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 23.64,
+    "current": 26.314
+   },
+   {
+    "animal": "M5",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 19.65,
+    "current": 20.706
+   },
+   {
+    "animal": "M5",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 22.46,
+    "current": 20.081
+   },
+   {
+    "animal": "M5",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 27.34,
+    "current": 27.545
+   },
+   {
+    "animal": "M6",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 20.62,
+    "current": 22.569
+   },
+   {
+    "animal": "M6",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 17.9,
+    "current": 23.364
+   },
+   {
+    "animal": "M6",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 22.34,
+    "current": 22.211
+   },
+   {
+    "animal": "M6",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 15.65,
+    "current": 23.436
+   },
+   {
+    "animal": "M6",
+    "slice": "S1",
+    "genotype": "WT",
+    "size": 25.34,
+    "current": 28.772
+   },
+   {
+    "animal": "M6",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 21.09,
+    "current": 24.291
+   },
+   {
+    "animal": "M6",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 14.0,
+    "current": 20.992
+   },
+   {
+    "animal": "M6",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 16.97,
+    "current": 22.845
+   },
+   {
+    "animal": "M6",
+    "slice": "S2",
+    "genotype": "WT",
+    "size": 19.64,
+    "current": 23.094
+   },
+   {
+    "animal": "M6",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 21.59,
+    "current": 21.816
+   },
+   {
+    "animal": "M6",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 14.45,
+    "current": 22.868
+   },
+   {
+    "animal": "M6",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 22.55,
+    "current": 23.137
+   },
+   {
+    "animal": "M6",
+    "slice": "S3",
+    "genotype": "WT",
+    "size": 26.74,
+    "current": 28.468
+   },
+   {
+    "animal": "M7",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 17.06,
+    "current": 20.042
+   },
+   {
+    "animal": "M7",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 18.52,
+    "current": 21.065
+   },
+   {
+    "animal": "M7",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 29.08,
+    "current": 23.269
+   },
+   {
+    "animal": "M7",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 21.75,
+    "current": 19.031
+   },
+   {
+    "animal": "M7",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 22.56,
+    "current": 21.607
+   },
+   {
+    "animal": "M7",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 16.36,
+    "current": 19.776
+   },
+   {
+    "animal": "M7",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 21.21,
+    "current": 25.3
+   },
+   {
+    "animal": "M7",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 25.52,
+    "current": 23.207
+   },
+   {
+    "animal": "M7",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 18.42,
+    "current": 15.914
+   },
+   {
+    "animal": "M7",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 17.52,
+    "current": 19.655
+   },
+   {
+    "animal": "M7",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 17.81,
+    "current": 20.404
+   },
+   {
+    "animal": "M7",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 13.88,
+    "current": 19.711
+   },
+   {
+    "animal": "M7",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 24.34,
+    "current": 22.03
+   },
+   {
+    "animal": "M7",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 16.66,
+    "current": 19.574
+   },
+   {
+    "animal": "M7",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 16.28,
+    "current": 18.931
+   },
+   {
+    "animal": "M8",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 19.2,
+    "current": 26.914
+   },
+   {
+    "animal": "M8",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 14.72,
+    "current": 21.355
+   },
+   {
+    "animal": "M8",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 24.46,
+    "current": 24.375
+   },
+   {
+    "animal": "M8",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 12.63,
+    "current": 21.152
+   },
+   {
+    "animal": "M8",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 22.89,
+    "current": 27.447
+   },
+   {
+    "animal": "M8",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 19.37,
+    "current": 23.01
+   },
+   {
+    "animal": "M8",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 12.89,
+    "current": 20.088
+   },
+   {
+    "animal": "M8",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 21.95,
+    "current": 24.747
+   },
+   {
+    "animal": "M8",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 18.9,
+    "current": 19.86
+   },
+   {
+    "animal": "M8",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 21.89,
+    "current": 26.66
+   },
+   {
+    "animal": "M8",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 20.99,
+    "current": 22.641
+   },
+   {
+    "animal": "M8",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 27.19,
+    "current": 28.542
+   },
+   {
+    "animal": "M8",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 22.04,
+    "current": 21.469
+   },
+   {
+    "animal": "M8",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 16.52,
+    "current": 20.364
+   },
+   {
+    "animal": "M8",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 23.99,
+    "current": 25.44
+   },
+   {
+    "animal": "M8",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 17.15,
+    "current": 22.963
+   },
+   {
+    "animal": "M8",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 15.63,
+    "current": 19.789
+   },
+   {
+    "animal": "M9",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 16.79,
+    "current": 18.354
+   },
+   {
+    "animal": "M9",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 14.26,
+    "current": 20.05
+   },
+   {
+    "animal": "M9",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 19.25,
+    "current": 21.032
+   },
+   {
+    "animal": "M9",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 24.93,
+    "current": 25.667
+   },
+   {
+    "animal": "M9",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 20.97,
+    "current": 20.002
+   },
+   {
+    "animal": "M9",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 13.11,
+    "current": 20.163
+   },
+   {
+    "animal": "M9",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 15.18,
+    "current": 18.469
+   },
+   {
+    "animal": "M9",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 20.66,
+    "current": 19.228
+   },
+   {
+    "animal": "M9",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 15.44,
+    "current": 17.745
+   },
+   {
+    "animal": "M9",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 22.95,
+    "current": 21.723
+   },
+   {
+    "animal": "M9",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 22.9,
+    "current": 20.72
+   },
+   {
+    "animal": "M9",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 20.66,
+    "current": 16.264
+   },
+   {
+    "animal": "M9",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 17.8,
+    "current": 19.226
+   },
+   {
+    "animal": "M9",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 23.81,
+    "current": 24.064
+   },
+   {
+    "animal": "M9",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 18.28,
+    "current": 19.281
+   },
+   {
+    "animal": "M10",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 23.88,
+    "current": 24.088
+   },
+   {
+    "animal": "M10",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 23.44,
+    "current": 22.126
+   },
+   {
+    "animal": "M10",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 23.34,
+    "current": 20.505
+   },
+   {
+    "animal": "M10",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 17.47,
+    "current": 16.764
+   },
+   {
+    "animal": "M10",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 14.48,
+    "current": 16.305
+   },
+   {
+    "animal": "M10",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 14.37,
+    "current": 19.786
+   },
+   {
+    "animal": "M10",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 24.25,
+    "current": 21.856
+   },
+   {
+    "animal": "M10",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 17.85,
+    "current": 22.662
+   },
+   {
+    "animal": "M10",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 26.71,
+    "current": 25.166
+   },
+   {
+    "animal": "M10",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 19.15,
+    "current": 20.226
+   },
+   {
+    "animal": "M10",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 17.23,
+    "current": 21.964
+   },
+   {
+    "animal": "M10",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 23.78,
+    "current": 19.441
+   },
+   {
+    "animal": "M10",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 18.74,
+    "current": 21.042
+   },
+   {
+    "animal": "M10",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 22.84,
+    "current": 20.084
+   },
+   {
+    "animal": "M10",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 9.13,
+    "current": 10.738
+   },
+   {
+    "animal": "M10",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 18.91,
+    "current": 19.257
+   },
+   {
+    "animal": "M10",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 24.58,
+    "current": 25.805
+   },
+   {
+    "animal": "M11",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 19.58,
+    "current": 21.925
+   },
+   {
+    "animal": "M11",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 21.93,
+    "current": 20.669
+   },
+   {
+    "animal": "M11",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 27.25,
+    "current": 21.141
+   },
+   {
+    "animal": "M11",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 12.94,
+    "current": 15.264
+   },
+   {
+    "animal": "M11",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 18.16,
+    "current": 19.411
+   },
+   {
+    "animal": "M11",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 19.94,
+    "current": 22.036
+   },
+   {
+    "animal": "M11",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 20.56,
+    "current": 23.455
+   },
+   {
+    "animal": "M11",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 16.31,
+    "current": 20.865
+   },
+   {
+    "animal": "M11",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 20.81,
+    "current": 23.697
+   },
+   {
+    "animal": "M11",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 15.65,
+    "current": 20.818
+   },
+   {
+    "animal": "M11",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 20.62,
+    "current": 23.883
+   },
+   {
+    "animal": "M11",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 17.09,
+    "current": 19.923
+   },
+   {
+    "animal": "M11",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 23.96,
+    "current": 21.762
+   },
+   {
+    "animal": "M11",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 21.09,
+    "current": 20.825
+   },
+   {
+    "animal": "M11",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 21.68,
+    "current": 18.127
+   },
+   {
+    "animal": "M12",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 17.94,
+    "current": 18.137
+   },
+   {
+    "animal": "M12",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 16.46,
+    "current": 20.12
+   },
+   {
+    "animal": "M12",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 14.19,
+    "current": 17.962
+   },
+   {
+    "animal": "M12",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 19.21,
+    "current": 24.143
+   },
+   {
+    "animal": "M12",
+    "slice": "S1",
+    "genotype": "KO",
+    "size": 22.04,
+    "current": 21.156
+   },
+   {
+    "animal": "M12",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 20.89,
+    "current": 24.585
+   },
+   {
+    "animal": "M12",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 21.03,
+    "current": 19.165
+   },
+   {
+    "animal": "M12",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 24.4,
+    "current": 22.702
+   },
+   {
+    "animal": "M12",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 21.68,
+    "current": 21.624
+   },
+   {
+    "animal": "M12",
+    "slice": "S2",
+    "genotype": "KO",
+    "size": 7.7,
+    "current": 12.218
+   },
+   {
+    "animal": "M12",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 18.23,
+    "current": 23.445
+   },
+   {
+    "animal": "M12",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 18.32,
+    "current": 23.527
+   },
+   {
+    "animal": "M12",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 24.02,
+    "current": 22.697
+   },
+   {
+    "animal": "M12",
+    "slice": "S3",
+    "genotype": "KO",
+    "size": 11.66,
+    "current": 18.864
+   }
+  ],
+  "reml_criterion": 821.4230875560067,
+  "animal_variance": 1.8377022827916973,
+  "slice_variance": 0.6806846457765917,
+  "residual_variance": 3.968963826141714,
+  "fixed": [
+   {
+    "term": "(Intercept)",
+    "estimate": 11.70967520492834,
+    "se": 0.9616152308473949,
+    "se_phi": 0.9592865102063162,
+    "df_satterthwaite": 50.055428443046786,
+    "df_kenward_roger": 50.23411418962814,
+    "se_kenward_roger": 0.9623006519064407,
+    "p_satterthwaite": 1.3965194631429897e-16
+   },
+   {
+    "term": "genotype: KO",
+    "estimate": -0.35222447915935645,
+    "se": 0.8808723606150907,
+    "se_phi": 0.8808457598686219,
+    "df_satterthwaite": 9.979867985851298,
+    "df_kenward_roger": 10.004458886694177,
+    "se_kenward_roger": 0.8809517435082619,
+    "p_satterthwaite": 0.6976848502365659
+   },
+   {
+    "term": "size",
+    "estimate": 0.4973216814491246,
+    "se": 0.03653056544256855,
+    "se_phi": 0.03638054042297889,
+    "df_satterthwaite": 162.28570265358883,
+    "df_kenward_roger": 163.1519843901607,
+    "se_kenward_roger": 0.036576782462145914,
+    "p_satterthwaite": 1.2192920259607102e-28
+   }
+  ]
+ }
+}
