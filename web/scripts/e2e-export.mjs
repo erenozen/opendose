@@ -852,7 +852,11 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
     const marks = [...host.querySelectorAll(".shapelayer path")].map(box)
       .filter((b) => Math.abs(b.w - 8) < 2.5 && Math.abs(b.h - 14) < 2.5);
     const points = [...host.querySelectorAll(".scatterlayer .point")].map(box);
-    const out = { zero: tick("0 M"), first: tick("−9"), marks, points };
+    // the log-dose ticks: negative numbers (a hyphen or U+2212 minus)
+    const doseTicks = [...host.querySelectorAll("text")]
+      .filter((e) => /^[-−]\d+(\.\d+)?$/.test(e.textContent.trim())).map(box);
+    const first = doseTicks.length ? doseTicks.reduce((a, b) => (b.x < a.x ? b : a)) : null;
+    const out = { zero: tick("0 M"), first, nDose: doseTicks.length, marks, points };
     host.remove();
     return out;
   }, svg);
@@ -866,8 +870,11 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
   const runs = readPdf(pdf).runs.map((r) => r.text);
   const pg = pdfGeometry(pdf).texts;
   const at = (t) => pg[runs.indexOf(t)]?.x;
+  const doseX = runs.map((t, i) => (/^[-−]\d+(\.\d+)?$/.test(t.trim()) ? pg[i]?.x : null))
+    .filter((x) => typeof x === "number");
   expect("P-104 PDF export: the 0 M tick is drawn left of the log-dose ticks",
-    runs.includes("0 M") && runs.includes("−9") && at("0 M") < at("−9"), `${at("0 M")} / ${at("−9")}`);
+    runs.includes("0 M") && doseX.length > 0 && doseX.every((x) => at("0 M") < x),
+    `${at("0 M")} / ${JSON.stringify(doseX)} / ${JSON.stringify(runs.slice(0, 40))}`);
 }
 
 // interpolated unknowns (P-22) and a curve drawn beyond the data (P-52):
