@@ -978,3 +978,21 @@ const longData = (name, names, rows, categorical) => data(name, {
   write("summary-parity.json", project("Summary data",
     [four, r4, titres, rt, rm, rr, rawXY, rawR, sumXY, sumR], { selected: r4.id }));
 }
+
+// art-anova.json (P-85; engine/tests/reference/art_anova.py): ARTool's
+// Higgins1990Table5 (dry matter, 4 moisture levels x 4 fertilizers, the 3
+// trays of each moisture level as replicates) under the aligned rank
+// transform with ART-C contrasts of Moisture, and the same table under the
+// ordinary two-way ANOVA (the e2e switches it to the aligned rank transform)
+{
+  n = 0;
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/art_anova.json"), "utf8"));
+  const higgins = data("Higgins 1990 Table 5", table("grouped", { rowTitles: ref.moisture, yTitle: "Dry matter",
+    datasets: ref.fertilizer.map((f) => ({ name: f, subTitles: ["", "", ""],
+      rows: ref.moisture.map((m) => ref.cells[m][f].map(String)) })) }));
+  const ra = results(higgins, "grouped_two_way", { design: "none", rowFactor: "Moisture", colFactor: "Fertilizer",
+    method: "art", artContrasts: "row" }, "Aligned rank transform of Higgins 1990 Table 5");
+  const ro = results(higgins, "grouped_two_way", { design: "none", rowFactor: "Moisture",
+    colFactor: "Fertilizer" }, "Two-way ANOVA of Higgins 1990 Table 5");
+  write("art-anova.json", project("Aligned rank transform", [higgins, ra, ro], { selected: ra.id }));
+}

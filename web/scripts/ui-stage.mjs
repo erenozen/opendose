@@ -1355,6 +1355,22 @@ const scenes = [
     await pick.evaluate((el) => el.scrollIntoView({ block: "center" }));
     await settle(s, 800);
   } },
+  // P-85: the aligned rank transform of Higgins 1990 Table 5, ART-C of Moisture
+  { name: "results-art", setup: async (s) => {
+    await fixture(s, "art-anova.json", { live: true });
+    const card = s.page.locator(".pane-results .art-results").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-85: the two-way controls with the aligned rank transform chosen
+  { name: "controls-art", setup: async (s) => {
+    await fixture(s, "art-anova.json", { live: true });
+    const controls = s.page.locator(".pane-controls").first();
+    const sel = await reveal(s, controls.getByLabel("ART-C contrasts"));
+    await sel.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
   // P-94: the standard curve's Precision report (4 plates on 2 days)
   { name: "results-precision-report", setup: async (s) => {
     await fixture(s, "precision.json", { live: true });

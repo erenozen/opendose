@@ -43,6 +43,7 @@ from . import auc, cox, quantal
 from . import rangeflags, residuals, survival_extras
 from . import competing_risks, parametric_survival
 from . import logscale, rm_posthoc, twoway_contrasts
+from . import art
 from . import compare_models, compare_params, flow, qpcr_refs, relpotency
 from . import potency
 
@@ -1652,6 +1653,54 @@ def _two_way_anova(data, options):
             row_names=options.get("row_names") or [
                 f"Row {i + 1}" for i in range(len(cells))],
             col_names=[nm or f"Column {j + 1}" for j, nm in enumerate(names)]))
+    if warnings:
+        result["warnings"] = warnings
+    return result
+
+
+def _two_way_art(data, options):
+    """Nonparametric two-way ANOVA by the aligned rank transform (P-85,
+    opendose.art; Wobbrock et al. 2011). Payload as two_way_anova
+    (datasets = columns, ys[row] = replicates, None = missing). options:
+    row_factor, col_factor, row_names, contrasts ("row" | "col" |
+    "cells", optional: ART-C, Elkin et al. 2021), contrasts_method
+    ("tukey" | "holm" | "bonferroni" | "none"), ci_level. Every cell
+    needs 2 or more values; an empty cell is refused with a message.
+    Result: {"analysis": "two_way_art", "sources": {row_factor,
+    col_factor, "interaction": {F, df, df_residual, p, ss, ms}}, "n",
+    "rows", "cols", "cell_n", "balanced", "note"?, "alignment_check",
+    "cell_medians", "dataset_names", "row_names", "factor_names",
+    "source", "log_note", "art_contrasts"?}."""
+    n_rows = max(len(ds["ys"]) for ds in data["datasets"])
+    warnings = _nan_warnings(data)
+    cells = []
+    for r in range(n_rows):
+        row = []
+        for ds in data["datasets"]:
+            cell = ds["ys"][r] if r < len(ds["ys"]) else []
+            row.append([None if _is_missing(v) else v for v in (cell or [])])
+        cells.append(row)
+    names = [ds.get("name", "") or f"Column {j + 1}"
+             for j, ds in enumerate(data["datasets"])]
+    row_names = options.get("row_names") or [
+        f"Row {i + 1}" for i in range(n_rows)]
+    rf = options.get("row_factor", "Rows")
+    cf = options.get("col_factor", "Columns")
+    result = art.art_two_way(cells, row_factor=rf, col_factor=cf)
+
+    def _median(vals):
+        v = sorted(float(x) for x in vals if x is not None)
+        return (v[len(v) // 2] if len(v) % 2 else
+                (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2) if v else None
+    result.update(dataset_names=names, row_names=list(row_names),
+                  factor_names=[rf, cf],
+                  cell_medians=[[_median(c) for c in row] for row in cells])
+    which = options.get("contrasts")
+    if which:
+        result["art_contrasts"] = art.art_contrasts(
+            cells, which, method=options.get("contrasts_method", "tukey"),
+            row_names=row_names, col_names=names,
+            ci_level=options.get("ci_level", 0.95))
     if warnings:
         result["warnings"] = warnings
     return result
@@ -3484,6 +3533,7 @@ _HANDLERS = {
     "correlation": _correlation,
     "contingency": _contingency,
     "two_way_anova": _two_way_anova,
+    "two_way_art": _two_way_art,
     "summary_convert": _summary_convert,
     "ttest_summary": _ttest_summary,
     "anova_summary": _anova_summary,

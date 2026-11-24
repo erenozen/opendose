@@ -117,6 +117,8 @@ CASES = {
     "two_way": ("two_way_anova", GROUPED, {"row_factor": "Day", "col_factor": "Treatment",
                                            "row_names": GROUPED["row_titles"], "comparisons": "sidak",
                                            "direction": "columns_within_rows"}),
+    "two_way_art": ("two_way_art", GROUPED, {"row_factor": "Day", "col_factor": "Treatment",
+                                             "row_names": GROUPED["row_titles"], "contrasts": "col"}),
     "three_way": ("three_way_anova", THREE, {"factor_names": ["Sex", "Dose", "Time"],
                                              "b_level_names": ["Low", "High"],
                                              "c_level_names": ["1 h", "4 h"]}),

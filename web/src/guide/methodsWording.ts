@@ -37,6 +37,9 @@ export const METHODS: Record<string, (p?: MethodsParams) => string> = {
   two_way_mixed: () => "A two-way repeated-measures analysis fitted as a mixed-effects model was "
     + "chosen because the design has two factors, the same subjects were measured repeatedly and "
     + "some values were missing; the mixed model keeps the subjects with a missing value.",
+  two_way_art: () => "A nonparametric two-way ANOVA by the aligned rank transform (Wobbrock et al. "
+    + "2011) was chosen because the design has two grouping factors with independent values that "
+    + "were not considered Gaussian; contrasts used the ART-C procedure (Elkin et al. 2021).",
   two_way: () => "Two-way ANOVA was chosen because the design has two grouping factors with "
     + "independent values; it tests each factor and their interaction (whether the effect of "
     + "one factor depends on the level of the other).",
@@ -175,6 +178,8 @@ export const ALTERNATIVE_METHODS: Record<string, string> = {
     + "than a Poisson distribution allows.",
   "Cox regression": "Cox regression was chosen for hazard ratios with confidence intervals "
     + "adjusted for covariates, or for a continuous predictor instead of groups.",
+  "Two-way ANOVA": "Ordinary two-way ANOVA was chosen; the values were taken to be roughly "
+    + "Gaussian (or Gaussian after a log transform).",
 };
 
 /** The methods wording of an alternative the chooser opens. */
@@ -203,6 +208,7 @@ const LEGACY: Legacy[] = [
   [/^Two factors with the same subjects measured repeatedly: /,
     (_m, test) => METHODS[/mixed-effects/.test(test) ? "two_way_mixed" : "two_way_rm"]()],
   [/^Two grouping factors \(for example genotype and treatment\) with independent values: /, m0("two_way")],
+  [/^Two grouping factors with independent values that are not Gaussian: the aligned /, m0("two_way_art")],
   [/^Values expressed relative to a control \(fold change, % of control\) are ratios: .* differs from (.+?), and the logs /,
     (m) => METHODS.one_sample_log({ hv: m[1] })],
   [/^The values do not look Gaussian, so the median is compared with (.+?) using ranks /,

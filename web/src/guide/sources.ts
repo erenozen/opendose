@@ -327,6 +327,15 @@ export const SRC = {
   // reference gene(s), relative to the calibrator group.
   livakSchmittgen2001: { label: "Livak & Schmittgen 2001, Analysis of relative gene expression data using real-time quantitative PCR and the 2^-ΔΔCT method, Methods 25:402",
     url: "https://doi.org/10.1006/meth.2001.1262" },
+  // P-85: align each effect, rank, factorial ANOVA on the ranks; the
+  // nonparametric two-way ANOVA with the interaction (checked 2026-11-24).
+  wobbrock2011: { label: "Wobbrock, Findlater, Gergle & Higgins 2011, The aligned rank transform for "
+    + "nonparametric factorial analyses using only ANOVA procedures, Proc. CHI 2011:143-146",
+  url: "https://doi.org/10.1145/1978942.1978963" },
+  // ART-C: contrasts after the aligned rank transform.
+  elkin2021: { label: "Elkin, Kay, Higgins & Wobbrock 2021, An aligned rank transform procedure for "
+    + "multifactor contrast tests, Proc. UIST 2021:754-768",
+  url: "https://doi.org/10.1145/3472749.3474784" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

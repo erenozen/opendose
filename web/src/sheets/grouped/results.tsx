@@ -21,6 +21,7 @@ import SphericityTable from "../common/SphericityTable";
 import { ddfName, ddfOf } from "../common/ddf";
 import "./grouped.css";
 import { Button } from "../../components/ui";
+import { ArtResults } from "./artPanels";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -214,6 +215,7 @@ export function TwoWayResults({ result, options, table }: ResultsProps<TwoWayOpt
   if (result.analysis === "mixed_rm_two_way") {
     return <MixedTwoWay result={result} factors={factors} />;
   }
+  if (result.analysis === "two_way_art") return <ArtResults result={result} factors={factors} />;
   if (result.analysis === "rm_two_way_mixed" || result.analysis === "rm_two_way_both") {
     const label: Record<string, string> = {
       interaction: `${factors[0]} × ${factors[1]}`,

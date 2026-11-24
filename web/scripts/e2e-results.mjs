@@ -1562,6 +1562,57 @@ const analyzeWith = async (re) => {
     + "(difference, t, df, F test, separate fits)", raw.every((r, i) => r && r === sum[i]), `${raw} || ${sum}`);
 }
 
+// --- P-85: aligned rank transform two-way ANOVA ----------------------------
+{
+  // engine/tests/reference/art_anova.py: ARTool's Higgins1990Table5; an own
+  // align-and-rank (ARTool's rules) fed to statsmodels anova_lm(typ=3);
+  // the same ranks reproduce ARTool's published split-plot F values;
+  // ART-C from statsmodels OLS marginal means + studentized_range
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/art_anova.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  const pTxt = (p) => (p < 0.0001 ? "< 0.0001" : p < 0.001 ? p.toExponential(3) : sig4(p));
+  const open = async (name) => page.getByRole("treeitem", { name, exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const rowsOf = async (sel) => (await page.locator(sel).first().locator("tbody tr").allInnerTexts()
+    .catch(() => [])).map((t) => t.replace(/\s+/g, " ").trim());
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "art-anova.json"));
+  await liveResults(/Two-way ANOVA on aligned ranks/, 180000);
+  const anova = await rowsOf(".pane-results .art-anova");
+  const f = REF.fixed;
+  const want = [["Interaction (Moisture × Fertilizer)", f["Moisture:Fertilizer"]], ["Moisture", f.Moisture],
+    ["Fertilizer", f.Fertilizer]].map(([lab, s]) => `${lab} F(${s.df}, ${s.df_res}) = ${sig4(s.F)} ${pTxt(s.p)}`);
+  expect("P-85 acceptance: Higgins1990Table5 as a grouped table, interaction and main effects F and P as the "
+    + "reference ART (statsmodels on ARTool's alignment)", want.every((w, i) => anova[i]?.startsWith(w)),
+  `${anova.join(" | ")} vs ${want.join(" | ")}`);
+  const con = await rowsOf(".pane-results .art-contrasts");
+  const c0 = REF.artc_moisture[0];
+  expect("P-85 ART-C contrasts of Moisture (Tukey) as statsmodels marginal means of the aligned ranks",
+    con.length === 6 && con[0].startsWith(`${c0.pair} ${sig4(c0.difference)} `)
+      && con[0].includes(` ${pTxt(c0.p_tukey)} `), con[0]);
+  expect("P-85 the log-scale route is named next to the results, with its source",
+    /a two-way ANOVA on the logarithms is often the better route.*Bland & Altman 1996/
+      .test(await page.locator(".pane-results .art-log-note").first().innerText().catch(() => "")));
+  // the ordinary two-way ANOVA, switched to the aligned rank transform in its controls
+  await open("Two-way ANOVA of Higgins 1990 Table 5");
+  await liveResults(/Ordinary, /, 120000);
+  await page.locator(".pane-controls").getByLabel("Method", { exact: true })
+    .selectOption("art");
+  await liveResults(/Two-way ANOVA on aligned ranks/, 120000);
+  const switched = await rowsOf(".pane-results .art-anova");
+  expect("P-85 the Method choice in the two-way controls runs the aligned rank transform",
+    switched[0]?.startsWith(want[0]), switched[0]);
+  await page.locator(".pane-controls").getByLabel("ART-C contrasts").selectOption("cells");
+  await page.waitForFunction(() => document.querySelectorAll(".pane-results .art-contrasts tbody tr").length === 120,
+    null, { timeout: 60000 }).catch(() => {});
+  const cells = await rowsOf(".pane-results .art-contrasts");
+  const cc = REF.artc_cells_first[0];
+  expect("P-85 ART-C of every cell: 120 pairs, Tukey over 16 cell means (statsmodels)",
+    cells.length === 120 && cells[0].startsWith(`${cc.pair} ${sig4(cc.difference)} `)
+      && cells[0].includes(` ${pTxt(cc.p_tukey)} `), `${cells.length}: ${cells[0]}`);
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));
