@@ -4595,7 +4595,14 @@ Also tested: without separation the Firth estimate lies between 0 and
 the ML one; Wald CIs; row order; the one-continuous-predictor X at 50%;
 refusals other than separation carry no `error_kind`.
 
-Independent check: pending (the lead runs it on this branch).
+Independent check (2026-11-24, by the lead, own numpy/scipy code): OLS of
+follow-up on group and baseline gives the adjusted difference -5.663357
+(SE 0.506327, 95% CI -6.731614 to -4.595100 on 17 df), adjusted means at
+the mean baseline 51.681679 and 46.018321, and the equal-slopes F(1, 16)
+0.348089, P 0.563437; an own binomial maximum-likelihood fit of the
+acceptance dishes with a profile-likelihood CI gives odds ratio 3.195907
+(2.127097 to 4.880865) and Pearson dispersion 0.027229 on 2 df. All
+equal the engine.
 """
 
 
