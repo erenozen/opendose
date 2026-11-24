@@ -7,6 +7,7 @@ import type { IdFactory } from "../project/ids.ts";
 import { projectFromJson } from "../project/persist.ts";
 import { parseSavedWith, type SavedWith } from "../project/reproduce.ts";
 import type { Project, ProjectPrefs } from "../project/types.ts";
+import { parseExercise, type Exercise } from "./exercise.ts";
 import { readFragment, sharePayload } from "./link.ts";
 import { protectedPayload } from "./protect.ts";
 
@@ -22,6 +23,8 @@ export interface ShareBoot {
   savedWith?: SavedWith | null;
   /** Why a share link in the address could not be opened ("" = fine). */
   error: string;
+  /** An exercise for students (P-126), absent in every other link. */
+  exercise?: Exercise | null;
 }
 
 export function locationHash(): string {
@@ -48,12 +51,13 @@ export function readShareBoot(prefs: ProjectPrefs, ids: IdFactory, hash = locati
     } else {
       raw = readFragment(hash);
     }
-    const r = raw as { selected?: unknown; savedWith?: unknown } | null;
+    const r = raw as { selected?: unknown; savedWith?: unknown; exercise?: unknown } | null;
     const sel = r?.selected;
     return {
       project: projectFromJson(raw, { prefs, ids }), error: "",
       selected: typeof sel === "string" ? sel : null,
       savedWith: parseSavedWith(r?.savedWith),
+      exercise: parseExercise(r?.exercise),
     };
   } catch (e) {
     return { project: null, error: e instanceof Error ? e.message : String(e) };

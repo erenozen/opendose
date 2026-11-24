@@ -21,7 +21,7 @@
 import { deflateSync, inflateSync, strFromU8, strToU8 } from "fflate";
 import type { SerializeOptions } from "../project/persist.ts";
 import type { Project } from "../project/types.ts";
-import { fromBase64Url, SHARE_LIMIT, shareJson, toBase64Url } from "./link.ts";
+import { bareOptions, fromBase64Url, SHARE_LIMIT, shareJson, toBase64Url } from "./link.ts";
 
 export const PROTECTED_KEY = "e";
 const VERSION = 1;
@@ -121,7 +121,7 @@ export async function makeProtectedFragment(p: Project, password: string,
   results?: ReadonlyMap<string, unknown>, limit = SHARE_LIMIT, opts: SerializeOptions = {},
   iterations = PBKDF2_ITERATIONS): Promise<ProtectedOutcome> {
   const attempt = async (r?: ReadonlyMap<string, unknown>) =>
-    `#${PROTECTED_KEY}=${await protectJson(shareJson(p, r, r ? opts : { selected: opts.selected }),
+    `#${PROTECTED_KEY}=${await protectJson(shareJson(p, r, r ? opts : bareOptions(opts)),
       password, iterations)}`;
   if (results?.size) {
     const full = await attempt(results);

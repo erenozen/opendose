@@ -21,6 +21,8 @@ import {
 import { designFromTable, tableWording } from "./tablePrefill";
 import { withChoice } from "./choice";
 import { alternativeMethods } from "./methodsWording";
+import { exerciseWithheld, useExercise } from "../share/exerciseStore";
+import { useExerciseCommit } from "../share/useExerciseCommit";
 import { groupChecks } from "./stats";
 
 export function Choice<T extends string>({ legend, value, options, onChange, hint }: {
@@ -53,11 +55,16 @@ const YES_NO: ["no" | "yes", string][] = [["no", "No"], ["yes", "Yes"]];
 export default function WhichTest({ onClose }: { onClose: () => void }) {
   const { project, selectedId, apply, select, engineReady } = useProject();
   const data = useMemo(() => dataSheetOf(project, selectedId), [project, selectedId]);
+  // An exercise link (P-126): the student commits answers, which reveals
+  // the results; the recommendation shows with them, not before.
+  const exercise = exerciseWithheld(useExercise());
+  const commit = useExerciseCommit();
   // Pre-filled from the table (groups, layout, replicates) and from the
-  // analysis on screen (a paired t test says the rows are matched).
+  // analysis on screen (a paired t test says the rows are matched), but
+  // not from the analysis an exercise withholds.
   const [d, setD] = useState<Design>(() => {
     const s = findSheet(project, selectedId);
-    return designFromTable(data?.table, s?.kind === "results" ? s.options : undefined);
+    return designFromTable(data?.table, s?.kind === "results" && !exercise ? s.options : undefined);
   });
   const words = useMemo(() => tableWording(data?.table), [data]);
   const set = (patch: Partial<Design>) => setD((x) => ({ ...x, ...patch }));
@@ -123,6 +130,11 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
   };
   // saved in the methods wording (third person), not the words above
   const open = () => openTarget(rec.target, rec.test, rec.methods);
+  const commitAnswers = () => {
+    commit({ test: rec.test, reason: rec.reason, analysis: rec.target?.analysisId ?? "",
+      options: rec.target?.options ?? {} });
+    onClose();
+  };
   /** An alternative OpenDose can open (e.g. Cox regression), as a button. */
   const altButton = (a: Alternative) => {
     if (!a.target) return null;
@@ -137,8 +149,13 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
 
   return (
     <Modal title="Help me choose a test" className="modal-wide which-test" onClose={onClose}
-      onSubmit={open}
-      actions={
+      onSubmit={exercise ? commitAnswers : open}
+      actions={exercise ? (
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="submit" variant="primary">Commit my answers</Button>
+        </>
+      ) : (
         <>
           <Button onClick={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" disabled={!rec.target}>
@@ -146,7 +163,7 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
               : targetType ? `Create a ${targetType.label} table` : "Open"}
           </Button>
         </>
-      }>
+      )}>
       <p className="modal-text">
         Answer in terms of your experiment; the recommendation updates as you go.
         {words.pairing || words.groupsHint ? " The questions use your own rows and columns." : ""}
@@ -154,6 +171,13 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
       </p>
       <div className="wt-grid">
         <DesignQuestions d={d} set={set} words={words} hasChecks={!!k} />
+        {exercise ? (
+          <section className="wt-result" aria-label="Recommendation">
+            <p className="wt-eyebrow">Exercise</p>
+            <p>Answer the questions about this experiment, then commit your answers: the test
+              they point to and the results of the shared analysis appear together.</p>
+          </section>
+        ) : (<>
         {/* Spoken on each answer: the test only, not the whole panel. */}
         <p className="sr-only" role="status">Recommended: {rec.test}</p>
         <section className="wt-result" aria-label="Recommendation">
@@ -209,6 +233,7 @@ export default function WhichTest({ onClose }: { onClose: () => void }) {
             ))}
           </p>
         </section>
+        </>)}
       </div>
     </Modal>
   );

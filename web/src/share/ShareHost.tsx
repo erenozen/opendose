@@ -7,7 +7,7 @@ import { useProject } from "../app/context";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
 import {
-  Banner, Button, Field, Input, notify, SwapLabel, useLabelSwap,
+  Banner, Button, Field, Input, notify, SwapLabel, Textarea, useLabelSwap,
 } from "../components/ui";
 import { copyText, saveBlob } from "../export/download";
 import { findSheet } from "../project/ops";
@@ -22,6 +22,8 @@ import { usePptxExport } from "../export/usePptxExport";
 import type { PptxScope } from "../export/pptx";
 import { SHARE_EVENT, type RecipeImportRequest, type ShareRequest, type ValidationFor } from "./events";
 import { familyProject, kb, makeFragment, SHARE_LIMIT } from "./link";
+import { cleanTask, MAX_TASK_LENGTH, unmaskProject, type Exercise } from "./exercise";
+import { exerciseState, exerciseWithheld, useExercise } from "./exerciseStore";
 import {
   makeProtectedFragment, MIN_PASSWORD, suggestPassword, type ProtectedOutcome,
 } from "./protect";
@@ -78,6 +80,7 @@ export default function ShareHost() {
   const live = useRef({ api, ui });
   useEffect(() => { live.current = { api, ui }; });
   const pptx = usePptxExport();
+  const exWithheld = exerciseWithheld(useExercise());
 
   // Data tables as a .pzfx file (all of them, or one table's).
   const savePzfx = useCallback(async (dataId?: string) => {
@@ -133,7 +136,9 @@ export default function ShareHost() {
 
   const makeCopy = () => {
     // A new object, so the copy counts as a change and autosaves at once.
-    const p = { ...api.store.project };
+    // An exercise's analyses get their names back: the copy is the
+    // instructor's project, results shown (P-126).
+    const p = { ...unmaskProject(api.store.project, exerciseState().names) };
     api.replace(p, api.selectedId);
     ui.notify("Copied into this browser: edits now autosave here. The link stays as it was.",
       { tone: "success" });
@@ -153,6 +158,7 @@ export default function ShareHost() {
         <Banner.Detail>
           “{api.project.title}” opened from a link and is read-only; nothing
           from it is stored in this browser until you copy it.
+          {exWithheld && " A copy shows the results this exercise withholds."}
         </Banner.Detail>
         <Banner.Actions>
           <Button variant="primary" onClick={makeCopy}>Make a copy</Button>
@@ -229,15 +235,26 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
   const [sealError, setSealError] = useState("");
   // With the results goes the software that computed them, so a build
   // that opens the link later recomputes and compares them (P-58).
+  // An exercise for students (P-126): a task, and what stays withheld
+  // until they commit answers in Help me choose.
+  const [asExercise, setAsExercise] = useState(false);
+  const [task, setTask] = useState("");
+  const [hideTest, setHideTest] = useState(true);
+  const taskText = cleanTask(task);
+  const taskProblem = asExercise && !taskText ? "Enter the task the student sees" : null;
+  const exercise = useMemo((): Exercise | null => (asExercise && taskText
+    ? { task: taskText, hideTest } : null), [asExercise, taskText, hideTest]);
   const shareOpts = useMemo(() => ({ keys: results.fingerprints(), selected: selectedId,
-    savedWith: currentSavedWith() }), [results, selectedId]);
+    savedWith: currentSavedWith(), ...(exercise ? { exercise } : {}) }),
+  [results, selectedId, exercise]);
   const current = useMemo(() => makeFragment(withResolvedOptions(target),
     withResults ? results.snapshot() : undefined, undefined, shareOpts),
   [target, withResults, results, shareOpts]);
 
   const base = `${location.origin}${location.pathname}${location.search}`;
   const outcome = protect ? sealed : current;
-  const url = outcome?.ok ? `${base}${outcome.fragment}` : "";
+  // no link until an exercise has its task (it would open without one)
+  const url = outcome?.ok && !taskProblem ? `${base}${outcome.fragment}` : "";
   const what = family ? `“${family.title}”` : "this project";
   const tooShort = protect && password.length < MIN_PASSWORD;
   // Any change makes a new link: the old one no longer matches the dialog.
@@ -274,7 +291,8 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
 
   const tooLarge = !current.ok || (protect && sealed?.ok === false);
   const needsSeal = protect && !sealed;
-  const submit = tooLarge ? download : needsSeal ? () => { void seal(); } : () => { void copy(); };
+  const submit = tooLarge ? download : taskProblem ? () => setAttempts((n) => n + 1)
+    : needsSeal ? () => { void seal(); } : () => { void copy(); };
 
   return (
     <Modal title={family ? `Share “${family.title}”` : "Share this project"}
@@ -352,6 +370,31 @@ function ShareDialog({ dataId, onClose }: { dataId?: string; onClose: () => void
               onChange={(e) => { setWithResults(e.target.checked); reset(); }} />
             Include the computed results (the link opens with numbers shown at once)
           </label>
+          <label className="field-check">
+            <input type="checkbox" checked={asExercise}
+              onChange={(e) => { setAsExercise(e.target.checked); reset(); }} />
+            Make it an exercise: withhold the results until the student commits answers in
+            Help me choose
+          </label>
+          {asExercise && (
+            <div className="share-exercise">
+              <Field label="Task for the student" error={taskProblem} submitCount={attempts}
+                description="Shown in place of the results, with Help me choose.">
+                <Textarea value={task} rows={3} maxLength={MAX_TASK_LENGTH}
+                  onChange={(e) => { setTask(e.target.value); reset(); }} />
+              </Field>
+              <label className="field-check">
+                <input type="checkbox" checked={hideTest}
+                  onChange={(e) => { setHideTest(e.target.checked); reset(); }} />
+                Also withhold which test was run (analysis names, settings and methods)
+              </label>
+              <p className="share-warning" role="note">
+                <strong>Withheld in the app only.</strong> The answer travels inside the link:
+                anyone who makes a copy, or reads what the link holds, sees the results. Use
+                exercise links for practice, not for marked tests.
+              </p>
+            </div>
+          )}
           <p className="field-note" role="status">
             {outcome?.ok ? kb(outcome.length) : `About ${kb(current.ok ? current.length : 0)}`}
             {withResults && outcome?.ok && !outcome.withResults

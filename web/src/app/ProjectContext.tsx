@@ -18,6 +18,8 @@ import { setDisplayDigits } from "../types";
 import { setReportPrefs } from "../report/pformat";
 import { reportPrefsOf } from "../report/prefs";
 import { clearShareLink, readShareBoot } from "../share/boot";
+import { maskProject } from "../share/exercise";
+import { endExercise, startExercise } from "../share/exerciseStore";
 import { notify } from "../components/ui/Toast.store";
 import { ResultsCache } from "./analysis";
 import { applyTheme, watchSystemScheme } from "./theme";
@@ -37,8 +39,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // compared, as for a project file (P-58; the strip shows the outcome).
   const [shareBoot] = useState(() => {
     const b = readShareBoot(projectPrefs(loadPrefs()), newId);
-    return b.project ? { ...b, project: prepareReproduceCheckFor(b.savedWith ?? null, b.project,
-      b.project.title, "link") } : b;
+    if (!b.project) return b;
+    let project = prepareReproduceCheckFor(b.savedWith ?? null, b.project, b.project.title, "link");
+    // An exercise link (P-126): the results stay withheld until the
+    // student commits answers in Help me choose; with the test withheld,
+    // the analyses go by neutral names until then.
+    if (b.exercise) {
+      const masked = maskProject(project, b.exercise);
+      project = masked.project;
+      startExercise(b.exercise, masked.names);
+    }
+    return { ...b, project };
   });
   const [store] = useState(() => new ProjectStore(
     shareBoot.project ?? sampleProject(projectPrefs(loadPrefs()), newId)));
@@ -143,7 +154,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     results.prime(p.sheets.filter((s): s is ResultsSheet => s.kind === "results"));
     readOnlyRef.current = !!opts.readOnly;
     setReadOnly(!!opts.readOnly);
-    if (!opts.readOnly) clearShareLink();
+    if (!opts.readOnly) { clearShareLink(); endExercise(); }
     store.reset(p);
     switchedRef.current = true;
     setActiveRes({});

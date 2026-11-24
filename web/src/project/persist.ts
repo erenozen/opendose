@@ -45,6 +45,9 @@ export interface SerializeOptions {
   /** The software saving the file (project/reproduce.ts SavedWith): a
    *  later version that opens it recomputes and compares the results. */
   savedWith?: unknown;
+  /** Share links only: an exercise for students (share/exercise.ts,
+   *  P-126). Project files never carry it. */
+  exercise?: unknown;
 }
 
 /** JSON text of a project. `results` (sheet id -> last computed result)
@@ -74,6 +77,7 @@ export function serializeProject(p: Project,
     ...(p.groupColors?.length ? { groupColors: p.groupColors } : {}),
     ...(p.reproductions?.length ? { reproductions: p.reproductions } : {}),
     ...(selected ? { selected } : {}),
+    ...(opts.exercise ? { exercise: opts.exercise } : {}),
     sheets,
   }, null, opts.compact ? undefined : 2);
 }

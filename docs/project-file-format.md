@@ -56,6 +56,15 @@ it encrypted. The autosave in your browser keeps the same JSON too. Both
 record `savedWith`, so opening either in a later build checks the saved
 results the way opening a file does.
 
+An exercise link for teaching adds one top-level key, `exercise`: the
+`task` the student reads and `hideTest` (whether the analyses' names,
+settings and methods are withheld too). The project opens with its results
+withheld until the student commits answers in Help me choose. The answer
+is in the link all the same: the results are withheld in the app only, and
+a build that does not know the key opens the link with everything shown.
+Links without the key decode exactly as before; project files and the
+autosave never carry it.
+
 ## How the schema is made and checked
 
 The schema is generated from the TypeScript model

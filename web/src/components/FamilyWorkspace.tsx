@@ -43,6 +43,8 @@ import ReportCard from "../report/ReportCard";
 import StatsMethodsCard from "../report/StatsMethodsCard";
 import ExclusionsCard from "../report/ExclusionsCard";
 import LeaveOutDialog from "../report/LeaveOutDialog";
+import { ExerciseOutcomeBanner, ExerciseWithheld } from "../share/ExercisePanes";
+import { exerciseWithheld, testWithheld, useExercise } from "../share/exerciseStore";
 import NotesStrip from "./NotesStrip";
 import { ResultsEmptyLinks } from "./ResultsLinks";
 import ResultsAnswer from "./ResultsAnswer";
@@ -68,6 +70,10 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
   const graph = api.activeGraph(data.id);
   const aDef = resSheet ? analysisDef(data.table.type, resSheet.analysis) : undefined;
 
+  // An exercise link (P-126): results (and maybe the test) withheld.
+  const exercise = useExercise();
+  const withheld = exerciseWithheld(exercise);
+  const testHidden = testWithheld(exercise);
   // What the analysis sees: values left out of it only (P-68) excluded;
   // the table itself when it leaves none out.
   const leftOut = resSheet?.leftOut;
@@ -164,7 +170,17 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
           <>
             <HSplitter />
             <div className="pane pane-controls">
-              {resSheet && Controls ? (
+              {resSheet && Controls && testHidden ? (
+                <div className="controls">
+                  <section>
+                    <h3>Settings withheld</h3>
+                    <p className="hint-block">
+                      This exercise withholds which test the analysis runs: its settings
+                      appear with the results.
+                    </p>
+                  </section>
+                </div>
+              ) : resSheet && Controls ? (
                 <>
                   {resSheet.frozen && (
                     <FrozenNote what="results sheet"
@@ -216,9 +232,13 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
         <EngineBootBanner engine={engine} ready={engineReady} live={resStatus.live}
           hasResult={result != null && !(engineError && (result as { error?: unknown }).error)}
           fitted={data.table.type === "xy"} onRetry={bootEngine} />
+        {/* An exercise link (P-126): the task in place of the results
+            until the student commits answers in Help me choose. */}
+        {withheld && resSheet && Results
+          ? <><ExerciseWithheld /><HSplitter /></> : <ExerciseOutcomeBanner />}
         {/* The answer first (DECISIONS 3): the key figures, the plain
             reading and the Checks row, above the graph and the table. */}
-        {resSheet && Results && (
+        {resSheet && Results && !withheld && (
           <>
             <ResultsAnswer sheet={resSheet} data={answerData} result={result} options={options}
               status={resStatus} readOnly={readOnly} />
@@ -229,13 +249,13 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
           <>
             <div className={`pane pane-plot${reveal}`}>
               <GraphCard graph={graph} data={graphData}
-                result={graph.resultsId === resSheet?.id ? result : other.result}
+                result={withheld ? null : graph.resultsId === resSheet?.id ? result : other.result}
                 options={graph.resultsId === resSheet?.id ? options : other.options} />
             </div>
             <HSplitter />
           </>
         )}
-        {resSheet && Results && (
+        {resSheet && Results && !withheld && (
           <div className={`pane pane-results${reveal}`}
             data-live={resStatus.live ? "true" : "false"}
             aria-busy={resStatus.pending ? true : undefined}>
@@ -267,7 +287,7 @@ export default function FamilyWorkspace({ data }: { data: DataSheet }) {
             <ReportCard sheet={resSheet} table={settledATable} options={options} result={result} />
           </div>
         )}
-        {resSheet && Methods && (
+        {resSheet && Methods && !withheld && (
           <>
             <HSplitter />
             <div className="pane pane-methods">

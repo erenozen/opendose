@@ -2740,3 +2740,21 @@ and reason, and the results with it put back sit beside them; the original
 still shows `t=-5.596, df=10`; excluding the same cell in the table then
 gives the original exactly the copy's results table. A click on a point of
 the example dose-response graph opens the same dialog for that row.
+
+### P-126 Exercise links for teaching
+
+No computation: an exercise link is an ordinary share link with a
+top-level `exercise` key (the task, and whether the test is withheld), and
+the results it withholds are the engine's results of the shared project,
+shown unchanged once the student commits answers in Help me choose. The
+link holds the answer (the Share dialog says so). Unit tests
+(`share/__tests__/exercise.test.ts`): a link saved by main before the key
+existed decodes to the same project with no exercise, and a link made now
+without one is byte for byte the same text; the exercise survives a link
+too large for its cached results and a password-protected link; project
+files never carry it. e2e-share drives the acceptance test on the "Two-group
+t test" template: the student's page shows the task and the data, no
+result, P or test name (the analysis is "Analysis 1", its settings
+withheld); after Commit my answers the results show `t=-5.596, df=10`
+(the scipy reference of P-68) and a banner names what the answers point
+to and the analysis the link holds.

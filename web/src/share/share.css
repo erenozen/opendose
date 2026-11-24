@@ -143,6 +143,20 @@ border: 1px solid var(--line);
 .share-password-row > .btn { margin-top: calc(var(--text-body-s) * var(--leading-body) + var(--space-4)); }
 .share-password-row .field { flex: 1 1 auto; min-width: 0; }
 
+/* Exercise links (P-126): the dialog's options, the task in place of the
+   withheld results (ExercisePanes.tsx). */
+.share-exercise { display: flex; flex-direction: column; gap: var(--space-8); }
+/* the task is prose: the interface font, not the browser's monospace */
+.share-exercise textarea {
+  font-family: inherit; font-size: var(--text-body-s); line-height: var(--leading-body); resize: vertical;
+}
+.exercise-card { display: flex; flex-direction: column; gap: var(--space-8); max-width: 65ch; }
+.exercise-card h3 { margin: 0; font-size: var(--text-lead); font-weight: var(--weight-semibold); }
+.exercise-card p { margin: 0; line-height: var(--leading-prose); }
+.exercise-task { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); }
+.exercise-note { color: var(--ink-2); font-size: var(--text-body-s); }
+.exercise-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+
 /* "Your data and privacy" (PrivacyPage.tsx) */
 .privacy-page { width: min(720px, calc(100vw - 32px)); }
 .privacy-page .modal-body { max-height: calc(100dvh - 48px); overflow: auto; }
