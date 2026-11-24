@@ -807,6 +807,71 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   await hist.getByRole("button", { name: "Close" }).click();
 }
 
+// --- P-78 run a family on many files. The plan's acceptance test: the
+// IC50 template on 5 plate files, one malformed: 4 families and a summary
+// table of 4 IC50s, the failed file named with its error. The IC50s
+// against scipy's curve_fit of the same files (engine/tests/reference/
+// batch_ic50.py; engine/tests/test_batch_reference.py pins the engine to
+// it), and one file's family against a one-file Apply to new data.
+{
+  const BATCH = join(here, "..", "e2e-fixtures", "batch");
+  const ref = JSON.parse(readFileSync(join(here, "..", "..", "engine", "tests", "reference", "batch_ic50.json"), "utf8"));
+  await fileMenu.click();
+  await page.getByRole("menuitem", { name: "Run on many files…" }).click();
+  const bd = page.getByRole("dialog", { name: "Run on many files" });
+  await bd.waitFor({ timeout: 10000 });
+  await bd.getByLabel("Family to run").selectOption({ label: "96-well SRB plate: IC50" });
+  await bd.getByLabel("Files to run").setInputFiles([1, 2, 3, 4, 5].map((i) => join(BATCH, `plate${i}.csv`)));
+  const axeSetup = await axeDialog();
+  expect("P-78: axe-core finds no WCAG A/AA violations in Run on many files", axeSetup.length === 0, axeSetup.join(" | "));
+  await bd.getByRole("button", { name: "Run on 5 files" }).click();
+  await bd.getByText("4 families made from 5 files; 1 not run.").waitFor({ timeout: 300000 });
+  const runText = (await bd.innerText()).replace(/\s+/g, " ");
+  expect("P-78: the malformed file is named with its error, the others make families",
+    /plate5\.csv: not run\. (It holds no numbers for the table|No column of it holds values for the table)\./.test(runText)
+    && [1, 2, 3, 4].every((i) => runText.includes(`plate${i}.csv: family “plate${i}”`)), runText.slice(0, 400));
+  const ic50Box = bd.getByRole("checkbox", { name: "Cell line 1 · IC50" });
+  expect("P-78: the IC50 is offered for the summary, ticked", await ic50Box.isChecked());
+  const axeDone = await axeDialog();
+  expect("P-78: axe-core finds no WCAG A/AA violations in the run's log", axeDone.length === 0, axeDone.join(" | "));
+  await bd.getByRole("button", { name: "Make the summary table" }).click();
+  await bd.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("treeitem", { name: "Summary of SRB plate", exact: true }).first().waitFor({ timeout: 10000 });
+  const cellOf = (label) => page.locator(`.data-table input[aria-label="${label}"]`).inputValue();
+  const shown = [];
+  for (let r = 1; r <= 4; r++) shown.push([await cellOf(`Row ${r} title`).catch(() => ""), await cellOf(`Cell line 1 · IC50, row ${r}`)]);
+  console.log("summary:", JSON.stringify(shown));
+  expect("P-78: the summary table holds 4 IC50s, one row per good file, equal to scipy at 4 significant digits",
+    shown.every(([name, v], i) => name === `plate${i + 1}` && Number(v).toPrecision(4) === Number(ref[`plate${i + 1}`].IC50_4sig).toPrecision(4))
+    && await page.locator('.data-table input[aria-label="Cell line 1 · IC50, row 5"]').inputValue().catch(() => "") === "",
+    JSON.stringify(shown));
+  // plate2's family against a one-file Apply to new data of the same file
+  await page.getByRole("treeitem", { name: "plate2", exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  const ic50Row = async () => (await page.locator(".pane-results .results-table tbody tr")
+    .filter({ hasText: /^\s*IC50\b/ }).first().innerText()).replace(/\s+/g, " ");
+  const before = await ic50Row();
+  const shownIc50 = /IC50 \(M\) (\S+)/.exec(before)?.[1] ?? "";
+  expect("P-78: plate2's results show the reference IC50 (4 significant digits)",
+    shownIc50 !== "" && Number(shownIc50).toPrecision(4) === Number(ref.plate2.IC50_4sig).toPrecision(4),
+    `${before} vs ${ref.plate2.IC50_4sig}`);
+  await page.getByRole("treeitem", { name: "plate2", exact: true }).first().locator(":scope > .nav-row").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Apply new data to this table…" }).click();
+  const rp = page.getByRole("dialog", { name: "Apply to new data" });
+  await rp.waitFor({ timeout: 10000 });
+  await rp.getByLabel("New data file").setInputFiles(join(BATCH, "plate2.csv"));
+  await rp.getByLabel("Table for plate2.csv").waitFor({ timeout: 10000 });
+  await rp.getByRole("button", { name: "Apply and re-run" }).click();
+  const rlog = page.getByRole("dialog", { name: "Replay log" });
+  await rlog.waitFor({ timeout: 180000 });
+  const logText = (await rlog.innerText()).replace(/\s+/g, " ");
+  await rlog.getByRole("button", { name: "Done" }).click();
+  expect("P-78: a one-file Apply to new data of plate2.csv changes no number of its family",
+    logText.includes("plate2: new data from plate2.csv") && logText.includes("no number changed")
+    && !/\d+ numbers? changed/.test(logText), logText.slice(0, 400));
+  expect("P-78: and its IC50 row reads the same", await ic50Row() === before, `${before} / ${await ic50Row()}`);
+}
+
 // --- P-66 one statistics table, P-67 analysis.py and analysis.R: a t test,
 // a one-way ANOVA with Tukey and a 4PL fit (e2e-fixtures/stage/stats-table.json);
 // every row of the table equals what its results sheet shows; the bundle's

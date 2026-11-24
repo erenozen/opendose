@@ -5825,7 +5825,7 @@ e2e (`e2e-share.mjs`), every shown value equal to the certified value at
 SmLs01 (F 21, R² 0.4827586207, residual SD 0.1); Lew (mean -177.435, SD
 277.332168, n 200).
 
-## Feature validation: import provenance (2026-11-24)
+## Feature validation: import provenance and many files (2026-11-24)
 
 ### P-76 Import provenance and replayed imports
 
@@ -5845,6 +5845,25 @@ dialog's settings re-run to the same table; an append is recorded and
 not replayable; a project saved before records existed opens and saves
 unchanged. e2e (`e2e-share.mjs`): the plan's acceptance test, with the
 hash History shows equal to node's SHA-256 of the fixture.
+
+### P-78 Run a family on many files
+
+No new computation: each file's family runs the engine's ordinary
+dose-response fit, one file after another. Reference
+(`engine/tests/reference/batch_ic50.py`, which also writes the five
+files in `web/e2e-fixtures/batch/`): scipy `curve_fit` of log(inhibitor)
+vs. response, variable slope, every replicate a point, sharing no code
+with the engine. IC50 (M): plate1 1.018e-07, plate2 2.853e-07, plate3
+3.817e-08, plate4 6.44e-07; plate5.csv holds no numbers.
+`engine/tests/test_batch_reference.py` pins the engine to these at 4
+significant digits (LogIC50 within 1e-5). e2e (`e2e-share.mjs`): the
+built-in IC50 template on the five files makes 4 families and names
+plate5.csv with its error; the summary table's four IC50s equal the
+reference at 4 significant digits; plate2's family, given plate2.csv
+again by a one-file Apply to new data, changes no number. Unit tests
+(`share/__tests__/batch.test.ts`): an IC50 the results withhold
+(not reached in the range tested, an ambiguous fit, a failed analysis)
+is an empty cell with its reason, never the raw fitted value.
 """
 
 

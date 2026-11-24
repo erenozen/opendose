@@ -15,6 +15,7 @@ export type ShareRequest =
   | { kind: "privacy" }                    // open "Your data and privacy"
   | { kind: "pptx"; from?: string | null; scope?: PptxScope }  // graphs to PowerPoint
   | { kind: "replay"; dataId?: string }    // apply the project to new data
+  | { kind: "batch"; dataId?: string }     // one family per file (P-78)
   | RecipeImportRequest;                    // import files with a recipe
 
 /** "How this is validated" on a results sheet: the page opens filtered to
@@ -48,3 +49,6 @@ export const openPptxExport = (from?: string | null, scope?: PptxScope) =>
   requestShare({ kind: "pptx", from, scope });
 /** "Apply to new data…" (share/ReplayDialog), optionally for one table. */
 export const openReplay = (dataId?: string) => requestShare({ kind: "replay", dataId });
+/** "Run on many files…" (share/BatchDialog): a family or a template, one
+ *  family per file, and a summary table (P-78). */
+export const openBatch = (dataId?: string) => requestShare({ kind: "batch", dataId });

@@ -25,7 +25,7 @@ import { notify } from "../components/ui/Toast.store";
 import { openRatesTool } from "../rates/events";
 import { openFlowEvents } from "../sheets/assays/flow/eventsModel";
 import {
-  exportBundle, exportPzfxFile, exportStatsTable, exportWorkbook, openPptxExport, openReplay,
+  exportBundle, exportPzfxFile, exportStatsTable, exportWorkbook, openBatch, openPptxExport, openReplay,
   openShareLink,
 } from "../share/events";
 import { PZFX_TYPES } from "../share/pzfx";
@@ -181,6 +181,9 @@ export function useCommandRegistry(): Command[] {
       // ---- tools
       { id: "replay", label: "Apply to new data…", group: "tools",
         keywords: "replay rerun recipe", disabled: readOnly, run: () => openReplay() },
+      { id: "batch", label: "Run on many files…", group: "tools",
+        keywords: "batch many files one family per file template summary table apply to new data",
+        disabled: readOnly, run: () => openBatch() },
       { id: "kit-export", label: "Export lab kit", group: "tools",
         keywords: "lab kit templates recipes plate layouts equations preferences settings new member computer backup",
         run: () => {
@@ -264,6 +267,8 @@ function contextCommands(project: Parameters<typeof findSheet>[0], selected: She
       if (!data.derived) {
         out.push({ id: "ctx-replay", label: "Apply new data to this table…", group: "context",
           about: name, keywords: "replay", run: () => openReplay(data.id) });
+        out.push({ id: "ctx-batch", label: "Run this family on many files…", group: "context",
+          about: name, keywords: "batch one family per file summary", run: () => openBatch(data.id) });
       }
     }
     const graphs = familyChildren(project, data.id).filter((c) => c.kind === "graph");
