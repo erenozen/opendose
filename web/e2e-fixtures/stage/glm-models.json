@@ -1,0 +1,1092 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Count and covariate models",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r161",
+ "sheets": [
+  {
+   "id": "d160",
+   "kind": "data",
+   "name": "Trial",
+   "table": {
+    "type": "multivariable",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18",
+     "19",
+     "20"
+    ],
+    "datasets": [
+     {
+      "name": "Group",
+      "varType": "categorical",
+      "rows": [
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ]
+      ]
+     },
+     {
+      "name": "Baseline",
+      "varType": "continuous",
+      "rows": [
+       [
+        "52"
+       ],
+       [
+        "48"
+       ],
+       [
+        "61"
+       ],
+       [
+        "55"
+       ],
+       [
+        "44"
+       ],
+       [
+        "58"
+       ],
+       [
+        "50"
+       ],
+       [
+        "63"
+       ],
+       [
+        "47"
+       ],
+       [
+        "56"
+       ],
+       [
+        "54"
+       ],
+       [
+        "60"
+       ],
+       [
+        "45"
+       ],
+       [
+        "51"
+       ],
+       [
+        "49"
+       ],
+       [
+        "62"
+       ],
+       [
+        "57"
+       ],
+       [
+        "46"
+       ],
+       [
+        "53"
+       ],
+       [
+        "59"
+       ]
+      ]
+     },
+     {
+      "name": "Follow-up",
+      "varType": "continuous",
+      "rows": [
+       [
+        "50"
+       ],
+       [
+        "47"
+       ],
+       [
+        "57"
+       ],
+       [
+        "54"
+       ],
+       [
+        "45"
+       ],
+       [
+        "55"
+       ],
+       [
+        "49"
+       ],
+       [
+        "60"
+       ],
+       [
+        "44"
+       ],
+       [
+        "55"
+       ],
+       [
+        "45"
+       ],
+       [
+        "52"
+       ],
+       [
+        "40"
+       ],
+       [
+        "43"
+       ],
+       [
+        "44"
+       ],
+       [
+        "53"
+       ],
+       [
+        "48"
+       ],
+       [
+        "39"
+       ],
+       [
+        "47"
+       ],
+       [
+        "50"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r161",
+   "kind": "results",
+   "parentId": "d160",
+   "analysis": "mv_ancova",
+   "options": {
+    "outcome": "Follow-up",
+    "baseline": "Baseline",
+    "group": "Group",
+    "referenceLevel": "",
+    "ciLevel": "95"
+   },
+   "name": "ANCOVA of Trial"
+  },
+  {
+   "id": "d162",
+   "kind": "data",
+   "name": "Dishes",
+   "table": {
+    "type": "multivariable",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18"
+    ],
+    "datasets": [
+     {
+      "name": "Positive",
+      "varType": "continuous",
+      "rows": [
+       [
+        "8"
+       ],
+       [
+        "21"
+       ],
+       [
+        "13"
+       ],
+       [
+        "30"
+       ],
+       [
+        "52"
+       ],
+       [
+        "24"
+       ],
+       [
+        "15"
+       ],
+       [
+        "6"
+       ],
+       [
+        "22"
+       ],
+       [
+        "47"
+       ],
+       [
+        "28"
+       ],
+       [
+        "61"
+       ],
+       [
+        "10"
+       ],
+       [
+        "25"
+       ],
+       [
+        "5"
+       ],
+       [
+        "33"
+       ],
+       [
+        "58"
+       ],
+       [
+        "19"
+       ]
+      ]
+     },
+     {
+      "name": "Counted",
+      "varType": "continuous",
+      "rows": [
+       [
+        "100"
+       ],
+       [
+        "110"
+       ],
+       [
+        "95"
+       ],
+       [
+        "105"
+       ],
+       [
+        "120"
+       ],
+       [
+        "90"
+       ],
+       [
+        "100"
+       ],
+       [
+        "85"
+       ],
+       [
+        "115"
+       ],
+       [
+        "110"
+       ],
+       [
+        "100"
+       ],
+       [
+        "120"
+       ],
+       [
+        "90"
+       ],
+       [
+        "105"
+       ],
+       [
+        "80"
+       ],
+       [
+        "100"
+       ],
+       [
+        "115"
+       ],
+       [
+        "95"
+       ]
+      ]
+     },
+     {
+      "name": "Group",
+      "varType": "categorical",
+      "rows": [
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ]
+      ]
+     },
+     {
+      "name": "Experiment",
+      "varType": "categorical",
+      "rows": [
+       [
+        "E1"
+       ],
+       [
+        "E1"
+       ],
+       [
+        "E1"
+       ],
+       [
+        "E1"
+       ],
+       [
+        "E1"
+       ],
+       [
+        "E1"
+       ],
+       [
+        "E2"
+       ],
+       [
+        "E2"
+       ],
+       [
+        "E2"
+       ],
+       [
+        "E2"
+       ],
+       [
+        "E2"
+       ],
+       [
+        "E2"
+       ],
+       [
+        "E3"
+       ],
+       [
+        "E3"
+       ],
+       [
+        "E3"
+       ],
+       [
+        "E3"
+       ],
+       [
+        "E3"
+       ],
+       [
+        "E3"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r163",
+   "kind": "results",
+   "parentId": "d162",
+   "analysis": "mv_binomial",
+   "options": {
+    "outcome": "Positive",
+    "totals": "Counted",
+    "predictors": [
+     "Group",
+     "Experiment"
+    ],
+    "interactions": [],
+    "referenceLevels": {},
+    "ciLevel": "95",
+    "ciMethod": "profile",
+    "quasi": false
+   },
+   "name": "Binomial regression of Dishes"
+  },
+  {
+   "id": "d164",
+   "kind": "data",
+   "name": "Ames TA98",
+   "table": {
+    "type": "multivariable",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18"
+    ],
+    "datasets": [
+     {
+      "name": "Dose",
+      "varType": "continuous",
+      "rows": [
+       [
+        "0"
+       ],
+       [
+        "10"
+       ],
+       [
+        "33"
+       ],
+       [
+        "100"
+       ],
+       [
+        "333"
+       ],
+       [
+        "1000"
+       ],
+       [
+        "0"
+       ],
+       [
+        "10"
+       ],
+       [
+        "33"
+       ],
+       [
+        "100"
+       ],
+       [
+        "333"
+       ],
+       [
+        "1000"
+       ],
+       [
+        "0"
+       ],
+       [
+        "10"
+       ],
+       [
+        "33"
+       ],
+       [
+        "100"
+       ],
+       [
+        "333"
+       ],
+       [
+        "1000"
+       ]
+      ]
+     },
+     {
+      "name": "log(Dose + 10)",
+      "varType": "continuous",
+      "rows": [
+       [
+        "2.302585092994046"
+       ],
+       [
+        "2.995732273553991"
+       ],
+       [
+        "3.7612001156935624"
+       ],
+       [
+        "4.700480365792417"
+       ],
+       [
+        "5.8377304471659395"
+       ],
+       [
+        "6.917705609835305"
+       ],
+       [
+        "2.302585092994046"
+       ],
+       [
+        "2.995732273553991"
+       ],
+       [
+        "3.7612001156935624"
+       ],
+       [
+        "4.700480365792417"
+       ],
+       [
+        "5.8377304471659395"
+       ],
+       [
+        "6.917705609835305"
+       ],
+       [
+        "2.302585092994046"
+       ],
+       [
+        "2.995732273553991"
+       ],
+       [
+        "3.7612001156935624"
+       ],
+       [
+        "4.700480365792417"
+       ],
+       [
+        "5.8377304471659395"
+       ],
+       [
+        "6.917705609835305"
+       ]
+      ]
+     },
+     {
+      "name": "Revertants",
+      "varType": "continuous",
+      "rows": [
+       [
+        "15"
+       ],
+       [
+        "16"
+       ],
+       [
+        "16"
+       ],
+       [
+        "27"
+       ],
+       [
+        "33"
+       ],
+       [
+        "20"
+       ],
+       [
+        "21"
+       ],
+       [
+        "18"
+       ],
+       [
+        "26"
+       ],
+       [
+        "41"
+       ],
+       [
+        "38"
+       ],
+       [
+        "27"
+       ],
+       [
+        "29"
+       ],
+       [
+        "21"
+       ],
+       [
+        "33"
+       ],
+       [
+        "60"
+       ],
+       [
+        "41"
+       ],
+       [
+        "42"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r165",
+   "kind": "results",
+   "parentId": "d164",
+   "analysis": "mv_negbin",
+   "options": {
+    "outcome": "Revertants",
+    "predictors": [
+     "Dose",
+     "log(Dose + 10)"
+    ],
+    "interactions": [],
+    "referenceLevels": {},
+    "ciLevel": "95",
+    "exposure": "",
+    "ciMethod": "profile"
+   },
+   "name": "Negative binomial regression of Ames TA98"
+  },
+  {
+   "id": "d166",
+   "kind": "data",
+   "name": "Dose study",
+   "table": {
+    "type": "multivariable",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6",
+     "7",
+     "8",
+     "9",
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18",
+     "19",
+     "20"
+    ],
+    "datasets": [
+     {
+      "name": "Response",
+      "varType": "continuous",
+      "rows": [
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "0"
+       ],
+       [
+        "0"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ],
+       [
+        "1"
+       ]
+      ]
+     },
+     {
+      "name": "Group",
+      "varType": "categorical",
+      "rows": [
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Control"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ],
+       [
+        "Treated"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r167",
+   "kind": "results",
+   "parentId": "d166",
+   "analysis": "mv_logistic",
+   "options": {
+    "outcome": "Response",
+    "predictors": [
+     "Group"
+    ],
+    "interactions": [],
+    "referenceLevels": {},
+    "ciLevel": "95",
+    "positiveLevel": "",
+    "ciMethod": "profile",
+    "cutoff": "0.5",
+    "hlGroups": "10",
+    "firth": false
+   },
+   "name": "Logistic regression of Dose study"
+  },
+  {
+   "id": "r168",
+   "kind": "results",
+   "parentId": "d166",
+   "analysis": "mv_logistic",
+   "options": {
+    "outcome": "Response",
+    "predictors": [
+     "Group"
+    ],
+    "interactions": [],
+    "referenceLevels": {},
+    "ciLevel": "95",
+    "positiveLevel": "",
+    "ciMethod": "profile",
+    "cutoff": "0.5",
+    "hlGroups": "10",
+    "firth": true
+   },
+   "name": "Firth logistic regression of Dose study"
+  }
+ ]
+}

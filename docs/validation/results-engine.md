@@ -2190,3 +2190,128 @@ Greenwood variances on survival::lung at 365 days gives male 0.33609,
 female 0.52646, difference 0.19038 (95% CI 0.04563 to 0.33512, SE
 0.073852) and the Klein et al. 2007 cloglog statistic 6.2066, P =
 0.012728. All equal the engine.
+
+## Feature validation: ANCOVA, binomial and negative binomial regression, Firth's logistic regression (2026-11-24)
+
+### P-82 Baseline-adjusted comparison (ANCOVA)
+
+`multivar.ancova` (API `ancova`; Analyze > Baseline-adjusted comparison
+(ANCOVA) on a multiple-variables table): follow-up = b0 + group effects
++ b1 x baseline by least squares, one slope for every group. Reported:
+the adjusted means (each group's prediction at the mean baseline of the
+analysed rows, SE sqrt(x0' V x0), t CI), the adjusted differences
+against the reference group (the group coefficients, t CI and P), the
+type III table (drop-one sums of squares), the slope of the baseline,
+and the equal-slopes check (F test of the group x baseline interaction,
+with each group's own slope) in the Checks row. Vickers & Altman (2001)
+BMJ 323:1123. Help me choose asks "Was the outcome also measured in
+each subject before treatment (a baseline)?" and routes two or more
+groups to ANCOVA, with two-way repeated-measures ANOVA (group x time)
+as the explained alternative.
+
+Reference: `engine/tests/reference/ancova.py` (statsmodels 0.15 `ols`
+with `get_prediction` at the mean baseline for the adjusted means,
+`anova_lm(typ=3)` with sum-to-zero coding for the type III table, and
+`anova_lm(main, interaction)` for the equal-slopes F; R's lm + emmeans +
+car::Anova are not installed). `engine/tests/test_ancova.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Two groups of 10 (made up), baseline and follow-up | Treated - Control adjusted difference -5.663357 (SE 0.506327), 95% CI -6.731614 to -4.595100, P = 2.9275e-9 on 17 df; adjusted means 51.681679 and 46.018321 (SE 0.358000); group F(1, 17) = 125.108; equal slopes F(1, 16) = 0.348089, P = 0.563437 | 1e-9 (P 1e-7) |
+| Three groups of 7, 6 and 8 (made up), unequal slopes | B - A -1.750679 (SE 0.552102), C - A 2.633125 (SE 0.515484); adjusted means 12.697099, 10.946420, 15.330224; group F(2, 17) = 35.0213; equal slopes F(2, 15) = 75.3598 (the warning fires) | 1e-9 (P 1e-7) |
+
+Also tested: the reference level flips the sign and keeps SE and P;
+row order; outcome x 1e-12 and x 1e12 scales the difference, baseline x
+c or + 1000 leaves it; a numeric 1/2 group column is read as levels;
+missing values drop the row and the Analysed line names it; one group,
+a constant baseline, a baseline constant within each group, an exactly
+fitted outcome, too few rows and no complete rows are refused with a
+sentence; with 4 rows the shared-slope model fits and the equal-slopes
+check says why it is missing.
+
+### P-86 Binomial regression (positives out of counted) and negative binomial regression
+
+`multivar.binomial_regression` (API `binomial_regression`; Analyze >
+Binomial regression (positives out of counted)): logit(P(positive)) =
+b0 + b1 X1 + ... for s positives out of n counted per row, by maximum
+likelihood (Newton-Raphson); Wald z P values, profile-likelihood CIs,
+odds ratios, the likelihood ratio test of each term (a block such as the
+experiment tested as a whole, as drop1(test = "LRT")), the deviance and
+the dispersion phi = Pearson chi2 / (rows - k). quasi=True gives
+quasi-binomial SEs (x sqrt(phi)), t tests, Wald t CIs and F tests
+(Wedderburn 1974). The dispersion check is always in the Checks row:
+"Dispersion phi = ... on k df" (fewer than 5 df), "Proportions are
+overdispersed" with a one-click switch to quasi-binomial (phi > 1.5),
+or "No overdispersion". Separation and levels with no (or only)
+positives are refused by name. Help me choose sends counts from several
+dishes or animals per group here (Warton & Hui 2011, Ecology 92:3)
+instead of a t test on per-replicate percentages, which stays as the
+alternative.
+
+`multivar.negative_binomial_regression` (API
+`negative_binomial_regression`; Analyze > Negative binomial regression):
+log link, variance mu + mu^2 / theta, coefficients by IRLS at fixed
+theta and theta by maximum likelihood at fixed means, alternated as
+MASS::glm.nb (Venables & Ripley 2002 section 7.4); SEs from the expected
+information at theta, profile CIs with theta held, the likelihood ratio
+test against the intercept-only negative binomial model and against
+Poisson (boundary: P = chi2.sf(LR, 1) / 2). Counts with no
+overdispersion (theta infinite) are refused, pointing to Poisson
+regression. The Poisson overdispersion chip also offers "Fit a negative
+binomial model".
+
+References: `engine/tests/reference/count_glms.py` (statsmodels 0.15
+`GLM(Binomial)` with the two-column endog; quasi-binomial from
+`GLM(s / n, var_weights = n).fit(scale="X2", use_t=True)`; profile CIs
+by refitting with an offset and brentq; `NegativeBinomial(nb2)` for
+theta and beta, `GLM(NegativeBinomial(alpha))` for glm.nb's SEs; R is not
+installed) and the published maximum-likelihood negative binomial fit of
+the Ames TA98 data (Kenne Pagui, Salvan & Sartori 2020, Table 2, as
+printed in the brglm2 negativeBinomial vignette).
+`engine/tests/test_count_glms.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| 3 experiments x 2 groups, positives / counted (made up; the acceptance test) | b(Treated) 1.161871 (SE 0.211427), profile CI 0.754758 to 1.585322; odds ratio 3.195907, 95% CI 2.127097 to 4.880865; group LR chi2 32.8366 (1 df), experiment 1.28317 (2 df), P = 0.526457; deviance 0.054452; phi = 0.027229 on 2 df | estimates 1e-8, SE 1e-7, CI 2e-7 |
+| 3 experiments x 2 groups x 3 dishes (made up), quasi-binomial | phi = 4.771766 on 14 df; SE 0.274292, 0.257079, 0.292068, 0.301636; P(Treated) = 0.000233116; F(3, 14) = 9.06036, P = 0.0013817 | 1e-7 (P 1e-5) |
+| Ames TA98 (Margolin et al. 1981), NB on dose and log(dose + 10) | theta = 20.505083; b 2.197627, -0.000980, 0.312510 (SE 0.324586, 0.000386, 0.087895); published (4 decimals) 2.1976 (0.3246), -0.0010 (0.0004), 0.3125 (0.0879), 1/theta 0.0488; LR vs Poisson 10.4728, P = 0.000606 | 1e-6 (SE 1e-5, CI 1e-6) |
+| MASS::quine (146 children), Days ~ Eth + Sex + Age + Lrn | theta = 1.274893; b 3.269009, -0.569372, -0.082320, -0.448428, 0.088080, 0.356901, -0.292109; LR vs intercept-only G = 25.1159 on 6 df, P = 0.000325 | 1e-6 (CI 1e-5) |
+
+Also tested: Wald CIs; row order; swapping the reference group inverts
+the odds ratio and its CI; a missing total drops the row; positives
+above the total, a total of 0, non-integer counts, a level with no or
+only positives, no positives at all and all positive are refused by
+name; separation on a continuous predictor; the exposure offset shifts
+only the intercept by log(2); counts without overdispersion and a group
+of zero counts are refused for the negative binomial.
+
+### P-89 Firth's logistic regression for separated data
+
+`multivar.logistic_regression(firth=True)` (API option `firth`): Firth's
+penalized likelihood (the Jeffreys prior) by Newton steps on the
+modified score, SEs from the inverse Fisher information, profile
+penalized-likelihood CIs (the penalty on the full model's information,
+as logistf), and a penalized likelihood ratio test per coefficient and
+for the model (Firth 1993, Biometrika 80:27; Heinze & Schemper 2002,
+Stat Med 21:2409). Logistic regression refused for separation now
+carries `error_kind = "separation"`; the failed answer offers "Fit with
+Firth's correction", and the Firth result says next to the odds ratio
+and in the Checks row that the estimate is shrunk toward no effect.
+
+Reference: `engine/tests/reference/firth_logistic.py` (an independent
+penalized-likelihood fit with scipy.optimize BFGS and Newton-CG, profile
+CIs by brentq; R's logistf is not installed); the bias-reduced fit of
+the endometrial data printed in the brglm2 README (Kosmidis); and the
+2x2 closed form (Firth's estimate = adding 1/2 to every cell).
+`engine/tests/test_firth_logistic.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Endometrial cancer (Heinze & Schemper 2002; 79 patients), HG ~ NV + PI + EH; NV separates | b 3.774560, 2.929273, -0.034752, -2.604164 (SE 1.488692, 1.550764, 0.039578, 0.776018; brglm2 README 3.77456, 2.92927, -0.03475, -2.60416 and 1.48869, 1.55076, 0.03958, 0.77602); profile CI of NV 0.609724 to 7.854632, of EH -4.365183 to -1.232721; PLR chi2 8.198014, 6.798457, 0.746829, 17.759317; model chi2 43.6558 on 3 df | 1e-7 (SE 1e-6, CI 2e-6) |
+| Two groups of 10, every treated animal responds (3 of 10 controls; the acceptance test) | ML refused for separation; Firth OR 45 (closed form (10.5 x 7.5) / (0.5 x 3.5)), profile CI 3.845063 to 6439.296, PLR chi2 11.0124, P = 0.000905031 | OR 1e-9, CI 1e-6 |
+
+Also tested: without separation the Firth estimate lies between 0 and
+the ML one; Wald CIs; row order; the one-continuous-predictor X at 50%;
+refusals other than separation carry no `error_kind`.
+
+Independent check: pending (the lead runs it on this branch).

@@ -50,11 +50,12 @@ function expectedShape(analysisId: string, options: unknown, table: DataSheet["t
     const names = named.reduce((n, d) => n + d.name.length + 2, 0);
     return { figure: kind === "ttest" ? "ci" : "plain", reading: [200 + names, 165, 100, 280] };
   }
-  // the wave 2 models lead with a ratio or difference and its CI line, and
-  // have no plain-language reading (keyFacts.ts ancovaFacts, glmFacts)
-  if (["mv_ancova", "mv_binomial", "mv_negbin"].includes(analysisId)
-    || (analysisId === "mv_logistic" && (options as { firth?: boolean } | null)?.firth === true)) {
-    return { figure: "ci", reading: null };
+  // the wave 2 models lead with a ratio or difference and its CI line
+  // (keyFacts.ts ancovaFacts, glmFacts); only Firth's logistic fit has a
+  // plain-language reading (the logistic one)
+  if (["mv_ancova", "mv_binomial", "mv_negbin"].includes(analysisId)) return { figure: "ci", reading: null };
+  if (analysisId === "mv_logistic" && (options as { firth?: boolean } | null)?.firth === true) {
+    return { figure: "ci", reading: [250, 160, 80, 160] };
   }
   return { figure: null, reading: [250, 160, 80, 160] };
 }

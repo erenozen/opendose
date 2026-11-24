@@ -36,11 +36,11 @@ export function QuasiPoissonAction({ resultsId }: { resultsId: string }) {
     if (id) select(id);
   };
   return (
-    <p className="guide-chip-action">
+    <p className="guide-chip-action guide-chip-actions">
       <Button size="sm" onClick={toggle}>
         {on ? `Use ${family} standard errors` : `Use quasi-${family} standard errors`}</Button>
       {family === "Poisson" && !on && (
-        <> <Button size="sm" variant="ghost" onClick={negbin}>Fit a negative binomial model</Button></>
+        <Button size="sm" variant="ghost" onClick={negbin}>Fit a negative binomial model</Button>
       )}
     </p>
   );
