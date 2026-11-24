@@ -1,7 +1,9 @@
 // End-to-end check of the project file and its history in this browser:
 // save in place and Save as… with the File System Access API, the
 // installed app's file handler and the web app manifest (P-71); saved
-// versions and recent projects (P-72); comparing two versions (P-73).
+// versions and recent projects (P-72); comparing two versions (P-73);
+// adding another project's families, from File and by a drop (P-74);
+// the lab kit's round trip through Forget this computer's data (P-75).
 //
 // Playwright cannot answer the browser's own file pickers, so the
 // Chromium checks stand in a small file system for them (FSA_MOCK: the
@@ -465,6 +467,248 @@ await ctx.close();
   expect("P-72 a full quota refuses the version and says how much room is left",
     await e.waitFor({ timeout: 120000 }).then(() => true, () => false));
   expect("P-72 nothing is stored when the quota is full", (await storedVersions(p)).length === 0);
+  await c.close();
+}
+
+// ------------------------------------------------------------ P-74 add from project
+// A colleague's file of two families (one with the open project's own
+// ids, so they clash) and another digits preference: File › Add from
+// project… lists the difference, keeps this project's, and adds both
+// families with unique ids and working links; each computes the t test
+// of e2e-fixtures/reference/compare_versions_ttest.json. Then two project
+// files dropped at once are both added.
+{
+  const c = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const p = await c.newPage();
+  watch(p, "add-project");
+  await p.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await p.locator(".shell").waitFor({ timeout: 60000 });
+  await p.setInputFiles(OPEN_INPUT, STUDY_FILE);
+  await toast(p, /Opened “project-study\.json”/);
+  expect("P-74 the study opens with live results", await live(p));
+  const study = JSON.parse(STUDY);
+  const twin = study.sheets.map((s) => ({
+    ...s, id: `${s.id}b`, name: s.name.replace("Viability", "Viability B"),
+    ...(s.parentId ? { parentId: `${s.parentId}b` } : {}),
+  }));
+  const colleague = {
+    ...study, title: "Colleague", prefs: { ...study.prefs, digits: 6 }, sheets: [...study.sheets, ...twin],
+  };
+  const asFile = (name, json) => ({ name, mimeType: "application/json", buffer: Buffer.from(JSON.stringify(json)) });
+
+  const chooser = p.waitForEvent("filechooser");
+  await fileMenu(p, "Add from project…");
+  await (await chooser).setFiles(asFile("colleague.json", colleague));
+  const d = p.getByRole("dialog", { name: "Add “colleague.json” to this project?" });
+  const shown = await d.waitFor({ timeout: 15000 }).then(() => true, () => false);
+  const row = shown ? (await d.getByRole("row", { name: /Significant digits in results/ }).innerText()).replace(/\s+/g, " ") : "";
+  expect("P-74 a preference that differs is listed before adding, this project's kept",
+    shown && /Significant digits in results 4 6/.test(row), row);
+  await d.getByRole("button", { name: "Add 4 sheets" }).click();
+  expect("P-74 Add from project… says what it added",
+    await toast(p, /Added 2 data tables with 2 more sheets from “colleague\.json”/));
+  await settled(p);
+  const merged = JSON.parse(await fileText(p));
+  const ids = merged.sheets.map((s) => s.id);
+  const data = new Set(merged.sheets.filter((s) => s.kind === "data").map((s) => s.id));
+  expect("P-74 both families are in, sheet for sheet",
+    merged.sheets.length === 6 && ["Viability", "Viability (2)", "Viability B"]
+      .every((n) => merged.sheets.some((s) => s.kind === "data" && s.name === n)),
+    merged.sheets.map((s) => s.name).join(" | "));
+  expect("P-74 every id is unique", new Set(ids).size === ids.length, ids.join(","));
+  expect("P-74 every results sheet points at its own data table",
+    merged.sheets.filter((s) => s.kind === "results").every((s) => data.has(s.parentId)));
+  expect("P-74 the open project's preferences are kept", merged.prefs.digits === 4);
+  checkSchema("a project with another project's families added", merged);
+  // each added family computes the same Welch t test as the study
+  for (const name of ["Viability (2)", "Viability B"]) {
+    await p.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+    await p.getByRole("tab", { name: "t test" }).click();
+    const pRow = p.locator(".pane-results .results-table tr", { hasText: "P value" }).first();
+    const text = await pRow.innerText({ timeout: 120000 }).catch(() => "");
+    const shownP = Number((text.match(/\d\.\d+/) ?? [])[0]);
+    expect(`P-74 “${name}” computes its t test (P = ${REF.before.p.toPrecision(4)}, scipy)`,
+      near(shownP, REF.before.p), text.replace(/\s+/g, " "));
+  }
+  // Undo takes the whole addition back in one step
+  await p.locator(".toast", { hasText: /Added 2 data tables/ }).getByRole("button", { name: "Undo" }).click();
+  await settled(p);
+  expect("P-74 Undo removes everything that was added", JSON.parse(await fileText(p)).sheets.length === 2);
+
+  // Two project files dropped on the page: both are added.
+  const one = { ...study, title: "One" };
+  const two = { ...study, title: "Two", sheets: twin };
+  await p.evaluate(async (files) => {
+    const dt = new DataTransfer();
+    for (const f of files) dt.items.add(new File([f.text], f.name, { type: "application/json" }));
+    const at = document.querySelector("main") ?? document.body;
+    at.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    at.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, [{ name: "one.json", text: JSON.stringify(one) }, { name: "two.json", text: JSON.stringify(two) }]);
+  expect("P-74 a drop of two project files adds the first", await toast(p, /from “one\.json”/));
+  expect("P-74 ...and the second", await toast(p, /from “two\.json”/));
+  await settled(p);
+  const dropped = JSON.parse(await fileText(p));
+  const dIds = dropped.sheets.map((s) => s.id);
+  expect("P-74 after the drop: three families, unique ids, the open project's title",
+    dropped.sheets.length === 6 && new Set(dIds).size === dIds.length && dropped.title === "Study",
+    dropped.sheets.map((s) => `${s.id}:${s.name}`).join(" | "));
+  await c.close();
+}
+
+// ------------------------------------------------------------ P-75 lab kit
+// A browser set up with a template (imported through the templates
+// picker), an import recipe, a plate layout, an equation, image export
+// settings and 6 results digits: Preferences › Export lab kit, Forget this
+// computer's data, Import lab kit…: the same lists, entry for entry. A kit
+// from a newer OpenDose is refused; the templates picker hands a kit to
+// the kit dialog.
+{
+  const c = await browser.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  const p = await c.newPage();
+  watch(p, "lab-kit");
+  await p.goto(EXAMPLE, { waitUntil: "domcontentloaded" });
+  await p.locator(".shell").waitFor({ timeout: 60000 });
+  await p.evaluate(() => {
+    localStorage.setItem("opendose-import-recipes", JSON.stringify([{
+      id: "rc-lab", name: "Lab plate reader", savedAt: "2026-11-20T09:00:00.000Z", basis: "Plain import",
+      spec: { kind: "plain" },
+    }]));
+    localStorage.setItem("opendose-plate-layouts", JSON.stringify([{
+      name: "Lab 96", format: 96, wells: { A1: { role: "blank" }, B2: { role: "sample", compound: "Drug A", conc: 1e-6 } },
+      description: "Saved layout (96 wells)",
+    }]));
+    localStorage.setItem("opendose.userEquations.v1", JSON.stringify({ version: 1, equations: [{
+      id: "eq-lab", name: "One-phase decay", text: "Y = Y0*exp(-K*X)", xIsLog: false,
+      rules: { Y0: { kind: "rule", value: "1", op: "*", of: "YMAX" } }, constraints: {}, transforms: [],
+    }] }));
+    localStorage.setItem("opendose-export", JSON.stringify({
+      format: "tiff", width: 600, height: 450, dpi: 600, unit: "mm", transparent: false, paper: true, scaleText: false,
+    }));
+  });
+  await p.reload({ waitUntil: "domcontentloaded" });
+  await p.locator(".shell").waitFor({ timeout: 60000 });
+  // a template, through the templates picker
+  const tpl = {
+    opendose_template: 1,
+    template: {
+      name: "Lab t test", description: "Two groups, unpaired t test.", tableName: "t test", withData: true,
+      table: { type: "column", datasets: [{ name: "Control", rows: [["1"], ["2"], ["3"]] }, { name: "Treated", rows: [["4"], ["5"], ["7"]] }] },
+      results: [{ key: "r1", name: "t test of {table}", analysis: "column", options: { analysis: "ttest" } }],
+      graphs: [], info: [],
+    },
+  };
+  await fileMenu(p, "New data table…");
+  const nd = p.getByRole("dialog", { name: "New data table" });
+  await nd.getByRole("radio", { name: "From a template" }).check();
+  await nd.locator('input[aria-label="Import a template file"]').setInputFiles({
+    name: "lab.odtemplate.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(tpl)) });
+  await nd.getByText("Imported “Lab t test”.").waitFor({ timeout: 15000 });
+  await nd.getByRole("button", { name: "Cancel" }).click();
+  // 6 significant digits, in Preferences
+  const viewMenu = async (item) => {
+    await p.locator("header").getByRole("button", { name: "View", exact: true }).click();
+    await p.getByRole("menuitem", { name: item }).click();
+  };
+  const prefs = async () => { await viewMenu("Preferences…"); return p.getByRole("dialog", { name: "Preferences" }); };
+  let pop = await prefs();
+  await pop.getByLabel("Significant digits in results").selectOption("6");
+  await p.keyboard.press("Escape");
+
+  const lists = () => p.evaluate(async () => {
+    const ls = (k) => JSON.parse(localStorage.getItem(k) ?? "null");
+    const templates = await new Promise((resolve) => {
+      const req = indexedDB.open("opendose");
+      req.onsuccess = () => {
+        const d = req.result;
+        if (!d.objectStoreNames.contains("autosave")) { d.close(); resolve(null); return; }
+        const g = d.transaction("autosave").objectStore("autosave").get("templates");
+        g.onsuccess = () => { d.close(); resolve(g.result?.templates ?? null); };
+        g.onerror = () => { d.close(); resolve(null); };
+      };
+      req.onerror = () => resolve(null);
+    });
+    return {
+      templates, recipes: ls("opendose-import-recipes"), plateLayouts: ls("opendose-plate-layouts"),
+      equations: ls("opendose.userEquations.v1")?.equations ?? null, prefs: ls("opendose-prefs"),
+      exportSettings: ls("opendose-export"),
+    };
+  });
+  const before = await lists();
+  expect("P-75 the browser holds one of each before the export",
+    before.templates?.length === 1 && before.recipes?.length === 1 && before.plateLayouts?.length === 1
+    && before.equations?.length === 1 && before.prefs?.digits === 6 && before.exportSettings?.dpi === 600,
+    JSON.stringify(before).slice(0, 300));
+
+  pop = await prefs();
+  const dl = p.waitForEvent("download");
+  await pop.getByRole("button", { name: "Export lab kit" }).click();
+  const download = await dl;
+  const kitText = readFileSync(await download.path(), "utf8");
+  const kit = JSON.parse(kitText);
+  // the kit as a file to choose (Playwright deletes the download with the context)
+  const kitFile = { name: "lab.odkit.json", mimeType: "application/json", buffer: Buffer.from(kitText) };
+  expect("P-75 the kit file is versioned and holds every list",
+    kit.opendose_lab_kit === 1 && /^opendose-lab-kit-\d{4}-\d\d-\d\d\.odkit\.json$/.test(download.suggestedFilename())
+    && kit.templates.length === 1 && kit.recipes.length === 1 && kit.plateLayouts.length === 1
+    && kit.equations.length === 1 && kit.preferences.digits === 6 && kit.exportSettings.dpi === 600,
+    download.suggestedFilename());
+  expect("P-75 Export lab kit says it downloaded on the button",
+    (await pop.locator('.prefs-kit-actions .btn-swap-label[data-shown="true"]').first().innerText()
+      .catch(() => "")) === "Downloaded");
+
+  // Forget this computer's data
+  await pop.getByRole("button", { name: "Forget this computer's data…" }).click();
+  await Promise.all([
+    p.waitForNavigation({ timeout: 30000 }),
+    pop.getByRole("button", { name: "Forget and close the project" }).click(),
+  ]);
+  await p.locator(".shell").waitFor({ timeout: 60000 });
+  const empty = await lists();
+  expect("P-75 after Forget the lists are empty",
+    !empty.templates?.length && !empty.recipes && !empty.plateLayouts && !empty.equations && !empty.exportSettings,
+    JSON.stringify(empty).slice(0, 300));
+
+  // a kit from a newer OpenDose is refused
+  pop = await prefs();
+  await pop.locator('input[aria-label="Import a lab kit file"]').setInputFiles({
+    name: "future.odkit.json", mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({ ...kit, opendose_lab_kit: 2 })) });
+  expect("P-75 a kit of a newer format is refused with what to do",
+    await toast(p, /Could not import the lab kit “future\.odkit\.json”: this lab kit was made by a newer version of OpenDose \(kit format 2\); update OpenDose/));
+
+  // Import lab kit…
+  pop = await prefs();
+  await pop.locator('input[aria-label="Import a lab kit file"]').setInputFiles(kitFile);
+  const kd = p.getByRole("dialog", { name: "Import a lab kit" });
+  await kd.waitFor({ timeout: 15000 });
+  const offered = (await kd.locator(".check-row").allInnerTexts()).map((t) => t.split("\n")[0].trim());
+  expect("P-75 the import dialog offers each list with its count",
+    ["1 template", "1 import recipe", "1 plate layout", "1 equation", "Preferences", "Image export settings"]
+      .every((x) => offered.includes(x)), offered.join(" | "));
+  await kd.getByRole("button", { name: "Import" }).click();
+  expect("P-75 the import says what came in",
+    await toast(p, /Imported the lab kit “lab\.odkit\.json”: 1 template, 1 import recipe, 1 plate layout, 1 equation, preferences, image export settings\./));
+  const after = await lists();
+  for (const k of ["templates", "recipes", "plateLayouts", "equations", "prefs", "exportSettings"]) {
+    expect(`P-75 after the round trip: identical ${k}`, JSON.stringify(after[k]) === JSON.stringify(before[k]),
+      `${JSON.stringify(after[k]).slice(0, 160)} vs ${JSON.stringify(before[k]).slice(0, 160)}`);
+  }
+  // importing it again doubles nothing
+  pop = await prefs();
+  await pop.locator('input[aria-label="Import a lab kit file"]').setInputFiles(kitFile);
+  await kd.getByRole("button", { name: "Import" }).click();
+  await toast(p, /Imported the lab kit .*not doubled/);
+  const again = await lists();
+  expect("P-75 a second import doubles nothing",
+    ["templates", "recipes", "plateLayouts", "equations"].every((k) => again[k]?.length === 1));
+  // the templates picker hands a kit to the kit dialog
+  await fileMenu(p, "New data table…");
+  await nd.getByRole("radio", { name: "From a template" }).check();
+  await nd.locator('input[aria-label="Import a template file"]').setInputFiles(kitFile);
+  expect("P-75 a kit chosen in the templates picker opens the kit dialog",
+    await kd.waitFor({ timeout: 15000 }).then(() => true, () => false));
+  await kd.getByRole("button", { name: "Cancel" }).click();
   await c.close();
 }
 

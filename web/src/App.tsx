@@ -27,6 +27,9 @@ import InfoSheetView from "./components/InfoSheetView";
 import Navigator from "./components/Navigator";
 import SessionBanners from "./components/SessionBanners";
 import VersionsHost from "./components/ProjectVersions";
+import AddFromProjectHost from "./components/AddFromProject";
+import LabKitHost from "./components/LabKit";
+import { addProjectFiles, projectsInDrop } from "./app/addProject";
 import { newId } from "./project/ids";
 import { familyRootId, findSheet, makeProject } from "./project/ops";
 import type { Project } from "./project/types";
@@ -240,6 +243,8 @@ function Shell() {
           }} />
       )}
       <VersionsHost autosave={autosave} />
+      <AddFromProjectHost />
+      <LabKitHost />
       <SimulateHost />
       <TableFileImport />
       <PowerHost />
@@ -295,7 +300,8 @@ function PrismChooser({ tables, onImport, onCancel }: {
 /** A project or Prism file dropped anywhere on the page opens, as Open
  *  does; one table file (CSV, TSV, text, a workbook) opens the Import dialog
  *  for a new table; several CSV files, or a zip of them, go to the
- *  recipe import.
+ *  recipe import; two or more project files (.json) are added to the open
+ *  project (app/addProject.ts, P-74).
  *  Drops a pane handles itself (the navigator, the import dialog) are
  *  left to it. */
 function useDropOpen(open: (f: File) => void) {
@@ -312,6 +318,16 @@ function useDropOpen(open: (f: File) => void) {
       e.preventDefault();
       const list = [...e.dataTransfer.files];
       if (takeTableDrop(list, (f) => openRef.current(f), () => {})) return;
+      // two or more project files: added to the open project (P-74)
+      const projects = projectsInDrop(list);
+      if (projects) {
+        addProjectFiles(projects.add);
+        if (projects.skipped.length) {
+          notify(`Added only the project files. To open ${projects.skipped.map((f) => `“${f.name}”`).join(", ")}, `
+            + `drop ${projects.skipped.length === 1 ? "it" : "each"} on its own.`, { tone: "info" });
+        }
+        return;
+      }
       // a project or Prism file first; else one table file (the Import dialog)
       const f = list.find((x) => OPENABLE.test(x.name)) ?? list.find((x) => TABLE_OPEN.test(x.name));
       if (f) openRef.current(f);

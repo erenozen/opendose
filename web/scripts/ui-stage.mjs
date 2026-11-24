@@ -577,6 +577,91 @@ const scenes = [
     await d.getByRole("button", { name: "Compare", exact: true }).click();
     await d.getByRole("region", { name: "Differences" }).waitFor({ timeout: 240000 });
   } },
+  // P-74: Add from project… with a file that differs in an info constant,
+  // two preferences and a pinned colour (the dialog before adding)
+  { name: "shell-add-project", setup: async (s) => {
+    await start(s);
+    const study = JSON.parse(readFileSync(join(FIXTURES, "project-study.json"), "utf8"));
+    const colleague = {
+      ...study, title: "Colleague",
+      prefs: { ...study.prefs, digits: 6, report: { pStyle: "apa", hideNs: false, smd: "d", variance: "eta2", pFloor: "1e-4" } },
+      groupColors: [{ name: "Control", color: "#0072b2" }],
+      sheets: [...study.sheets, { id: "i9", kind: "info", name: "Assay info of the colleague's very long-named project",
+        parentId: null, notes: "", constants: [{ name: "Dilution factor", value: "20" }] }],
+    };
+    // this project: its own dilution factor and pin
+    const mine = { ...study, groupColors: [{ name: "Control", color: "#e69f00" }],
+      sheets: [...study.sheets, { id: "i1", kind: "info", name: "Project info", parentId: null, notes: "",
+        constants: [{ name: "Dilution factor", value: "10" }] }] };
+    await s.page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+      { name: "study.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(mine)) });
+    await s.page.locator(".toast", { hasText: "Opened “study.json”" }).first().waitFor({ timeout: 30000 });
+    const chooser = s.page.waitForEvent("filechooser");
+    await headerMenu(s, "File", "Add from project…");
+    await (await chooser).setFiles({ name: "colleague-dose-response-2026-11.json", mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(colleague)) });
+    await dialog(s, "Add “colleague-dose-response-2026-11.json” to this project?").waitFor();
+  } },
+  // P-75: Preferences › Lab kit, and the import dialog of a kit
+  { name: "shell-preferences-kit", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "View", "Preferences…");
+    const prefs = dialog(s, "Preferences");
+    await prefs.getByRole("button", { name: "Export lab kit" }).evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 400);
+  } },
+  { name: "shell-lab-kit-import", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "View", "Preferences…");
+    const kit = {
+      opendose_lab_kit: 1, exportedAt: "2026-11-24T09:30:00.000Z", software: "OpenDose 0.6.0",
+      templates: [{ id: "user:a", name: "SRB plate", description: "", savedAt: 1, withData: false, tableName: "SRB",
+        table: { type: "xy", datasets: [{ name: "A", rows: [[""]] }] }, results: [], graphs: [], info: [] }],
+      recipes: [{ id: "r1", name: "Plate reader", savedAt: "", basis: "Plain import", spec: { kind: "plain" } },
+        { id: "r2", name: "Incucyte", savedAt: "", basis: "Incucyte", spec: { kind: "plain" } }],
+      plateLayouts: [{ name: "Our 96", format: 96, wells: { A1: { role: "blank" } }, description: "Saved layout (96 wells)" }],
+      equations: [], preferences: { defaultTableType: "xy", errorBars: "sd", ciMethod: "asymptotic", scheme: "default", theme: "auto", digits: 6 },
+      exportSettings: { format: "tiff", width: 600, height: 450, dpi: 600, unit: "mm", transparent: false, paper: true, scaleText: false },
+    };
+    await dialog(s, "Preferences").locator('input[aria-label="Import a lab kit file"]').setInputFiles({
+      name: "lab-kit-of-the-pharmacology-group-2026.odkit.json", mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(kit)) });
+    await dialog(s, "Import a lab kit").waitFor();
+  } },
+  // P-127: the validation page's reference datasets, and one opened
+  { name: "shell-validation-datasets", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "View", "About OpenDose…");
+    await s.page.locator(".info-pop").getByRole("button", { name: "How OpenDose is validated" }).click();
+    const v = dialog(s, "How OpenDose is validated");
+    const sec = v.getByRole("region", { name: "Reference datasets you can open" });
+    await sec.waitFor({ timeout: 15000 });
+    await sec.locator("details").nth(0).evaluate((d) => { d.open = true; });
+    await sec.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 400);
+  } },
+  { name: "shell-reference-dataset", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "View", "About OpenDose…");
+    await s.page.locator(".info-pop").getByRole("button", { name: "How OpenDose is validated" }).click();
+    await dialog(s, "How OpenDose is validated").getByRole("button", { name: "Open this dataset: Misra1a" }).click();
+    await waitLive(s);
+    await s.page.locator(".pane-results .results-table").first().waitFor({ timeout: 120000 });
+    await settle(s, 1500);
+  } },
+  { name: "shell-reference-dataset-info", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "View", "About OpenDose…");
+    await s.page.locator(".info-pop").getByRole("button", { name: "How OpenDose is validated" }).click();
+    await dialog(s, "How OpenDose is validated").getByRole("button", { name: "Open this dataset: Longley" }).first().click();
+    await s.page.locator(".toast", { hasText: "Opened the reference dataset" }).first().waitFor({ timeout: 30000 });
+    await s.page.keyboard.press("Control+k");
+    await dialog(s, "Find a command or sheet").waitFor();
+    await s.page.keyboard.type("Reference values");
+    await s.page.keyboard.press("Enter");
+    await s.page.locator(".info-main").first().waitFor({ timeout: 15000 });
+    await settle(s, 600);
+  } },
   { name: "shell-preferences-storage", setup: async (s) => {
     await example(s, { live: false });
     await headerMenu(s, "View", "Preferences…");

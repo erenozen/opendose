@@ -15,7 +15,9 @@
 // to the CSV export, read back by openpyxl, python-calamine and LibreOffice
 // (P-64); File › Export statistics table (.csv, .xlsx) and Copy statistics
 // table for Word equal the results sheets, and the bundle's analysis.py
-// reproduces the t test and the 4PL (P-66, P-67).
+// reproduces the t test and the 4PL (P-66, P-67); the validation page's
+// NIST reference datasets open as projects that reproduce the certified
+// values (P-127).
 // Run with the dev server up: node scripts/e2e-share.mjs http://localhost:5193/
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
@@ -522,7 +524,9 @@ expect("validation page lists the pinned cross-checks", rows > 100, String(rows)
 expect("validation page includes NIST Longley and Prism pins",
   (await val.innerText()).includes("Longley") && (await val.innerText()).includes("LogIC50"));
 await val.getByRole("button", { name: "NIST StRD (11)" }).click();
-expect("validation page filters by reference", await val.locator(".validation-table tbody tr").count() === 11);
+// (the checks' own tables: the reference datasets below them have theirs, P-127)
+expect("validation page filters by reference",
+  await val.locator(".validation-group:not(.validation-datasets) .validation-table tbody tr").count() === 11);
 await val.getByRole("button", { name: "Close" }).last().click();
 
 // --- "Your data and privacy": from the info popover, and at #privacy
@@ -948,6 +952,105 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   expect("P-126 the analysis has its name back",
     await student.getByRole("treeitem", { name: "Column stats of Exercise data", exact: true }).count() === 1);
   await ctxS.close();
+}
+
+// --- P-127: the published reference datasets open as projects. On the
+// validation page, "Open this dataset" on a NIST StRD check (Longley)
+// opens the table and the multiple regression whose results equal the
+// listed certified values at the 10 significant digits the project shows;
+// the datasets section opens a NIST curve fit (Misra1a, from NIST's Start
+// 1), a one-way ANOVA (SmLs01) and summary statistics (Lew) the same way.
+// The values are NIST's certified values as the page lists them
+// (src/share/referenceDatasets.json, compiled from docs/validation).
+{
+  const REFS = JSON.parse(readFileSync(join(here, "..", "src", "share", "referenceDatasets.json"), "utf8"));
+  const certified = (id, q) => REFS.datasets.find((d) => d.id === id).references.find((r) => r.quantity === q).value;
+  const ctxV = await browser.newContext({ viewport: { width: 1400, height: 950 } });
+  const pv = await ctxV.newPage();
+  watch(pv, "reference-datasets");
+  await pv.goto(exampleUrl, { waitUntil: "domcontentloaded" });
+  await pv.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 180000 });
+  const openValidation = async () => {
+    await viewMenu(pv, "About OpenDose…");
+    await pv.locator(".info-pop").getByRole("button", { name: "How OpenDose is validated" }).click();
+    const v = pv.getByRole("dialog", { name: "How OpenDose is validated" });
+    await v.waitFor({ timeout: 10000 });
+    return v;
+  };
+  /** The results pane's text once a result of `name` is live. */
+  const results = async (marker) => {
+    await pv.waitForFunction((m) => {
+      const el = document.querySelector('.pane-results[data-live="true"]');
+      return !!el && (el.textContent ?? "").includes(m);
+    }, marker, { timeout: 180000 });
+    return (await pv.locator(".pane-results").innerText()).replace(/\s+/g, " ");
+  };
+  /** The number after `label` in the results text, as shown. */
+  const shownAfter = (text, label) => {
+    const at = text.indexOf(label);
+    if (at < 0) return NaN;
+    const m = text.slice(at + label.length).match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/);
+    return m ? Number(m[0]) : NaN;
+  };
+  const same10 = (shown, ref) => shown === Number(ref.toPrecision(10));
+  const check = (what, text, pairs) => {
+    for (const [label, id, q] of pairs) {
+      const shown = shownAfter(text, label);
+      const ref = certified(id, q);
+      expect(`P-127 ${what}: ${q} shown ${shown} = certified ${ref} at 10 digits`, same10(shown, ref));
+    }
+  };
+
+  let v = await openValidation();
+  await v.getByRole("button", { name: "NIST StRD (11)" }).click();
+  const onChecks = v.locator(".validation-group:not(.validation-datasets) .validation-open");
+  expect("P-127 each NIST StRD check offers its dataset", await onChecks.count() === 11, String(await onChecks.count()));
+  const listed = (await v.locator(".validation-table tbody tr", { hasText: "Intercept estimate" }).first().innerText())
+    .replace(/\s+/g, " ");
+  expect("P-127 the check lists the certified Longley intercept", listed.includes("-3482258.63459582"), listed);
+  await onChecks.first().click();
+  const lt = await results("β0 (Intercept)");
+  check("Longley, opened from its check", lt, [
+    ["β0 (Intercept)", "nist-longley", "B0"], ["β1: x1", "nist-longley", "B1"], ["β6: x6", "nist-longley", "B6"],
+    ["Sy.x", "nist-longley", "sy_x"], ["R squared", "nist-longley", "r_squared"], ["F (6, 9) =", "nist-longley", "F"],
+  ]);
+  expect("P-127 the project holds the table, the analysis and the reference values",
+    await pv.getByRole("treeitem", { name: "Longley", exact: true }).count() === 1
+    && await pv.getByRole("treeitem", { name: "Reference values", exact: true }).count() === 1);
+  expect("P-127 opening says where the published values are",
+    await pv.locator(".toast", { hasText: /Opened the reference dataset “Longley”: its published values are in the info sheet “Reference values”\./ })
+      .first().waitFor({ timeout: 10000 }).then(() => true, () => false));
+
+  v = await openValidation();
+  const sec = v.getByRole("region", { name: "Reference datasets you can open" });
+  expect("P-127 the validation page lists the 34 openable NIST datasets",
+    await sec.getByRole("button", { name: /^Open this dataset: / }).count() === 34);
+  const misra = sec.locator("tr", { hasText: "Misra1a" });
+  await misra.locator("summary").click();
+  expect("P-127 a dataset's certified values are listed on the page",
+    (await misra.innerText()).includes("2.3894212918E+02"));
+  await sec.getByRole("button", { name: "Open this dataset: Misra1a" }).click();
+  const mt = await results("Misra1a (NIST)");
+  check("Misra1a (curve fit from Start 1)", mt, [
+    ["Std. Error 95% CI (asymptotic) b1", "nist-misra1a", "b1"], [" b2 ", "nist-misra1a", "b2"],
+    ["Sum of squares", "nist-misra1a", "residual_ss"], ["Sy.x", "nist-misra1a", "sy_x"],
+  ]);
+
+  v = await openValidation();
+  await v.getByRole("button", { name: "Open this dataset: SmLs01" }).click();
+  const st = await results("Ordinary one-way ANOVA");
+  check("SmLs01 (one-way ANOVA)", st, [
+    ["F(8, 180) =", "nist-smls01", "F"], ["R squared", "nist-smls01", "r_squared"],
+    ["Residual SD (pooled, √MS residual)", "nist-smls01", "residual_sd"],
+  ]);
+
+  v = await openValidation();
+  await v.getByRole("button", { name: "Open this dataset: Lew" }).click();
+  const wt = await results("Descriptive");
+  check("Lew (column statistics)", wt, [
+    ["Mean", "nist-lew", "mean"], [" SD", "nist-lew", "sd"], ["Descriptive n", "nist-lew", "n"],
+  ]);
+  await ctxV.close();
 }
 
 await page.screenshot({ path: join(tmp, "share.png") });

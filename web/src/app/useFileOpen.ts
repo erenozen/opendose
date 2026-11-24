@@ -11,6 +11,8 @@ import { prismTableToFamily, type PrismTable } from "./factory";
 import { openTableFile, TABLE_OPEN, TABLE_OPEN_ACCEPT } from "./tableFile";
 import { infoSheetsFromPrism, type PzfxInfo } from "../share/pzfx";
 import { canPickFiles, linkFile, openPicker, type FileHandleLike } from "./fileSave";
+import { isLabKitText } from "../project/labKit";
+import { openLabKitImport } from "./labKit";
 
 /** Files Open takes: OpenDose projects, Prism files and one table file
  *  (CSV, TSV, text, .xlsx, .xls, .ods), which goes to the Import dialog. */
@@ -108,6 +110,12 @@ export function useFileOpen(into?: (p: Project) => Project) {
         return;
       }
       const text = await file.text();
+      // A lab kit (P-75): its own dialog asks what to import.
+      if (isLabKitText(text)) {
+        dismissToast(TOAST_ID);
+        openLabKitImport(file);
+        return;
+      }
       const project = parseProjectFile(text, { prefs: store.project.prefs, ids: newId });
       // Opening replaces the project and its undo history (and the
       // autosave soon after): the project it closes comes back with Undo,

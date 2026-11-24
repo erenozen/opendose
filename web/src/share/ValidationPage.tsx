@@ -4,6 +4,9 @@ import { Button, Field, Input } from "../components/ui";
 import manifest from "./validation.json";
 import type { ValidationFor } from "./events";
 import { checksIn, validationScope, validationSentence } from "./validationIndex";
+import { datasetForSource, datasetShortName } from "./referenceDatasets";
+import ReferenceDatasets from "./ReferenceDatasets";
+import { useOpenReference, useReferenceIndex } from "./useReferenceDatasets";
 
 interface Check {
   group: string;
@@ -61,6 +64,10 @@ export default function ValidationPage({ onClose, scope }: {
   const shown = pool.filter((c) => (!only || c.group === only)
     && (!q || `${c.analysis} ${c.quantity} ${c.source}`.toLowerCase().includes(q)));
   const values = data.checks.reduce((n, c) => n + (c.n_values ?? 1), 0);
+  // The published datasets that open as projects (P-127).
+  const refs = useReferenceIndex();
+  const openRef = useOpenReference(onClose);
+  const showRefs = !!refs && !filtering && (!only || only === "NIST StRD");
 
   return (
     <Modal title="How OpenDose is validated" className="validation-page" onClose={onClose}
@@ -127,7 +134,8 @@ export default function ValidationPage({ onClose, scope }: {
         <section key={g} className="validation-group" aria-labelledby={`val-${g}`}>
           <h3 id={`val-${g}`}>{GROUP_TITLES[g] ?? g}</h3>
           {data.groups[g] && <p>{data.groups[g]}</p>}
-          <div className="validation-table-wrap">
+          <div className="validation-table-wrap" tabIndex={0} role="region"
+            aria-label={`Checks: ${GROUP_TITLES[g] ?? g}`}>
             <table className="validation-table">
               <thead>
                 <tr>
@@ -151,6 +159,14 @@ export default function ValidationPage({ onClose, scope }: {
                       {c.source}
                       <code className="validation-note">{c.file}</code>
                       {c.note && <span className="validation-note">{c.note}</span>}
+                      {(() => {
+                        const d = refs ? datasetForSource(c.source, refs.datasets) : undefined;
+                        return d && (
+                          <Button size="sm" className="validation-open"
+                            aria-label={`Open this dataset: ${datasetShortName(d)}`}
+                            onClick={() => { void openRef(d); }}>Open this dataset</Button>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}
@@ -159,6 +175,7 @@ export default function ValidationPage({ onClose, scope }: {
           </div>
         </section>
       ))}
+      {showRefs && <ReferenceDatasets index={refs} query={query} onOpen={(d) => { void openRef(d); }} />}
       {!shown.length && <p className="field-note">No check matches “{query}”.</p>}
     </Modal>
   );

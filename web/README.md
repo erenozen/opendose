@@ -53,13 +53,13 @@ one at a time: each boots its own engine.
 | `e2e-check.mjs` | The main suite: default fit, plate import, every table type, Prism import, projects (save, open, undo, autosave), chains, editing, exports of data and results |
 | `e2e-tiff.mjs` | TIFF export, parsed back byte by byte (`--no-deflate` tests the uncompressed path) |
 | `e2e-export.mjs` | Page layouts, PDF (embedded fonts, text read back as typed), PNG (in the plot font) and PowerPoint export, citation, Copy for Word, a layout's source data workbook (a sheet per panel) |
-| `e2e-share.mjs` | Share links, the export bundle, the Excel workbook of every table and results sheet (against the CSVs), import recipes, Apply to new data, the validation and privacy pages, exercise links (results withheld until Help me choose) |
+| `e2e-share.mjs` | Share links, the export bundle, the Excel workbook of every table and results sheet (against the CSVs), import recipes, Apply to new data, the validation and privacy pages, exercise links (results withheld until Help me choose); the NIST reference datasets opened from the validation page against their certified values |
 | `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks, box plots against the column statistics |
 | `e2e-assays.mjs` | Every assay wizard, against numbers the engine computes natively |
 | `e2e-import.mjs` | Getting a table in: one CSV or .xlsx dropped on the page or opened lands in the Import dialog for a new table, equal to the toolbar Import's table from the same file; .xls and .ods; find and replace; the grid's spreadsheet keys (Ctrl+arrows, Ctrl+D fill down, Home / End, Ctrl+A); pairing a long table by subject ID; .pzfx Info sheets in and out |
 | `e2e-results.mjs` | The results honesty checks: residual plots of fits and ANOVA models in the Checks row, the smallest P a rank test can reach, the Analysed line of regression, Cox and contingency results, the ratio to control with its Fieller CI; equivalence tests, comparing regression lines, pairs of rows of a contingency table and two event rates; a value left out of one analysis (with and without it, against a table-level exclusion) |
 | `e2e-models.mjs` | The models of a multiple-variables table added in wave 2: ANCOVA with its equal-slopes check and the Help me choose route to it, binomial regression of positives out of counted with its dispersion check and quasi-binomial switch, negative binomial regression, and Firth's logistic regression offered from the separation message |
-| `e2e-project.mjs` | The project file in this browser: save in place and Save as… with the File System Access API (a stand-in file system, since Playwright cannot answer the browser's pickers), the web app manifest and the installed app's file handler, the download that Firefox and Safari keep (Chromium with the API removed, and Firefox when installed); saved versions, recent projects and restoring one byte for byte; comparing two versions (the exclusion and the t test's P against scipy) |
+| `e2e-project.mjs` | The project file in this browser: save in place and Save as… with the File System Access API (a stand-in file system, since Playwright cannot answer the browser's pickers), the web app manifest and the installed app's file handler, the download that Firefox and Safari keep (Chromium with the API removed, and Firefox when installed); saved versions, recent projects and restoring one byte for byte; comparing two versions (the exclusion and the t test's P against scipy); Add from project… and a drop of two project files (unique ids, working links, the t test's P against scipy); the lab kit: export, Forget this computer's data, import, identical lists |
 | `e2e-feedback.mjs` | Toasts, banners, the announcer, the engine boot slot, a busy button and late validation |
 | `e2e-primitives.mjs` | Dialog, Popover, Menu and Tooltip from the keyboard: focus return, Tab staying inside, Home/End, type-ahead |
 | `e2e-motion.mjs` | What animates, for how long, on which curve; keyboard and reduced-motion paths; the theme switch (`--frames DIR` saves slowed screenshots) |
@@ -104,6 +104,9 @@ all of the suites above against main in a clean worktree.
   e2e-share and e2e-export run it with `PYTHON` (an interpreter with
   openpyxl and python-calamine). `xlsx-read.mjs` is the suites' own small
   reader.
+- `reference-datasets.mjs [--check]` compiles `src/share/referenceDatasets.json`,
+  the validation page's openable reference datasets with their published
+  values, from `../docs/validation/`; the unit suite fails while it is stale.
 - `make-touch-icon.mjs` renders the PNG icons from `public/favicon.svg`.
 - `make-export-fonts.py` cuts the fonts PDF exports embed
   (`src/export/fonts/`: Inter and an Arial-compatible Liberation Sans,
