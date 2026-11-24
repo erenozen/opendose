@@ -246,6 +246,12 @@ export const SRC = {
   // inflate false positives; use the unit or a multilevel model.
   aarts2014: { label: "Aarts et al. 2014, A solution to dependency: using multilevel analysis to accommodate nested data, Nat Neurosci 17:491",
     url: "https://doi.org/10.1038/nn.3648" },
+  // Planning a dose series (P-97): at least two concentrations beyond each
+  // bend point for a relative IC50; the bend points of the 4PL.
+  sebaugh2011: { label: "Sebaugh 2011, Guidelines for accurate EC50/IC50 estimation, Pharm Stat 10:128",
+    url: "https://doi.org/10.1002/pst.426" },
+  sebaughMcCray2003: { label: "Sebaugh and McCray 2003, Defining the linear portion of a sigmoid-shaped curve: bend points, Pharm Stat 2:167",
+    url: "https://doi.org/10.1002/pst.62" },
 
   // Graphs (P-25, P-26); each read on 2026-11-23.
   // "Bar charts should generally include a zero baseline (or equivalent)

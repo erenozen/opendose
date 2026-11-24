@@ -8,18 +8,25 @@ import { formatSig } from "../types.ts";
 export type PowerKind =
   | "t_two_sample" | "t_paired" | "t_one_sample" | "anova_oneway"
   | "two_proportions" | "one_proportion" | "mcnemar" | "correlation"
-  | "logrank" | "chi_square";
+  | "logrank" | "chi_square"
+  // More designs (engine/opendose/power_designs.py)
+  | "anova_rm" | "ancova" | "tost" | "mann_whitney" | "wilcoxon_signed_rank"
+  | "regression_r2" | "logistic"
+  // Animals x cells (engine/opendose/nested_power.py)
+  | "nested";
 
 export type Solve = "n" | "power" | "effect";
 
 export interface PowerFamily { label: string; kinds: PowerKind[] }
 
 export const FAMILIES: PowerFamily[] = [
-  { label: "t tests (means)", kinds: ["t_two_sample", "t_paired", "t_one_sample"] },
-  { label: "F tests (ANOVA)", kinds: ["anova_oneway"] },
+  { label: "t tests (means)", kinds: ["t_two_sample", "t_paired", "t_one_sample", "ancova", "tost"] },
+  { label: "Rank tests", kinds: ["mann_whitney", "wilcoxon_signed_rank"] },
+  { label: "F tests (ANOVA)", kinds: ["anova_oneway", "anova_rm"] },
   { label: "Proportions", kinds: ["two_proportions", "one_proportion", "mcnemar", "chi_square"] },
-  { label: "Correlation", kinds: ["correlation"] },
+  { label: "Correlation and regression", kinds: ["correlation", "regression_r2", "logistic"] },
   { label: "Survival", kinds: ["logrank"] },
+  { label: "Nested designs", kinds: ["nested"] },
 ];
 
 export const KIND_LABELS: Record<PowerKind, string> = {
@@ -33,13 +40,28 @@ export const KIND_LABELS: Record<PowerKind, string> = {
   chi_square: "Chi-square test (goodness of fit / contingency)",
   correlation: "Pearson correlation vs ρ0",
   logrank: "Two survival curves (log-rank test)",
+  anova_rm: "Repeated measures ANOVA",
+  ancova: "Two groups adjusted for a baseline (ANCOVA)",
+  tost: "Equivalence of two means (TOST)",
+  mann_whitney: "Two independent groups, ranks (Mann-Whitney)",
+  wilcoxon_signed_rank: "Paired or one group, ranks (Wilcoxon signed-rank)",
+  regression_r2: "Multiple regression (R²)",
+  logistic: "Logistic regression, one covariate",
+  nested: "Animals × cells (nested design)",
 };
+
+/** The designs whose inputs live in MoreDesigns.tsx (P-95). */
+export const MORE_KINDS: readonly PowerKind[] = [
+  "anova_rm", "ancova", "tost", "mann_whitney", "wilcoxon_signed_rank", "regression_r2", "logistic", "nested",
+];
 
 /** Kinds whose test can be one- or two-sided (the F and χ² tests cannot). */
 export const HAS_TAILS: Record<PowerKind, boolean> = {
   t_two_sample: true, t_paired: true, t_one_sample: true, anova_oneway: false,
   two_proportions: true, one_proportion: true, mcnemar: true, chi_square: false,
   correlation: true, logrank: true,
+  anova_rm: false, ancova: true, tost: false, mann_whitney: true, wilcoxon_signed_rank: true,
+  regression_r2: false, logistic: true, nested: true,
 };
 
 /** Every input as typed (strings), so the form keeps what the user wrote. */
@@ -70,6 +92,33 @@ export interface PowerForm {
   sdSource: "common" | "groups";
   sd1: string; sd2: string;
   measureUnit: string;
+  /** Repeated measures: the effect tested, measurements per subject, the
+   *  correlation among them, the nonsphericity correction ε and the
+   *  groups (Cohen's f is `f`). */
+  rmEffect: "within" | "between" | "interaction";
+  m: string; rmRho: string; eps: string; rmGroups: string;
+  /** ANCOVA: correlation of baseline and outcome (Cohen's d is `d`). */
+  ancovaRho: string;
+  /** Rank tests: the parent distribution behind the A.R.E. */
+  parent: "normal" | "logistic" | "laplace" | "min_are";
+  /** TOST: design, margin (±), true difference, SD. */
+  tostDesign: "two_sample" | "paired";
+  margin: string; theta: string; tostSd: string;
+  /** Regression: predictors in the model, how many are tested, the R²
+   *  they add (all of them: the model's R²) and the full model's R². */
+  predictors: string; tested: string; r2: string; r2Full: string;
+  /** Logistic: covariate type, odds ratio, event rate, share with X = 1,
+   *  R² of the covariate on the others. */
+  covariate: "normal" | "binary";
+  lgOr: string; lgP0: string; xProp: string; r2Other: string;
+  /** Nested design: the test on the animal means, the groups (Dunnett:
+   *  the control and the treated groups), the difference that matters,
+   *  the SDs as two components or as the total SD with the ICC, and the
+   *  measurements (cells) per animal. */
+  nestedTest: "t" | "mann_whitney" | "dunnett";
+  nestedK: string; nestedDelta: string;
+  sdMode: "components" | "icc";
+  sdBetween: string; sdWithin: string; sdTotal: string; icc: string; cells: string;
 }
 
 export function defaultForm(): PowerForm {
@@ -87,6 +136,14 @@ export function defaultForm(): PowerForm {
     w: "0.3", df: "1",
     unit: "animals", attrition: "", effectSource: "",
     sdSource: "common", sd1: "", sd2: "", measureUnit: "",
+    rmEffect: "within", m: "3", rmRho: "0.5", eps: "1", rmGroups: "1",
+    ancovaRho: "0.5",
+    parent: "normal",
+    tostDesign: "two_sample", margin: "0.5", theta: "0", tostSd: "1",
+    predictors: "3", tested: "3", r2: "0.1", r2Full: "",
+    covariate: "normal", lgOr: "1.5", lgP0: "0.5", xProp: "0.5", r2Other: "0",
+    nestedTest: "t", nestedK: "3", nestedDelta: "0.5",
+    sdMode: "icc", sdBetween: "", sdWithin: "", sdTotal: "1", icc: "0.3", cells: "10",
   };
 }
 
@@ -139,6 +196,8 @@ export const EFFECT_PARAM: Record<PowerKind, string> = {
   t_two_sample: "d", t_paired: "d", t_one_sample: "d", anova_oneway: "f",
   two_proportions: "p2", one_proportion: "p", mcnemar: "odds_ratio", correlation: "rho",
   logrank: "hr", chi_square: "w",
+  anova_rm: "f", ancova: "d", tost: "margin", mann_whitney: "d", wilcoxon_signed_rank: "d",
+  regression_r2: "f2", logistic: "odds_ratio", nested: "delta",
 };
 
 /** Name of the sample-size parameter for solve = power / effect. */
@@ -146,6 +205,8 @@ export const N_PARAM: Record<PowerKind, string> = {
   t_two_sample: "n1", t_paired: "n", t_one_sample: "n", anova_oneway: "n",
   two_proportions: "n1", one_proportion: "n", mcnemar: "n", correlation: "n",
   logrank: "n", chi_square: "n",
+  anova_rm: "n_total", ancova: "n1", tost: "n1", mann_whitney: "n1", wilcoxon_signed_rank: "n",
+  regression_r2: "n_total", logistic: "n", nested: "n",
 };
 
 export const N_LABEL: Record<PowerKind, string> = {
@@ -153,17 +214,23 @@ export const N_LABEL: Record<PowerKind, string> = {
   anova_oneway: "n per group", two_proportions: "n per group (group 1)", one_proportion: "Subjects",
   mcnemar: "Pairs", correlation: "Pairs of values", logrank: "Subjects in total",
   chi_square: "Total sample size",
+  anova_rm: "Subjects in total", ancova: "n per group (group 1)", tost: "n per group (group 1)",
+  mann_whitney: "n per group (group 1)", wilcoxon_signed_rank: "Subjects or pairs",
+  regression_r2: "Total sample size", logistic: "Total sample size", nested: "Animals per group",
 };
 
 /** Log-rank without survival times counts events, not subjects. */
 const lrEvents = (f: PowerForm) => f.kind === "logrank" && num(f.medianControl) === null;
 
+/** TOST on pairs counts pairs, not one group of two. */
+const tostPaired = (f: PowerForm) => f.kind === "tost" && f.tostDesign === "paired";
+
 export function nParam(f: PowerForm): string {
-  return lrEvents(f) ? "events" : N_PARAM[f.kind];
+  return lrEvents(f) ? "events" : tostPaired(f) ? "n" : N_PARAM[f.kind];
 }
 
 export function nLabel(f: PowerForm): string {
-  return lrEvents(f) ? "Events" : N_LABEL[f.kind];
+  return lrEvents(f) ? "Events" : tostPaired(f) ? "Pairs" : N_LABEL[f.kind];
 }
 
 export type Payload = { analysis: "power"; data: Record<string, never>; options: Record<string, unknown> };
@@ -180,7 +247,7 @@ export function powerOptions(f: PowerForm, override: { solve?: Solve; n?: number
     if (pw === null || !(pw > alpha && pw < 1)) return { error: "Power must be between α and 1 (e.g. 0.8 or 80%)." };
     o.power = pw;
   }
-  if (HAS_TAILS[f.kind]) o.tails = f.tails === "1" ? 1 : 2;
+  if (HAS_TAILS[f.kind] && !(f.kind === "nested" && f.nestedTest === "dunnett")) o.tails = f.tails === "1" ? 1 : 2;
   if (solve !== "n") {
     const n = override.n ?? num(f.n);
     if (n === null || n < 2) return { error: `${nLabel(f)}: enter a whole number of at least 2.` };
@@ -242,6 +309,89 @@ export function powerOptions(f: PowerForm, override: { solve?: Solve; n?: number
         o.df = need("Degrees of freedom", num(f.df), (x) => x >= 1 && Number.isInteger(x), "a whole number of at least 1");
         if (!solvingEffect) o.w = need("Effect size w", effect ?? num(f.w), (x) => x > 0, "positive");
         break;
+      case "anova_rm": {
+        o.effect = f.rmEffect;
+        const k = need("Groups", num(f.rmGroups), (x) => x >= 1 && Number.isInteger(x), "enter a whole number of at least 1");
+        if (f.rmEffect !== "within" && k < 2) throw new Error("Groups: the between and interaction effects need at least 2 groups");
+        o.k = k;
+        const m = need("Measurements per subject", num(f.m), (x) => x >= 2 && Number.isInteger(x), "enter a whole number of at least 2");
+        o.m = m;
+        o.rho = need("Correlation among measurements", num(f.rmRho), (x) => x > -1 / (m - 1) && x < 1,
+          `between ${formatSig(-1 / (m - 1), 3)} and 1`);
+        if (f.rmEffect !== "between") {
+          o.eps = need("Nonsphericity correction ε", num(f.eps), (x) => x >= 1 / (m - 1) - 1e-12 && x <= 1,
+            `between 1/(m − 1) = ${formatSig(1 / (m - 1), 3)} and 1`);
+        }
+        if (!solvingEffect) o.f = need("Effect size f", effect ?? num(f.f), (x) => x > 0, "enter a positive number");
+        break;
+      }
+      case "ancova":
+        o.rho = need("Correlation of baseline and outcome", num(f.ancovaRho), (x) => x > -1 && x < 1, "between −1 and 1");
+        if (!solvingEffect) o.d = need("Effect size d", effect ?? num(f.d), (x) => x > 0, "enter a positive number");
+        o.ratio = need("Allocation ratio", num(f.ratio), (x) => x > 0, "enter n2 / n1 (1 = equal groups)");
+        break;
+      case "mann_whitney": case "wilcoxon_signed_rank":
+        o.parent = f.parent;
+        if (!solvingEffect) o.d = need("Effect size d", effect ?? num(f.d), (x) => x > 0, "enter a positive number");
+        if (f.kind === "mann_whitney") o.ratio = need("Allocation ratio", num(f.ratio), (x) => x > 0, "enter n2 / n1 (1 = equal groups)");
+        break;
+      case "tost": {
+        o.design = f.tostDesign;
+        o.sd = need("SD", num(f.tostSd), (x) => x > 0, "enter a positive number");
+        const theta = need("Expected true difference", num(f.theta), Number.isFinite, "enter a number (0 = no difference)");
+        o.theta = theta;
+        if (!solvingEffect) {
+          o.margin = need("Equivalence margin", effect ?? num(f.margin), (x) => x > Math.abs(theta),
+            "enter a positive number larger than the expected true difference");
+        }
+        if (f.tostDesign === "two_sample") o.ratio = need("Allocation ratio", num(f.ratio), (x) => x > 0, "enter n2 / n1 (1 = equal groups)");
+        break;
+      }
+      case "regression_r2": {
+        const p = need("Predictors in the model", num(f.predictors), (x) => x >= 1 && Number.isInteger(x), "enter a whole number of at least 1");
+        const q = need("Predictors tested", num(f.tested), (x) => x >= 1 && x <= p && Number.isInteger(x), `a whole number from 1 to ${p}`);
+        o.predictors = p;
+        o.tested = q;
+        if (effect !== undefined) o.f2 = effect;
+        else if (!solvingEffect) {
+          const r2 = need(q === p ? "R² of the model" : "R² added by the tested predictors", prob(f.r2),
+            (x) => x > 0 && x < 1, "between 0 and 1");
+          if (q === p) o.r2 = r2;
+          else {
+            o.r2_change = r2;
+            o.r2_full = need("R² of the full model", prob(f.r2Full), (x) => x >= r2 && x < 1, "at least the R² added, below 1");
+          }
+        }
+        break;
+      }
+      case "nested": {
+        o.test = f.nestedTest;
+        o.k = f.nestedTest === "dunnett"
+          ? need("Groups, control included", num(f.nestedK), (x) => x >= 2 && x <= 20 && Number.isInteger(x),
+            "enter a whole number from 2 to 20")
+          : 2;
+        o.m = need("Cells per animal", num(f.cells), (x) => x >= 1 && x <= 10000 && Number.isInteger(x),
+          "enter a whole number of at least 1");
+        if (f.sdMode === "components") {
+          o.sd_between = need("SD between animals", num(f.sdBetween), (x) => x >= 0, "enter 0 or more");
+          o.sd_within = need("SD within an animal", num(f.sdWithin), (x) => x >= 0, "enter 0 or more");
+          if (o.sd_between === 0 && o.sd_within === 0) throw new Error("SDs: at least one must be above 0");
+        } else {
+          o.sd_total = need("Total SD", num(f.sdTotal), (x) => x > 0, "enter a number above 0");
+          o.icc = need("ICC", prob(f.icc), (x) => x >= 0 && x <= 1, "between 0 and 1");
+        }
+        if (!solvingEffect) o.delta = need("Difference that matters", effect ?? num(f.nestedDelta), (x) => x > 0, "enter a positive number");
+        break;
+      }
+      case "logistic":
+        o.covariate = f.covariate;
+        o.p0 = need(f.covariate === "binary" ? "Event rate when X = 0" : "Event rate at the covariate’s mean",
+          prob(f.lgP0), (x) => x > 0 && x < 1, "between 0 and 1");
+        if (f.covariate === "binary") o.x_prop = need("Share with X = 1", prob(f.xProp), (x) => x > 0 && x < 1, "between 0 and 1");
+        o.r2_other = need("R² with the other covariates", prob(f.r2Other) ?? 0, (x) => x >= 0 && x < 1, "from 0 up to, not including, 1");
+        if (!solvingEffect) o.odds_ratio = need("Odds ratio", effect ?? num(f.lgOr), (x) => x > 0 && x !== 1, "positive and not 1");
+        else if (num(f.lgOr) !== null) o.odds_ratio = num(f.lgOr);
+        break;
     }
   } catch (e) {
     return { error: (e as Error).message };
@@ -273,6 +423,20 @@ export function powerPayload(f: PowerForm): { error: string } | { payload: Paylo
 
 export interface PowerResult {
   error?: string;
+  /** More designs (power_designs.py). */
+  effect_type?: "within" | "between" | "interaction";
+  m?: number; rho?: number; eps?: number | null;
+  design_factor?: number; n1_t_test?: number; n1_design_factor?: number;
+  are?: number; parent?: string;
+  design?: string; lower?: number; upper?: number; theta?: number; sd?: number;
+  predictors?: number; tested?: number;
+  covariate?: "normal" | "binary"; critical_z?: number;
+  /** Nested design (nested_power.py). */
+  test?: "t" | "mann_whitney" | "dunnett";
+  icc?: number; design_effect?: number; sd_unit_mean?: number; sd_between?: number; sd_within?: number;
+  cells_per_group?: number; cells_if_independent?: number; cells_if_independent_exact?: number;
+  n_design_effect?: number | null; critical_dunnett?: number;
+  tradeoff?: { m: number; n: number }[];
   kind: PowerKind;
   solve: Solve;
   alpha: number;
@@ -311,7 +475,11 @@ export interface PowerResult {
 /** The sample size the curves center on (per group / pairs / total, in
  *  the unit N_PARAM reads). */
 export function nForCurve(r: PowerResult): number {
-  if (r.kind === "t_two_sample" || r.kind === "two_proportions") return r.n1 ?? r.n_per_group?.[0] ?? r.n_total / 2;
+  if (r.kind === "t_two_sample" || r.kind === "two_proportions" || r.kind === "ancova"
+    || r.kind === "mann_whitney" || (r.kind === "tost" && r.design === "two_sample")) {
+    return r.n1 ?? r.n_per_group?.[0] ?? r.n_total / 2;
+  }
+  if (r.kind === "anova_rm" || r.kind === "regression_r2") return r.n_total;
   if (r.kind === "anova_oneway") return r.n_per_group?.[0] ?? Math.round(r.n_total / (r.k ?? 1));
   if (r.kind === "logrank" && !r.n_total) return Math.ceil(r.events ?? 2);
   return r.n ?? r.n_total;
@@ -331,8 +499,20 @@ export function unroundedN(r: PowerResult): [string, number][] {
     : [["Unrounded n, group 1", n1], ["Unrounded n, group 2", n1 * ratio],
       ["Unrounded total N", n1 * (1 + ratio)]]);
   switch (r.kind) {
-    case "t_two_sample": case "two_proportions":
+    case "t_two_sample": case "two_proportions": case "mann_whitney":
       return ok(r.n1_exact) ? twoGroups(r.n1_exact, r.ratio ?? 1) : [];
+    case "anova_rm": {
+      const N = r.n_total_exact;
+      if (!ok(N)) return [];
+      return (r.k ?? 1) > 1 ? [["Unrounded n per group", N / (r.k ?? 1)], ["Unrounded total N", N]]
+        : [["Unrounded N", N]];
+    }
+    case "wilcoxon_signed_rank":
+      return ok(r.n_exact) ? [["Unrounded n", r.n_exact]] : [];
+    case "nested":
+      return ok(r.n_exact) ? [["Unrounded animals per group", r.n_exact]] : [];
+    case "regression_r2": case "logistic":
+      return ok(r.n_exact) ? [["Unrounded total N", r.n_exact]] : [];
     case "anova_oneway": {
       const N = r.n_total_exact;
       if (!ok(N)) return [];
@@ -353,6 +533,89 @@ export function unroundedN(r: PowerResult): [string, number][] {
     default:
       return [];
   }
+}
+
+/** Rows the generic summary does not know: design factors, margins, the
+ *  A.R.E. and the measurement layout. */
+export function moreSummaryRows(r: PowerResult): [string, string][] {
+  const rows: [string, string][] = [];
+  const fmtSig = (v: number | null | undefined) => formatSig(v ?? null);
+  if (r.kind === "anova_rm") {
+    rows.push(["Effect tested", r.effect_type === "within" ? "Within subjects"
+      : r.effect_type === "between" ? "Between groups" : "Group × time interaction"]);
+    rows.push(["Measurements per subject", String(r.m)]);
+    rows.push(["Correlation among measurements", fmtSig(r.rho)]);
+    if (r.eps != null) rows.push(["Nonsphericity correction ε", fmtSig(r.eps)]);
+  }
+  if (r.kind === "ancova" && r.design_factor !== undefined) {
+    rows.push(["Design factor 1 − ρ²", fmtSig(r.design_factor)]);
+    if (r.n1_t_test !== undefined) {
+      rows.push(["n per group without the baseline (t test)", String(r.n1_t_test)]);
+    }
+    if (r.n1_design_factor !== undefined) {
+      rows.push(["Borm et al. rule: (1 − ρ²) n + 1", fmtSig(r.n1_design_factor)]);
+    }
+  }
+  if (r.kind === "tost" && r.lower !== undefined && r.upper !== undefined) {
+    rows.push(["Equivalence margins", `${fmtSig(r.lower)} to ${fmtSig(r.upper)}`]);
+    rows.push(["Expected true difference", fmtSig(r.theta)]);
+  }
+  if ((r.kind === "mann_whitney" || r.kind === "wilcoxon_signed_rank") && r.are !== undefined) {
+    rows.push(["A.R.E.", fmtSig(r.are)]);
+  }
+  if (r.kind === "regression_r2") {
+    rows.push(["Predictors tested", `${r.tested} of ${r.predictors}`]);
+    const r2 = r.effect.r2_equivalent;
+    if (typeof r2 === "number") rows.push(["Partial R² (f² ÷ (1 + f²))", fmtSig(r2)]);
+  }
+  if (r.kind === "logistic") {
+    rows.push(["Event rate", r.covariate === "binary" && typeof r.effect.p1 === "number"
+      ? `${fmtSig(r.effect.p0 as number)} (X = 0) vs ${fmtSig(r.effect.p1 as number)} (X = 1)`
+      : `${fmtSig(r.effect.p0 as number)} at the covariate’s mean`]);
+    if (r.critical_z !== undefined) rows.push(["Critical z", fmtSig(r.critical_z)]);
+  }
+  return rows;
+}
+
+/** Rows of a nested design: the variance components, the design effect
+ *  and its hand check against a count that treats cells as n. */
+export function nestedSummaryRows(r: PowerResult): [string, string][] {
+  if (r.kind !== "nested") return [];
+  const g = (v: number | null | undefined, sig = 4) => formatSig(v ?? null, sig);
+  const rows: [string, string][] = [
+    ["Test", r.test === "t" ? "t test on animal means" : r.test === "mann_whitney"
+      ? "Mann-Whitney test on animal means (A.R.E. 0.955)" : `Dunnett’s test, ${(r.k ?? 2) - 1} treated vs control, on animal means`],
+    ["Cells per animal", String(r.m)],
+    ["Cells per group", String(r.cells_per_group)],
+    ["ICC", g(r.icc, 3)],
+    ["Design effect 1 + (m − 1) ICC", g(r.design_effect, 4)],
+    ["SD of an animal’s mean", g(r.sd_unit_mean, 4)],
+  ];
+  if (r.critical_dunnett !== undefined) rows.push(["Dunnett critical value", g(r.critical_dunnett, 4)]);
+  if (r.cells_if_independent !== undefined && r.n_design_effect != null && r.m !== undefined
+    && r.cells_if_independent_exact !== undefined && r.design_effect !== undefined) {
+    rows.push(["Cells per group if cells were independent (wrong)", String(r.cells_if_independent)]);
+    rows.push(["Design-effect check (normal approximation)",
+      `${g(r.cells_if_independent_exact)} × ${g(r.design_effect)} ÷ ${r.m} = ${g(r.n_design_effect)} animals`]);
+  }
+  return rows;
+}
+
+/** Options for the nested simulation at the closed form's answer, or
+ *  null while there is no answer to check. */
+export function nestedSimOptions(f: PowerForm, r: PowerResult | null): Record<string, number | string> | null {
+  if (!r || r.kind !== "nested" || r.sd_between === undefined || r.sd_within === undefined
+    || !Number.isFinite(r.effect?.value)) return null;
+  return {
+    test: r.test ?? "t", k: r.k ?? 2, n: r.n ?? r.n_per_group?.[0] ?? 2, m: r.m ?? 1, delta: r.effect.value,
+    sd_between: r.sd_between, sd_within: r.sd_within, alpha: r.alpha,
+    ...(r.test === "dunnett" ? {} : { tails: r.tails ?? (f.tails === "1" ? 1 : 2) }),
+  };
+}
+
+/** The effect parameter's display name ("f2" reads f²). */
+export function effectName(name: string): string {
+  return name === "f2" ? "f²" : name === "odds_ratio" ? "odds ratio" : name;
 }
 
 /** Pooled SD of two groups: √(((n1 − 1)s1² + (n2 − 1)s2²) / (n1 + n2 − 2)). */
@@ -439,7 +702,7 @@ export function effectGrid(kind: PowerKind, e: number, ref: { p1?: number; p0?: 
       else { hi = base - (base - e) * 0.15; lo = Math.max(-0.99, base - (base - e) * 2.2); }
       break;
     }
-    case "logrank": case "mcnemar": {
+    case "logrank": case "mcnemar": case "logistic": {
       // ratios: spread on the log scale away from 1
       const l = Math.log(e);
       const a = l * 0.15;
@@ -554,7 +817,7 @@ export function justificationSheetContent(f: PowerForm, r: PowerResult):
   const constants = [
     { name: JUSTIFICATION_CONSTANT, value: text },
     { name: "Test", value: KIND_LABELS[r.kind] },
-    { name: "Calculation", value: r.solve === "n" ? "A priori (sample size)" : r.solve === "power" ? "Post hoc (power)" : "Sensitivity (detectable effect)" },
+    { name: "Calculation", value: r.solve === "n" ? "A priori (sample size)" : r.solve === "power" ? "Power at a planned n" : "Sensitivity (detectable effect)" },
     { name: "α", value: String(r.alpha) + (r.tails ? ` (${r.tails === 1 ? "one" : "two"}-sided)` : "") },
     { name: "Power", value: pct(r.power) },
     { name: "Effect size", value: `${r.effect.name} = ${Number(r.effect.value.toPrecision(4))}` },

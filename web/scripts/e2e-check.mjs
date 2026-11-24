@@ -2362,6 +2362,80 @@ await pwv.getByLabel("Measurement unit").fill("mmol/L");
 expect("power: detectable difference in raw units, 1.19 mmol/L (d = 0.909 × pooled SD 1.3)",
   await powerText(/Detectable difference\s+1\.19 mmol\/L \(d = 0\.909 × pooled SD 1\.3\)/),
   await pwv.locator(".power-summary").innerText().catch(() => ""));
+// P-95 more designs (engine/tests/test_power_designs.py). Faul et al.
+// (2007) p. 182, Berti et al.: 2 groups x 10 measurements, rho .5,
+// f 0.25, within effect at power .95 -> N = 20 (the plan's acceptance
+// test: same total N and power); Figure 4: 3 x 3, N 90, rho .3,
+// f 0.2572 -> power .997, critical F 3.048.
+await pwv.getByLabel("Test", { exact: true }).selectOption("anova_rm");
+await pwv.getByLabel("Solve for").selectOption("n");
+await pwv.getByLabel("Power (1 − β)").fill("0.95");
+await pwv.getByLabel("Groups", { exact: true }).fill("2");
+await pwv.getByLabel("Measurements per subject").fill("10");
+await pwv.getByLabel("Correlation among measurements (ρ)").fill("0.5");
+await pwv.getByLabel("Cohen's f").fill("0.25");
+expect("power, RM ANOVA (Faul et al. 2007, Berti example): 10 per group, 20 in total, 95.14%",
+  await powerText(/Power achieved\s+95\.14% \(target 95%\)[\s\S]*n per group\s+10 and 10[\s\S]*Total N\s+20/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+await pwv.getByLabel("Solve for").selectOption("power");
+await pwv.getByLabel("Subjects in total").fill("90");
+await pwv.getByLabel("Groups", { exact: true }).fill("3");
+await pwv.getByLabel("Measurements per subject").fill("3");
+await pwv.getByLabel("Correlation among measurements (ρ)").fill("0.3");
+await pwv.getByLabel("Cohen's f").fill("0.2572");
+expect("power, RM ANOVA (Faul et al. 2007, Figure 4): 99.66%, critical F 3.048 on 2, 174",
+  await powerText(/Power achieved\s+99\.66%[\s\S]*Degrees of freedom\s+2, 174[\s\S]*Critical F\s+3\.048/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+// Hsieh et al. (1998) Table II, G*Power manual 29.3: OR 1.5 per SD,
+// event rate .5, power .95 -> N = 317 (0.950486).
+await pwv.getByLabel("Test", { exact: true }).selectOption("logistic");
+await pwv.getByLabel("Solve for").selectOption("n");
+await pwv.getByLabel("Odds ratio per SD of the covariate").fill("1.5");
+await pwv.getByLabel("Event rate at the covariate’s mean").fill("0.5");
+expect("power, logistic regression (Hsieh et al. 1998): N 317 at 95.05%",
+  await powerText(/Power achieved\s+95\.05%[\s\S]*Total sample size\s+317/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+// G*Power manual 13.3.1: R² .10, 5 predictors, N 95 -> 0.673586.
+await pwv.getByLabel("Test", { exact: true }).selectOption("regression_r2");
+await pwv.getByLabel("Solve for").selectOption("power");
+await pwv.getByLabel("Total sample size").fill("95");
+await pwv.getByLabel("Predictors in the model").fill("5");
+await pwv.getByLabel("Predictors tested").fill("5");
+await pwv.getByLabel("R² of the model").fill("0.1");
+expect("power, multiple regression (G*Power manual 13.3.1): 67.36%, critical F 2.317",
+  await powerText(/Power achieved\s+67\.36%[\s\S]*Critical F\s+2\.317/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+// P-96 nested design (engine/tests/test_nested_power.py): ICC 0.3, 10
+// cells per animal, a difference of 0.5 total SD, 80% power -> 25 animals
+// per group (81.26%); the design effect 1 + 9 x 0.3 = 3.7 turns the 64
+// cells a naive count asks for (63.77 unrounded) into 23.59 animals.
+await pwv.getByLabel("Test", { exact: true }).selectOption("nested");
+await pwv.getByLabel("Solve for").selectOption("n");
+await pwv.getByLabel("Power (1 − β)").fill("0.8");
+expect("power, nested design (acceptance): 25 animals per group, design effect 3.7, check 23.59",
+  await powerText(/Power achieved\s+81\.26%[\s\S]*n per group\s+25 and 25[\s\S]*Design effect 1 \+ \(m − 1\) ICC\s+3\.7[\s\S]*if cells were independent \(wrong\)\s+64[\s\S]*63\.77 × 3\.7 ÷ 10 = 23\.59 animals/),
+  await pwv.locator(".power-summary").innerText().catch(() => ""));
+expect("power, nested design: cells vs animals trade-off (10 cells -> 25 animals, 1 cell -> 64)",
+  await pwv.locator(".power-tradeoff").innerText().then((t) => /^1\s+64$/m.test(t) && /^10\s+25$/m.test(t), () => false));
+// Simulation: 2000 experiments, seed 7, within 4 Monte Carlo SE of the
+// closed form; Stop keeps what was simulated.
+await pwv.getByLabel("Simulated experiments").fill("2000");
+await pwv.locator(".power-nested-sim").getByLabel("Seed", { exact: true }).fill("7");
+await pwv.getByRole("button", { name: "Simulate power" }).click();
+const simText = await pwv.locator(".power-nested-sim .power-kv").innerText({ timeout: 120000 }).catch(() => "");
+const simPw = Number(/Simulated power\s+([\d.]+)%/.exec(simText)?.[1]);
+const simSe = Number(/Monte Carlo SE\s+([\d.]+)%/.exec(simText)?.[1]);
+expect("power, nested design simulation: 2000 runs within 4 SE of 81.26%",
+  /Simulated experiments\s+2,000/.test(simText) && /Seed\s+7/.test(simText)
+  && Math.abs(simPw - 81.26) <= 4 * simSe && simSe > 0.5 && simSe < 1.2, simText);
+await pwv.getByLabel("Simulated experiments").fill("10000");
+await pwv.getByRole("button", { name: "Simulate again" }).click();
+await pwv.getByRole("progressbar", { name: "Simulation progress" }).waitFor({ timeout: 30000 });
+await pwv.getByRole("button", { name: "Stop", exact: true }).click();
+expect("power, nested design simulation: Stop ends the run early with its count",
+  await page.waitForFunction(() => /Stopped after [\d,]+ simulated experiments/.test(
+    document.querySelector("dialog.power-dialog .power-nested-sim [role=status]")?.textContent ?? ""),
+  null, { timeout: 60000 }).then(() => true, () => false));
 await pwv.getByRole("button", { name: "Done" }).click();
 
 // qPCR: Livak & Schmittgen (2001) Table 1 as a QuantStudio-style export
@@ -4271,6 +4345,42 @@ const axeOn = async (pg, sel) => {
     && await page.getByRole("treeitem", { name: "Serum IL-6 (pg/mL) (planned)" }).count() >= 1
     && await page.getByRole("treeitem", { name: "t test of Serum IL-6 (pg/mL) (planned)" }).count() >= 1,
     (await saved.innerText().catch(() => "")).slice(0, 200));
+
+  // (b2) P-97 dose series (engine/tests/test_doseplan.py): 8 half-log
+  // concentrations from 56.2 µM around an expected IC50 of 1 µM, Hill 1,
+  // plateaus 100 and 0, SD 5, triplicates: expected 95% CI 0.772 to
+  // 1.3 µM (1.68-fold), both plateaus defined; from 1778 µM the top
+  // plateau is missed: 28.2-fold and a flag.
+  await navRow("Planned mice").click();
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Plan an experiment…/ }).click();
+  const pd = page.getByRole("dialog", { name: "Plan an experiment" });
+  await pd.waitFor({ timeout: 15000 });
+  await pd.getByRole("group", { name: "What did you measure?" })
+    .getByRole("radio", { name: "A dose-response or other curve" }).check();
+  const doseCi = (re) => page.waitForFunction((src) => new RegExp(src).test(
+    document.querySelector(".plan-exp .dose-plan-answer")?.innerText ?? ""), re.source, { timeout: 60000 })
+    .then(() => true, () => false);
+  expect("dose series (acceptance): expected IC50 CI 0.772 to 1.3 µM, 1.68-fold, both plateaus defined",
+    await doseCi(/Expected 95% CI of the IC50: 0\.772 to 1\.3\sµM, a 1\.68-fold range[\s\S]*The top plateau is defined[\s\S]*The bottom plateau is defined/),
+    await pd.locator(".dose-plan-answer").innerText().catch(() => ""));
+  await pd.getByLabel("Highest concentration").fill("1778");
+  expect("dose series: missing the top plateau widens the CI to 28.2-fold and flags it (Sebaugh 2011)",
+    await doseCi(/0\.188 to 5\.31\sµM, a 28\.2-fold range[\s\S]*The top plateau will not be defined[\s\S]*0 concentrations beyond/),
+    await pd.locator(".dose-plan-answer").innerText().catch(() => ""));
+  await pd.getByLabel("Highest concentration").fill("56.2");
+  await doseCi(/1\.68-fold/);
+  await pd.getByLabel("Simulated experiments").fill("30");
+  await pd.locator(".dose-plan-sim").getByLabel("Seed", { exact: true }).fill("3");
+  await pd.getByRole("button", { name: "Simulate the series" }).click();
+  const doseSim = await pd.locator(".dose-plan-sim .power-kv").innerText({ timeout: 180000 }).catch(() => "");
+  const medFold = Number(/Median CI of the IC50 \(fold range\)\s+([\d.]+)-fold/.exec(doseSim)?.[1]);
+  expect("dose series simulation: 30 fitted experiments, median CI near the expected 1.68-fold",
+    /Simulated experiments\s+30/.test(doseSim) && medFold > 1.5 && medFold < 1.9
+    && /Expected \(from the information matrix\)\s+1\.68-fold/.test(doseSim), doseSim);
+  axeHits.push(...await axeAt(".plan-exp"));
+  await pd.getByRole("button", { name: "Cancel" }).click();
+  await pd.waitFor({ state: "detached", timeout: 10000 });
 
   // (c) the interaction question on a 2 × 2 grouped table
   await newTable("grouped", "Drug by genotype", [2, 3, 2]);

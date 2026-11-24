@@ -4384,7 +4384,14 @@ def _power(data, options):
     means, sd, k, equal_n, n_total; df1, groups; p1, p2, method; p0, p,
     balance; p12, p21, odds_ratio, p_discordant; rho, rho0; hr, events,
     method, p_event, median_control, hazard_control, accrual, followup;
-    w, df, p0, p1; distribution, ncp, df1, df2). justification (optional
+    w, df, p0, p1; distribution, ncp, df1, df2). More designs
+    (power_designs.py): "anova_rm" (effect within | between |
+    interaction, f, k, m, rho, eps, n_total), "ancova" (d, rho, n1,
+    ratio), "mann_whitney" / "wilcoxon_signed_rank" (d, parent | are,
+    n1 | n), "tost" (design, margin | lower + upper, theta, sd, n1 | n),
+    "regression_r2" (predictors, tested, f2 | r2 | r2_change + r2_full,
+    n_total), "logistic" (covariate, odds_ratio | p1, p0, x_prop,
+    r2_other, n). justification (optional
     {unit, effect_source, attrition}) adds the ARRIVE-style sentence.
     Result: {"analysis": "power", "kind", "solve", "alpha", "tails",
     "power" (achieved at the reported n), "target_power"?, "n_total",
@@ -4401,6 +4408,60 @@ def _power(data, options):
             res, unit=just.get("unit", "animals"),
             effect_source=just.get("effect_source"),
             attrition=just.get("attrition"))
+    return out
+
+
+def _nested_power_sim(data, options):
+    """Simulation power of a nested design (nested_power.simulate_power).
+    data is ignored. options: test ("t" | "mann_whitney" | "dunnett"),
+    k, n (units per group), m (measurements per unit), delta,
+    sd_between + sd_within or sd_total + icc, alpha, tails, n_repeats
+    (capped at 10000), seed. With "pool": [chunk results] instead, the
+    chunks of one run (consecutive seeds) are pooled (nested_power.pool).
+    Result: {"analysis": "nested_power_sim", "power", "mc_se", "ci95",
+    "n_repeats", "hits", "comparisons", "seed"?, "power_all"?,
+    "power_any"?}."""
+    from . import nested_power
+    if options.get("pool") is not None:
+        return {"analysis": "nested_power_sim", **nested_power.pool(
+            options["pool"], options.get("test", "t"))}
+    keys = ("test", "k", "n", "m", "delta", "sd_between", "sd_within",
+            "sd_total", "icc", "alpha", "tails", "n_repeats", "seed")
+    return {"analysis": "nested_power_sim", **nested_power.simulate_power(
+        **{k: options[k] for k in keys if k in options})}
+
+
+def _dose_plan(data, options):
+    """Planning a dose series (doseplan.plan). data is ignored. options:
+    ic50, hill (negative: falling curve), top, bottom, sd (one well),
+    replicates, and doses [concentrations] or top_dose + n_doses +
+    dilution; ci_level (0.95). With n_sim (and seed) the planned
+    experiment is also simulated and fitted (doseplan.simulate_fits) under
+    "simulation"; plan: false leaves the plan out. With "pool": [the
+    "simulation" results of one run's chunks] instead, the chunks are
+    pooled (doseplan.summarize). Result: {"analysis": "dose_plan",
+    "doses", "expected_ci": {log_width, fold_width, lower, upper, ...},
+    "plateaus", "bend_points", "flags", "se", ...}."""
+    from . import doseplan
+    if options.get("pool") is not None:
+        chunks = options["pool"]
+        if not chunks:
+            raise ValueError("nothing to pool")
+        keys = ("n_sim", "n_failed", "n_ambiguous", "n_no_ci", "n_ci",
+                "n_covered")
+        pooled = {k: sum(int(c[k]) for c in chunks) for k in keys}
+        pooled["log_widths"] = [w for c in chunks for w in c["log_widths"]]
+        return {"analysis": "dose_plan", **pooled,
+                **doseplan.summarize(pooled)}
+    keys = ("ic50", "hill", "top", "bottom", "sd", "replicates", "doses",
+            "top_dose", "n_doses", "dilution", "ci_level")
+    planned = {k: options[k] for k in keys if k in options}
+    out = {"analysis": "dose_plan"}
+    if options.get("plan", True):
+        out.update(doseplan.plan(**planned))
+    if options.get("n_sim"):
+        out["simulation"] = doseplan.simulate_fits(
+            n_sim=options["n_sim"], seed=options.get("seed"), **planned)
     return out
 
 
@@ -4425,6 +4486,8 @@ _HANDLERS.update({
     "estimation": _estimation,
     "power": _power,
     "randomize": _randomize,
+    "nested_power_sim": _nested_power_sim,
+    "dose_plan": _dose_plan,
 })
 
 

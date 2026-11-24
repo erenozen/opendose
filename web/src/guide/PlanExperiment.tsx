@@ -6,6 +6,8 @@
 // a suggested n from the power engine (a priori, from the smallest
 // difference that matters; never post hoc), a sourced design check list
 // (guide/designChecks.ts) and "Save as analysis plan" (project/plan.ts).
+// Dose-response curves get the dose-series check (DoseSeriesPlan.tsx):
+// the expected IC50 CI and whether both plateaus will be defined.
 import { useEffect, useMemo, useState } from "react";
 import { useProject } from "../app/context";
 import { addFamily } from "../app/factory";
@@ -28,6 +30,8 @@ import {
   tableAnswers, type PlanAnswers,
 } from "./designChecks";
 import { recommendTable } from "./designToTable";
+import DoseSeriesPlan from "./DoseSeriesPlan";
+import { defaultDoseForm, planNote, type DoseForm, type DosePlanResult } from "./doseSeries";
 import { DEFAULT_DESIGN, recommend, type Design } from "./recommend";
 import { tableWording } from "./tablePrefill";
 import { Choice, DesignQuestions } from "./WhichTest";
@@ -50,6 +54,8 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
   const [sd, setSd] = useState("");
   const [power, setPower] = useState<PowerResult | null>(null);
   const [powerError, setPowerError] = useState<string | null>(null);
+  const [doseForm, setDoseForm] = useState<DoseForm>(defaultDoseForm);
+  const [dosePlan, setDosePlan] = useState<DosePlanResult | null>(null);
 
   const rec = useMemo(() => recommend(d, null), [d]);
   const checks = useMemo(() => designChecks(d, { ...a, unitsPerGroup: num(units) }), [d, a, units]);
@@ -58,6 +64,8 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
   const rowText = rowLevels ?? names.rows.join(", ");
   const tableRec = useMemo(() => recommendTable(tableAnswers(d)), [d]);
   const tableType = rec.target?.tableType ?? tableRec.type;
+  // a dose-response curve whose IC50 / EC50 is the answer
+  const doseCurve = d.outcome === "curve" && (d.curveGoal === "ic50" || d.curveGoal === "compare");
   const layoutText = tableRec.type === tableType ? `${tableRec.title}. ${tableRec.layout}` : rec.target?.layout ?? "";
 
   // Suggested n: the power engine, a priori, from the difference that
@@ -115,7 +123,8 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
           fam.dataId), constants: [] }]);
         out = setPlan(out, planId, { ...made, primaryOutcome: outcome.trim(), nPerGroup: nPlanned,
           designNotes: [...checkLines(checks), ...(power?.justification?.text
-            ? [`Sample size: ${power.justification.text}`] : [])] });
+            ? [`Sample size: ${power.justification.text}`] : []),
+          ...(doseCurve && dosePlan ? [planNote(dosePlan, doseForm.unit)] : [])] });
         goTo = planId;
       }
       return out;
@@ -206,6 +215,12 @@ export default function PlanExperiment({ onClose }: { onClose: () => void }) {
             Planned from a difference that matters, never from the effect a finished experiment
             observed.
           </p>
+          {doseCurve && (
+            <>
+              <h4>Dose series</h4>
+              <DoseSeriesPlan form={doseForm} setForm={setDoseForm} rising={d.agonist} onResult={setDosePlan} />
+            </>
+          )}
           <h4>Design checks</h4>
           <ul className="plan-checks" aria-label="Design checks">
             {checks.map((c) => (

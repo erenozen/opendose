@@ -210,3 +210,15 @@ h3 .learn-more { margin-left: var(--space-8); text-transform: none; letter-spaci
   text-align: left; padding: 3px 10px 3px 0; border-bottom: 1px solid var(--line);
 }
 .guide-holm thead th { color: var(--muted); font-weight: var(--weight-semibold); }
+
+/* Plan an experiment: the dose-series check (DoseSeriesPlan.tsx, P-97). */
+.dose-plan { display: flex; flex-direction: column; gap: var(--space-8); }
+.dose-plan-fields {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-8) var(--space-12); align-items: start;
+}
+.dose-plan-fields .ui-field input, .dose-plan-fields .ui-field select { width: 100%; min-width: 0; }
+.dose-plan-answer p { margin: 0 0 var(--space-6); }
+.dose-plan-ci { color: var(--ink); font-size: var(--text-body); }
+.dose-plan-sim h4 { margin-top: var(--space-8); }
+.dose-plan .plan-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-8); }

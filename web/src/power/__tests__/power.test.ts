@@ -6,8 +6,8 @@ import { makeInfoSheet, makeProject } from "../../project/ops.ts";
 import { DEFAULT_PREFS } from "../../project/prefs.ts";
 import {
   defaultForm, dFromMeans, effectGrid, fFromMeans, findSampleSizeJustification, hFromProportions,
-  hrFromMedians, JUSTIFICATION_CONSTANT, justificationSheetContent, nGrid, nParam, pooledSd, powerOptions,
-  powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN, type PowerResult,
+  hrFromMedians, effectName, JUSTIFICATION_CONSTANT, justificationSheetContent, moreSummaryRows, nForCurve, nGrid,
+  nestedSimOptions, nestedSummaryRows, nLabel, nParam, pooledSd, powerOptions, powerPayload, randomCsv, randomOptions, rawDetectable, unroundedN, type PowerResult,
 } from "../power.ts";
 
 test("G*Power (Faul 2007) inputs: two groups, d = 0.5, one-sided, power 0.95", () => {
@@ -143,4 +143,147 @@ test("detectable effect in raw units: d × pooled or common SD, ANOVA spread of 
   assert.equal(an[0].value, 2.5);
   assert.ok(Math.abs(an[1].value - 2.5 * Math.sqrt(8)) < 1e-12);
   assert.deepEqual(rawDetectable({ ...defaultForm(), sd: "2" }, { ...r, solve: "n" } as PowerResult), []);
+});
+
+test("more designs (P-95): payloads carry each design's inputs", () => {
+  const rm = powerOptions({ ...defaultForm(), kind: "anova_rm", f: "0.25", rmGroups: "2", m: "10", rmRho: "0.5",
+    power: "0.95" });
+  assert.ok("options" in rm);
+  assert.deepEqual(rm.options, { kind: "anova_rm", solve: "n", alpha: 0.05, power: 0.95, effect: "within", k: 2,
+    m: 10, rho: 0.5, eps: 1, f: 0.25 });
+  // the between effect has no epsilon and needs 2 groups
+  const between = powerOptions({ ...defaultForm(), kind: "anova_rm", rmEffect: "between", rmGroups: "1" });
+  assert.match((between as { error: string }).error, /at least 2 groups/);
+  assert.match((powerOptions({ ...defaultForm(), kind: "anova_rm", m: "4", eps: "0.2" }) as { error: string }).error,
+    /1\/\(m − 1\) = 0\.333 and 1/);
+  const an = powerOptions({ ...defaultForm(), kind: "ancova", d: "0.5", ancovaRho: "0.7" });
+  assert.ok("options" in an);
+  assert.deepEqual(an.options, { kind: "ancova", solve: "n", alpha: 0.05, power: 0.8, tails: 2, rho: 0.7, d: 0.5,
+    ratio: 1 });
+  const mw = powerOptions({ ...defaultForm(), kind: "mann_whitney", parent: "laplace", solve: "power", n: "30" });
+  assert.ok("options" in mw);
+  assert.equal(mw.options.parent, "laplace");
+  assert.equal(mw.options.n1, 30);
+  const sr = powerOptions({ ...defaultForm(), kind: "wilcoxon_signed_rank", solve: "power", n: "11" });
+  assert.ok("options" in sr);
+  assert.equal(sr.options.n, 11);
+  assert.equal(sr.options.ratio, undefined);
+});
+
+test("TOST: margin larger than the true difference; pairs count as n", () => {
+  const t = powerOptions({ ...defaultForm(), kind: "tost", margin: "0.5", tostSd: "0.5", theta: "0" });
+  assert.ok("options" in t);
+  assert.deepEqual(t.options, { kind: "tost", solve: "n", alpha: 0.05, power: 0.8, design: "two_sample", sd: 0.5,
+    theta: 0, margin: 0.5, ratio: 1 });
+  assert.match((powerOptions({ ...defaultForm(), kind: "tost", margin: "0.5", theta: "0.6" }) as { error: string })
+    .error, /larger than the expected true difference/);
+  const paired = { ...defaultForm(), kind: "tost" as const, tostDesign: "paired" as const, solve: "power" as const,
+    n: "12" };
+  assert.equal(nParam(paired), "n");
+  assert.equal(nLabel(paired), "Pairs");
+  const p = powerOptions(paired);
+  assert.ok("options" in p);
+  assert.equal(p.options.n, 12);
+  assert.equal(p.options.ratio, undefined);
+  // the power-vs-effect curve overrides the margin
+  const curve = powerOptions(paired, { solve: "power", effect: 0.8 });
+  assert.ok("options" in curve);
+  assert.equal(curve.options.margin, 0.8);
+});
+
+test("regression: R² of the model, or R² added with the full model's R²; curves pass f²", () => {
+  const omni = powerOptions({ ...defaultForm(), kind: "regression_r2", predictors: "5", tested: "5", r2: "0.1",
+    solve: "power", n: "95" });
+  assert.ok("options" in omni);
+  assert.deepEqual(omni.options, { kind: "regression_r2", solve: "power", alpha: 0.05, n_total: 95, predictors: 5,
+    tested: 5, r2: 0.1 });
+  const inc = powerOptions({ ...defaultForm(), kind: "regression_r2", predictors: "12", tested: "3", r2: "0.06",
+    r2Full: "0.2" });
+  assert.ok("options" in inc);
+  assert.equal(inc.options.r2_change, 0.06);
+  assert.equal(inc.options.r2_full, 0.2);
+  assert.match((powerOptions({ ...defaultForm(), kind: "regression_r2", predictors: "2", tested: "3" }) as
+    { error: string }).error, /from 1 to 2/);
+  const curve = powerOptions({ ...defaultForm(), kind: "regression_r2" }, { solve: "power", n: 50, effect: 0.15 });
+  assert.ok("options" in curve);
+  assert.equal(curve.options.f2, 0.15);
+  assert.equal(curve.options.r2, undefined);
+});
+
+test("logistic: Hsieh inputs, binary share, percent event rates", () => {
+  const n = powerOptions({ ...defaultForm(), kind: "logistic", lgOr: "1.5", lgP0: "50", power: "0.95" });
+  assert.ok("options" in n);
+  assert.deepEqual(n.options, { kind: "logistic", solve: "n", alpha: 0.05, power: 0.95, tails: 2,
+    covariate: "normal", p0: 0.5, r2_other: 0, odds_ratio: 1.5 });
+  const b = powerOptions({ ...defaultForm(), kind: "logistic", covariate: "binary", lgOr: "2.111", lgP0: "0.05",
+    xProp: "0.5" });
+  assert.ok("options" in b);
+  assert.equal(b.options.x_prop, 0.5);
+  assert.match((powerOptions({ ...defaultForm(), kind: "logistic", lgOr: "1" }) as { error: string }).error,
+    /positive and not 1/);
+  assert.ok(effectGrid("logistic", 1.5, {}).every((v) => v > 1));
+});
+
+test("more designs: summary rows, unrounded n and the effect's name", () => {
+  const rm = { ...base, kind: "anova_rm", solve: "n", n_total: 20, n_total_exact: 19.2, k: 2, effect_type: "within",
+    m: 10, rho: 0.5, eps: 1, effect: { name: "f", value: 0.25 } } as PowerResult;
+  assert.deepEqual(moreSummaryRows(rm), [["Effect tested", "Within subjects"], ["Measurements per subject", "10"],
+    ["Correlation among measurements", "0.5"], ["Nonsphericity correction ε", "1"]]);
+  assert.deepEqual(unroundedN(rm), [["Unrounded n per group", 9.6], ["Unrounded total N", 19.2]]);
+  assert.equal(nForCurve(rm), 20);
+  const an = { ...base, kind: "ancova", solve: "n", n_total: 68, n1: 34, design_factor: 0.51, n1_t_test: 64,
+    n1_design_factor: 33.64, effect: { name: "d", value: 0.5 } } as PowerResult;
+  assert.deepEqual(moreSummaryRows(an), [["Design factor 1 − ρ²", "0.51"],
+    ["n per group without the baseline (t test)", "64"], ["Borm et al. rule: (1 − ρ²) n + 1", "33.64"]]);
+  assert.equal(nForCurve(an), 34);
+  const tost = { ...base, kind: "tost", solve: "power", design: "paired", n: 12, n_total: 12, lower: -0.6,
+    upper: 0.6, theta: 0, effect: { name: "margin", value: 0.6 } } as PowerResult;
+  assert.deepEqual(moreSummaryRows(tost), [["Equivalence margins", "-0.6 to 0.6"], ["Expected true difference", "0"]]);
+  assert.equal(nForCurve(tost), 12);
+  assert.deepEqual(unroundedN({ ...base, kind: "logistic", solve: "n", n_total: 317, n_exact: 316.17 } as PowerResult),
+    [["Unrounded total N", 316.17]]);
+  assert.equal(effectName("f2"), "f²");
+  assert.equal(effectName("odds_ratio"), "odds ratio");
+  assert.equal(effectName("d"), "d");
+});
+
+test("nested design (P-96): payload from ICC or the two SDs; Dunnett has no tails", () => {
+  const icc = powerOptions({ ...defaultForm(), kind: "nested" });
+  assert.ok("options" in icc);
+  assert.deepEqual(icc.options, { kind: "nested", solve: "n", alpha: 0.05, power: 0.8, tails: 2, test: "t", k: 2,
+    m: 10, sd_total: 1, icc: 0.3, delta: 0.5 });
+  const comp = powerOptions({ ...defaultForm(), kind: "nested", sdMode: "components", sdBetween: "0.5",
+    sdWithin: "1.2", nestedTest: "dunnett", nestedK: "4", solve: "power", n: "12" });
+  assert.ok("options" in comp);
+  assert.equal(comp.options.tails, undefined);
+  assert.equal(comp.options.k, 4);
+  assert.equal(comp.options.n, 12);
+  assert.equal(comp.options.sd_between, 0.5);
+  assert.equal(comp.options.icc, undefined);
+  assert.match((powerOptions({ ...defaultForm(), kind: "nested", icc: "-0.1" }) as { error: string }).error,
+    /ICC: between 0 and 1/);
+  assert.match((powerOptions({ ...defaultForm(), kind: "nested", sdMode: "components", sdBetween: "0",
+    sdWithin: "0" }) as { error: string }).error, /at least one must be above 0/);
+  assert.match((powerOptions({ ...defaultForm(), kind: "nested", cells: "0" }) as { error: string }).error,
+    /Cells per animal/);
+});
+
+test("nested design: summary rows, the design-effect check and the simulation options", () => {
+  const r = { ...base, kind: "nested", solve: "n", test: "t", n: 25, n_per_group: [25, 25], n_total: 50,
+    n_exact: 24.23, k: 2, m: 10, icc: 0.3, design_effect: 3.7, sd_unit_mean: 0.6083, sd_between: 0.5477,
+    sd_within: 0.8367, cells_per_group: 250, cells_if_independent: 64, cells_if_independent_exact: 63.77,
+    n_design_effect: 23.59, effect: { name: "delta", value: 0.5 } } as PowerResult;
+  assert.deepEqual(nestedSummaryRows(r), [
+    ["Test", "t test on animal means"], ["Cells per animal", "10"], ["Cells per group", "250"], ["ICC", "0.3"],
+    ["Design effect 1 + (m − 1) ICC", "3.7"], ["SD of an animal’s mean", "0.6083"],
+    ["Cells per group if cells were independent (wrong)", "64"],
+    ["Design-effect check (normal approximation)", "63.77 × 3.7 ÷ 10 = 23.59 animals"],
+  ]);
+  assert.deepEqual(unroundedN(r), [["Unrounded animals per group", 24.23]]);
+  assert.deepEqual(nestedSimOptions(defaultForm(), r), { test: "t", k: 2, n: 25, m: 10, delta: 0.5,
+    sd_between: 0.5477, sd_within: 0.8367, alpha: 0.05, tails: 2 });
+  const d = nestedSimOptions(defaultForm(), { ...r, test: "dunnett", k: 4 } as PowerResult);
+  assert.equal(d?.tails, undefined);
+  assert.equal(nestedSimOptions(defaultForm(), null), null);
+  assert.deepEqual(nestedSummaryRows({ ...r, kind: "t_two_sample" } as PowerResult), []);
 });

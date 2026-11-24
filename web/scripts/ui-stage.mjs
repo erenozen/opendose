@@ -1688,6 +1688,25 @@ const scenes = [
     await analyzeItem(s, /^Plan an experiment/);
     await dialog(s, "Plan an experiment").waitFor();
   } },
+  // P-97: a dose series that misses the top plateau (flagged), with a
+  // finished simulation check.
+  { name: "guided-plan-dose", setup: async (s) => {
+    await example(s);
+    await analyzeItem(s, /^Plan an experiment/);
+    const pd = dialog(s, "Plan an experiment");
+    await pd.waitFor();
+    await pd.getByRole("group", { name: "What did you measure?" })
+      .getByRole("radio", { name: "A dose-response or other curve" }).check();
+    await pd.getByLabel("Highest concentration").fill("1778");
+    await s.page.waitForFunction(() => /28\.2-fold/.test(
+      document.querySelector(".plan-exp .dose-plan-answer")?.textContent ?? ""), null, { timeout: 60000 });
+    await pd.getByLabel("Simulated experiments").fill("10");
+    await pd.locator(".dose-plan-sim").getByLabel("Seed", { exact: true }).fill("3");
+    await pd.getByRole("button", { name: "Simulate the series" }).click();
+    await pd.locator(".dose-plan-sim .power-kv").waitFor({ timeout: 180000 });
+    await pd.locator(".dose-plan").scrollIntoViewIfNeeded();
+    await settle(s);
+  } },
   { name: "guided-describe", setup: async (s) => {
     await start(s);
     await headerMenu(s, "File", "Describe your experiment…");
@@ -1829,6 +1848,39 @@ const scenes = [
     await example(s);
     await headerMenu(s, "File", "Power and sample size…");
     await s.page.locator("dialog[open]").first().waitFor();
+  } },
+  // P-95: a design added to the power tool (repeated measures ANOVA, the
+  // Berti example of Faul et al. 2007), with its method and source line.
+  { name: "guided-power-designs", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Power and sample size…");
+    const pw = s.page.locator("dialog.power-dialog");
+    await pw.waitFor();
+    await pw.getByLabel("Test", { exact: true }).selectOption("anova_rm");
+    await pw.getByLabel("Power (1 − β)").fill("0.95");
+    await pw.getByLabel("Groups", { exact: true }).fill("2");
+    await pw.getByLabel("Measurements per subject").fill("10");
+    await pw.getByLabel("Cohen's f").fill("0.25");
+    await s.page.waitForFunction(() => /Total N\s+20/.test(
+      document.querySelector("dialog.power-dialog .power-summary")?.innerText ?? ""), null, { timeout: 60000 });
+    await pw.locator(".power-curve .plot").nth(1).waitFor({ timeout: 60000 }).catch(() => {});
+    await settle(s);
+  } },
+  // P-96: the nested design (ICC 0.3, 10 cells per animal) with its
+  // trade-off table and a finished simulation check.
+  { name: "guided-power-nested", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "File", "Power and sample size…");
+    const pw = s.page.locator("dialog.power-dialog");
+    await pw.waitFor();
+    await pw.getByLabel("Test", { exact: true }).selectOption("nested");
+    await pw.locator(".power-tradeoff").waitFor({ timeout: 60000 });
+    await pw.getByLabel("Simulated experiments").fill("500");
+    await pw.locator(".power-nested-sim").getByLabel("Seed", { exact: true }).fill("7");
+    await pw.getByRole("button", { name: "Simulate power" }).click();
+    await pw.locator(".power-nested-sim .power-kv").waitFor({ timeout: 120000 });
+    await pw.locator(".power-nested-sim").scrollIntoViewIfNeeded();
+    await settle(s);
   } },
 ];
 
