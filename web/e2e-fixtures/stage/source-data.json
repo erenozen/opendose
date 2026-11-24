@@ -1,0 +1,249 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Source data",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "l007",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Viability",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "",
+    "rowTitles": [
+     "M1",
+     "M2",
+     "M3",
+     "M4"
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "1"
+       ],
+       [
+        "2"
+       ],
+       [
+        "3"
+       ],
+       [
+        "4"
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "2"
+       ],
+       [
+        "4"
+       ],
+       [
+        "6"
+       ],
+       [
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "d004",
+   "kind": "data",
+   "name": "Dose response",
+   "table": {
+    "type": "xy",
+    "x": [
+     "1e-9",
+     "3.162e-9",
+     "1e-8",
+     "3.162e-8",
+     "1e-7",
+     "3.162e-7",
+     "1e-6",
+     "3.162e-6",
+     "1e-5"
+    ],
+    "xTitle": "[Conc.]",
+    "xFormat": "numbers",
+    "xUnit": "M",
+    "yTitle": "Response",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "Drug A",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "98.2",
+        "101.5",
+        "99.1"
+       ],
+       [
+        "97.0",
+        "95.8",
+        "99.9"
+       ],
+       [
+        "93.4",
+        "90.1",
+        "92.7"
+       ],
+       [
+        "78.9",
+        "82.3",
+        "80.0"
+       ],
+       [
+        "51.2",
+        "48.7",
+        "50.9"
+       ],
+       [
+        "22.1",
+        "25.6",
+        "24.0"
+       ],
+       [
+        "8.9",
+        "10.2",
+        "7.5"
+       ],
+       [
+        "3.1",
+        "4.4",
+        "2.2"
+       ],
+       [
+        "1.0",
+        "0.5",
+        "2.1"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "column",
+   "options": {
+    "analysis": "ttest"
+   },
+   "name": "t test of Viability"
+  },
+  {
+   "id": "r005",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "nonlin",
+   "options": {
+    "model": "log_inhibitor_vs_response_4pl",
+    "errorBars": "sd",
+    "autoFit": "requested"
+   },
+   "name": "Nonlin fit of Dose response"
+  },
+  {
+   "id": "g003",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r002",
+   "graphType": "scatter",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": "Viability (%)"
+    },
+    "scheme": "default",
+    "column": {
+     "summary": "mean_sd",
+     "spread": "jitter",
+     "points": true
+    }
+   },
+   "name": "Graph of Viability"
+  },
+  {
+   "id": "g006",
+   "kind": "graph",
+   "parentId": "d004",
+   "resultsId": "r005",
+   "graphType": "xy",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Graph of Dose response"
+  },
+  {
+   "id": "l007",
+   "kind": "layout",
+   "name": "Figure 2",
+   "graphIds": [
+    "g003",
+    "g006"
+   ],
+   "grid": {
+    "rows": 1,
+    "cols": 2
+   },
+   "letters": {
+    "show": true,
+    "style": "lower",
+    "format": "plain",
+    "fontSize": 14,
+    "bold": true,
+    "font": "sans",
+    "position": "inside"
+   }
+  }
+ ]
+}

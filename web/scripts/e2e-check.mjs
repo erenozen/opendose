@@ -1887,16 +1887,17 @@ expect("checklist shows ticked and unticked items with reasons", met >= 1 && unm
 await ck.getByRole("tab", { name: /ARRIVE/ }).click();
 expect("ARRIVE Essential 10 items (1 to 5, 7, 8, 10), sex as a biological variable and protocol registration (item 19) listed",
   (await ck.locator(".checklist li").count()) === 10);
-// P-09: the bundle has each table as CSV, not source data per figure, so
-// eLife "Source data available" is not met and links to the bundle
+// P-09: source data per figure come from a page layout (P-65); this
+// table's graph is on none, so eLife "Source data available" is not met
+// and offers to make one (e2e-export checks it met once a layout holds it)
 await ck.getByRole("tab", { name: /eLife/ }).click();
 const srcItem = ck.locator(".checklist li").filter({ hasText: "Source data available" });
 const srcText = (await srcItem.innerText()).replace(/\s+/g, " ");
-expect("eLife source data: not met, says what the bundle has and what is missing",
-  (await srcItem.getAttribute("data-status")) === "unmet" && srcText.includes("each data table as CSV")
-  && srcText.includes("Source data per figure"), srcText);
-expect("eLife source data links to the export bundle",
-  await srcItem.getByRole("button", { name: "Download the export bundle" }).isVisible());
+expect("eLife source data: not met while no layout holds the graph, and says why",
+  (await srcItem.getAttribute("data-status")) === "unmet"
+  && srcText.includes("none holds a graph of this table yet"), srcText);
+expect("eLife source data offers to make a page layout",
+  await srcItem.getByRole("button", { name: "Make a page layout" }).isVisible());
 await ck.getByRole("button", { name: "Close" }).click();
 await page.getByRole("button", { name: "History" }).click();
 const hist = page.getByRole("dialog", { name: "History" });

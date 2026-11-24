@@ -32,6 +32,8 @@ import { provenanceDeps, provenanceEnv } from "../report/provenanceDeps";
 import { softwareLabel } from "../report/useReport";
 import OffscreenResults from "./OffscreenResults";
 import { projectWorkbook, renamedPhrase } from "../export/workbook";
+import { sourceDataWorkbook } from "../export/sourceData";
+import { readSourceData } from "../layout/sourceData";
 import { XLSX_MIME } from "../export/xlsx";
 
 type Step = { kind: "results" | "graph" | "layout"; id: string };
@@ -191,8 +193,12 @@ export function useBundleExport() {
         const opts = { dpi: 150, paper: true };
         const svg = await (await exportPage(host, layout, api.project, legend, { ...opts, format: "svg" })).text();
         const pdf = await exportPage(host, layout, api.project, legend, { ...opts, format: "pdf" });
+        // what each panel plots, read from the same drawn graphs (P-65)
+        const src = await readSourceData(host, layout, api.project, api.results,
+          { name: sheet.name, app: job.input.app });
         if (!live) return;
-        job.input.layouts!.push({ name: sheet.name, svg, pdf: new Uint8Array(await pdf.arrayBuffer()) });
+        job.input.layouts!.push({ name: sheet.name, svg, pdf: new Uint8Array(await pdf.arrayBuffer()),
+          sourceData: src.panels.length ? sourceDataWorkbook(src).bytes : null });
       } else if (sheet?.kind === "results" && host) {
         // Wait for the result, then for the panel's code and paint.
         const t0 = Date.now();

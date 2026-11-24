@@ -1,6 +1,7 @@
 // Journal checklists for one family (data table): each item ticked from
 // the project, with its reason, its source and a way to fix it.
 import { useMemo, useState } from "react";
+import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import Modal from "../components/Modal";
 import { newId } from "../project/ids";
@@ -18,6 +19,7 @@ const WORD: Record<ChecklistItem["status"], string> = { met: "Met", unmet: "Not 
 
 export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; onClose: () => void }) {
   const api = useProject();
+  const cmd = useCommands();
   const { project, results } = api;
   const datas = project.sheets.filter((s): s is DataSheet => s.kind === "data");
   const [id, setId] = useState(() => dataId && datas.some((d) => d.id === dataId) ? dataId : datas[0]?.id);
@@ -33,6 +35,7 @@ export default function ChecklistPanel({ dataId, onClose }: { dataId?: string; o
     if (f.kind === "details") { onClose(); openReportingDetails(data.id); return; }
     if (f.kind === "analyze") { onClose(); api.select(data.id); return; }
     if (f.kind === "bundle") { onClose(); exportBundle(); return; }
+    if (f.kind === "layout" && !f.sheetId) { onClose(); cmd.addLayout(); return; }
     if (f.kind === "design" && !f.sheetId) {
       let goTo = "";
       api.apply((p) => {

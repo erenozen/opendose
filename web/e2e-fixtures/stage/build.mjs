@@ -48,6 +48,8 @@
 //                      references of a Normalize (P-57)
 //   many-sheets.json   74 sheets: 22 families, navigator groups (one
 //                      collapsed), highlights, info sheets and layouts
+//   source-data.json   a layout of a column scatter (mean ± SD, t test) and
+//                      a 4PL fit, letters a and b: its source data (P-65)
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -730,4 +732,27 @@ const longData = (name, names, rows, categorical) => data(name, {
     hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Viability");
   write("derived-numbers.json", project("Derived numbers", [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn],
     { selected: rp.id }));
+}
+
+// source-data.json: the P-65 acceptance page: panel a, a column scatter
+// (mean ± SD) of two groups under an unpaired t test, panel b, the example
+// dose-response with its 4PL fit; panel letters in lower case
+{
+  n = 0;
+  const c = data("Viability", table("column", { rowTitles: ["M1", "M2", "M3", "M4"],
+    datasets: [col("Control", [1, 2, 3, 4]), col("Drug", [2, 4, 6, ""])] }));
+  const ct = results(c, "column", { analysis: "ttest" }, "t test of Viability");
+  const cg = graph(c, ct, "scatter", "Graph of Viability", { x: "", y: "Viability (%)" });
+  cg.settings.column = { summary: "mean_sd", spread: "jitter", points: true };
+  const reps = [["98.2", "101.5", "99.1"], ["97.0", "95.8", "99.9"], ["93.4", "90.1", "92.7"],
+    ["78.9", "82.3", "80.0"], ["51.2", "48.7", "50.9"], ["22.1", "25.6", "24.0"],
+    ["8.9", "10.2", "7.5"], ["3.1", "4.4", "2.2"], ["1.0", "0.5", "2.1"]];
+  const t = data("Dose response", table("xy", { x: doses, xTitle: "[Conc.]", xUnit: "M",
+    yTitle: "Response", datasets: [{ name: "Drug A", subTitles: ["", "", ""], rows: reps }] }));
+  const r = results(t, "nonlin", { model: "log_inhibitor_vs_response_4pl", errorBars: "sd",
+    autoFit: "requested" }, "Nonlin fit of Dose response");
+  const g = graph(t, r, "xy", "Graph of Dose response");
+  const lay = { ...layout("Figure 2", [cg.id, g.id], 1, 2), letters: { show: true, style: "lower",
+    format: "plain", fontSize: 14, bold: true, font: "sans", position: "inside" } };
+  write("source-data.json", project("Source data", [c, t, ct, r, cg, g, lay], { selected: lay.id }));
 }

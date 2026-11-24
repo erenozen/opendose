@@ -4,7 +4,8 @@
 // (PNG header, pHYs resolution, alpha at a corner; PDF signature and
 // text kept as text). Also checks the citation and version stamp, the
 // PowerPoint export (a slide per graph, SVG picture with PNG fallback,
-// legend in the notes) and "Copy for Word" / "Copy graph" on the clipboard.
+// legend in the notes), "Copy for Word" / "Copy graph" on the clipboard, and
+// a layout's source data workbook, a sheet per panel letter (P-65).
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -14,6 +15,7 @@ import { createRequire } from "node:module";
 import { inflateSync } from "node:zlib";
 import { spawnSync } from "node:child_process";
 import { strFromU8, unzipSync } from "fflate";
+import { readXlsx } from "./xlsx-read.mjs";
 
 // The header's File and View menus (DECISIONS 5): open one, pick an item.
 const fileMenu = async (p, item) => {
@@ -858,6 +860,103 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
   })();
   expect("P-22/P-52 the PDF export draws the dotted parts and holds the legend text",
     pdfDots >= 2 && LEGEND.every((l) => pdfAll.includes(l)), `${pdfDots} dashed strokes`);
+}
+
+// P-65: source data per figure. A layout with panels a (column scatter,
+// mean ± SD under an unpaired t test) and b (the dose-response 4PL fit):
+// the layout's "Source data (.xlsx)" writes sheets "a" and "b" holding
+// what each panel plots (equal to the graph's own traces, gd.data); the
+// means, SDs and n against numpy (Control 1, 2, 3, 4: mean 2.5, SD
+// 1.2909944487358056; Drug 2, 4, 6: mean 4, SD 2; scipy ttest_ind gives
+// t = 1.2180, P = 0.2776); read back by openpyxl, python-calamine and
+// LibreOffice; eLife "Source data available" turns met.
+{
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "source-data.json"));
+  await page.getByRole("treeitem", { name: "Figure 2", exact: true }).first().waitFor({ timeout: 30000 });
+  await page.getByRole("treeitem", { name: "Figure 2", exact: true }).first().locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => document.querySelectorAll(".layout-graph .plot.js-plotly-plot").length === 2
+    && [...document.querySelectorAll(".layout-graph .plot")].every((d) => (d.data ?? []).length > 0),
+  null, { timeout: 120000 });
+  // the fit's curve is drawn once its result is in
+  await page.waitForFunction(() => [...document.querySelectorAll(".layout-graph .plot")]
+    .some((d) => (d.data ?? []).some((t) => t.meta?.odTag?.role === "fit")), null, { timeout: 120000 });
+  const drawn = await page.evaluate(() => [...document.querySelectorAll(".layout-item.kind-graph")].map((it) => {
+    const d = it.querySelector(".layout-graph .plot");
+    return (d?.data ?? []).map((t) => ({ role: t.meta?.odTag?.role, ds: t.meta?.odTag?.ds,
+      x: Array.from(t.x ?? []), y: Array.from(t.y ?? []), err: t.error_y?.array ? Array.from(t.error_y.array) : null }));
+  }));
+  const src = await save(() => page.getByRole("button", { name: "Source data (.xlsx)" }).click());
+  expect("source data: one workbook named after the layout", src.name === "figure-2-source-data.xlsx", src.name);
+  const book = readXlsx(new Uint8Array(src.buf));
+  expect("source data: README, then sheets a and b (the panel letters)",
+    JSON.stringify(book.names) === JSON.stringify(["README", "a", "b"]), book.names.join(", "));
+  const section = (rows, title) => {
+    const i = rows.findIndex((r) => r.length === 1 && r[0] === title);
+    if (i < 0) return { header: [], body: [] };
+    let end = rows.slice(i + 2).findIndex((r) => !r || r.every((c) => c === null));
+    end = end < 0 ? rows.length : i + 2 + end;
+    return { header: rows[i + 1], body: rows.slice(i + 2, end) };
+  };
+  const a = book.sheets.a ?? [];
+  const groups = section(a, "Centre and error bars of each group");
+  expect("sheet a: each group's mean, SD and n (numpy: 2.5, 1.2909944487358056, 4; 4, 2, 3)",
+    JSON.stringify(groups.header) === JSON.stringify(["Data set", "Category", "Mean", "SD below", "SD above", "n"])
+    && JSON.stringify(groups.body) === JSON.stringify([["Control", "Control", 2.5, 1.2909944487358056, 1.2909944487358056, 4],
+      ["Drug", "Drug", 4, 2, 2, 3]]), JSON.stringify(groups.body));
+  const pts = section(a, "Plotted values");
+  expect("sheet a: every plotted point, with its group and row",
+    JSON.stringify(pts.body.map((r) => [r[0], r[2], r[4]])) === JSON.stringify([["Control", "M1", 1], ["Control", "M2", 2],
+      ["Control", "M3", 3], ["Control", "M4", 4], ["Drug", "M1", 2], ["Drug", "M2", 4], ["Drug", "M3", 6]]),
+    JSON.stringify(pts.body));
+  const drawnA = drawn[0].filter((t) => t.role === "points").flatMap((t) => t.y);
+  expect("sheet a: the points equal the panel's plotted traces",
+    JSON.stringify(pts.body.map((r) => r[4])) === JSON.stringify(drawnA), JSON.stringify(drawnA));
+  const testRow = a.find((r) => r[0] === "Test")?.[1] ?? "";
+  const legendRow = a.find((r) => r[0] === "Legend")?.[1] ?? "";
+  expect("sheet a: the test and the legend with n",
+    /^Unpaired t test, two-sided \(results sheet “t test of Viability”\)$/.test(testRow) && /n = 4 \(Control\), 3 \(Drug\)/.test(legendRow),
+    `${testRow} | ${legendRow}`);
+  const b = book.sheets.b ?? [];
+  const curve = section(b, "Drawn curve");
+  const fit = drawn[1].filter((t) => t.role === "fit");
+  expect("sheet b: the drawn curve, every point of it, equal to the plotted trace",
+    fit.length === 1 && curve.body.length === fit[0].x.length && curve.body.length > 50
+    && curve.body.every((r, i) => r[2] === fit[0].x[i] && r[3] === fit[0].y[i]), `${curve.body.length} rows`);
+  const bpts = section(b, "Plotted values");
+  const means = [99.59999999999998, 97.56666666666668, 92.06666666666666];
+  const sds = [1.7058722109231976, 2.1079215671683214, 1.7387735140993361];
+  // X is what the axis plots: log10 of the dose, said in the column's title
+  expect("sheet b: the points at log10(dose) with their mean and SD (numpy, first three doses)",
+    bpts.body.length === 9 && bpts.body[0][3] === -9 && bpts.body[2][3] === -8
+    && /^X: log/.test(String(bpts.header[3])) && JSON.stringify(bpts.header).includes("SD below")
+    && means.every((m, i) => Math.abs(bpts.body[i][4] - m) < 1e-12 && Math.abs(bpts.body[i][5] - sds[i]) < 1e-12),
+    JSON.stringify(bpts.body.slice(0, 3)));
+  // independent readers (PYTHON with openpyxl and python-calamine; LibreOffice)
+  const expected = Object.fromEntries(["a", "b"].map((s) => [s, book.sheets[s].map((r) => r.map((c) => (c === null
+    ? null : typeof c === "number" ? { t: "n", v: String(c) } : { t: "s", v: c })))]));
+  const xlsxPath = join(tmp, src.name);
+  writeFileSync(xlsxPath, src.buf);
+  const expPath = join(tmp, "source-data-expected.json");
+  writeFileSync(expPath, JSON.stringify(expected));
+  const py = process.env.PYTHON ?? "python3";
+  const rb = spawnSync(py, [join(here, "xlsx-readback.py"), xlsxPath, expPath], { encoding: "utf8", timeout: 400000 });
+  const out = (rb.stdout || rb.stderr).trim().replace(/\s+/g, " ");
+  if (rb.status === 2) console.log(`skip some readers are missing for ${py}: ${out}`);
+  expect("source data read back by openpyxl, python-calamine and LibreOffice",
+    rb.status === 0 || rb.status === 2, out);
+  // P-09: with the graphs on a layout, eLife's source data item is met
+  await page.getByRole("treeitem", { name: "Viability", exact: true }).first().locator(":scope > .nav-row").click();
+  await page.getByRole("treeitem", { name: "t test of Viability", exact: true }).first().locator(":scope > .nav-row").click();
+  await page.getByRole("button", { name: "Journal checklists" }).click();
+  const ck = page.getByRole("dialog", { name: "Journal checklists" });
+  await ck.waitFor({ timeout: 15000 });
+  await ck.getByRole("tab", { name: /eLife/ }).click();
+  const item = ck.locator(".checklist li").filter({ hasText: "Source data available" });
+  const itemText = (await item.innerText()).replace(/\s+/g, " ");
+  expect("P-09 eLife source data is met once the graph is on a layout, naming the layout",
+    await item.getAttribute("data-status") === "met" && itemText.includes("Figure 2"), itemText);
+  await ck.getByRole("button", { name: "Close" }).click();
 }
 
 console.log("files in", tmp);

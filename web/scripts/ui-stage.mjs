@@ -1293,6 +1293,13 @@ const scenes = [
     await s.page.locator(".js-plotly-plot").first().waitFor({ timeout: 60000 });
     await settle(s, 2000);
   } },
+  { name: "graphs-layout-source", setup: async (s) => {
+    // P-65: the layout's export group with Source data (.xlsx)
+    await fixture(s, "source-data.json");
+    await s.page.waitForFunction(() => document.querySelectorAll(".layout-graph .plot.js-plotly-plot").length === 2,
+      null, { timeout: 120000 });
+    await settle(s, 1500);
+  } },
 
   // ---- guided flows
   { name: "guided-which-test", setup: async (s) => {

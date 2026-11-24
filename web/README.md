@@ -52,7 +52,7 @@ one at a time: each boots its own engine.
 | --- | --- |
 | `e2e-check.mjs` | The main suite: default fit, plate import, every table type, Prism import, projects (save, open, undo, autosave), chains, editing, exports of data and results |
 | `e2e-tiff.mjs` | TIFF export, parsed back byte by byte (`--no-deflate` tests the uncompressed path) |
-| `e2e-export.mjs` | Page layouts, PDF (embedded fonts, text read back as typed), PNG (in the plot font) and PowerPoint export, citation, Copy for Word |
+| `e2e-export.mjs` | Page layouts, PDF (embedded fonts, text read back as typed), PNG (in the plot font) and PowerPoint export, citation, Copy for Word, a layout's source data workbook (a sheet per panel) |
 | `e2e-share.mjs` | Share links, the export bundle, the Excel workbook of every table and results sheet (against the CSVs), import recipes, Apply to new data, the validation and privacy pages |
 | `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks, box plots against the column statistics |
 | `e2e-assays.mjs` | Every assay wizard, against numbers the engine computes natively |

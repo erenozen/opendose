@@ -801,6 +801,13 @@ function topBetween(traces: Trace[], lo: number, hi: number,
 function transformTrace(t: Trace, which: "x" | "y", m: AxisMap) {
   const v = arr(t[which]);
   if (!v.length) return;
+  // The values before the transform, for the source data of the figure
+  // (export/sourceData.ts): what the graph plots, in data units.
+  const errKey = which === "y" ? "error_y" : "error_x";
+  t.meta = { ...t.meta, odRaw: { ...t.meta?.odRaw, [which]: structuredClone(v),
+    ...(t[errKey] ? { [errKey]: structuredClone(t[errKey]) } : {}),
+    ...(which === "y" ? Object.fromEntries(BOX_STATS.filter((k) => Array.isArray(t[k]))
+      .map((k) => [k, [...t[k]]])) : {}) } };
   if (which === "y" && statBox(t)) {
     // the box keeps the data's quartiles (as the statistics report them),
     // placed on the transformed axis
@@ -809,7 +816,6 @@ function transformTrace(t: Trace, which: "x" | "y", m: AxisMap) {
     t.y = v.map((s) => (Array.isArray(s) ? s.map(to) : s));
     return;
   }
-  const errKey = which === "y" ? "error_y" : "error_x";
   const e = t[errKey];
   if (e && Array.isArray(e.array)) {
     const plus = e.array, minus = Array.isArray(e.arrayminus) ? e.arrayminus : e.array;

@@ -8,7 +8,8 @@ import { allReasoned, exclusionSentence } from "../project/exclusions";
 import { planFacts } from "../project/plan";
 import { designSheetFor } from "../project/studyDesign";
 import { sexFacts } from "../guide/sex";
-import type { DataSheet, GraphSheet, Project, ResultsSheet } from "../project/types";
+import { resolveLayout } from "../project/layout";
+import type { DataSheet, GraphSheet, LayoutSheet, Project, ResultsSheet } from "../project/types";
 import type { FamilyFacts, GraphFacts, ResultFacts } from "./checklists";
 import { describeResult } from "./describe";
 import { effectGroups } from "./effects";
@@ -43,6 +44,13 @@ function estimateCI(r: any): boolean {
   return false;
 }
 
+/** The page layouts with a placeholder bound to this graph. */
+function layoutsHolding(p: Project, graphId: string): { sheetId: string; name: string }[] {
+  return p.sheets.filter((s): s is LayoutSheet => s.kind === "layout")
+    .filter((l) => resolveLayout(l).items.some((it) => it.kind === "graph" && it.graphId === graphId))
+    .map((l) => ({ sheetId: l.id, name: l.name }));
+}
+
 export function familyFacts(p: Project, data: DataSheet, cache: ResultsCache): FamilyFacts {
   const prefs = reportPrefsOf(p.prefs);
   const results: ResultFacts[] = [];
@@ -70,7 +78,7 @@ export function familyFacts(p: Project, data: DataSheet, cache: ResultsCache): F
       const bound = g.resultsId ? p.sheets.find((x) => x.id === g.resultsId) as ResultsSheet | undefined : undefined;
       const f = graphFacts(g, bound?.options);
       graphs.push({ sheetId: g.id, name: g.name, described: graphDescribed(g),
-        errorBars: f.errorBars, pointsShown: f.points });
+        errorBars: f.errorBars, pointsShown: f.points, layouts: layoutsHolding(p, g.id) });
     }
   }
   if (minN === null) {

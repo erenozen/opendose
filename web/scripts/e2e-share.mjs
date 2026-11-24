@@ -281,8 +281,15 @@ expect("README lists every file", names.filter((n) => n !== "README.txt").every(
   expect("bundle has every graph as PDF (fonts embedded, as the graph's own PDF export)",
     pdfs.length === 2 && pdfs.every((n) => strFromU8(entries[n].subarray(0, 5)) === "%PDF-")
     && pdfs.every((n) => /\/FontFile2/.test(Buffer.from(entries[n]).toString("latin1"))), pdfs.join(", "));
-  expect("bundle has the layout page as PDF and SVG", lay.length === 2 && has("layouts/layout-1.pdf")
-    && has("layouts/layout-1.svg") && strFromU8(entries["layouts/layout-1.svg"]).includes("<svg"), lay.join(", "));
+  expect("bundle has the layout page as PDF and SVG, and its source data (P-65)", lay.length === 3
+    && has("layouts/layout-1.pdf") && has("layouts/layout-1.svg") && has("layouts/layout-1-source-data.xlsx")
+    && strFromU8(entries["layouts/layout-1.svg"]).includes("<svg"), lay.join(", "));
+  const src = entries["layouts/layout-1-source-data.xlsx"] ? readXlsx(entries["layouts/layout-1-source-data.xlsx"]) : null;
+  expect("the layout's source data: README and a sheet per panel letter (A, B), each with its drawn values",
+    JSON.stringify(src?.names) === JSON.stringify(["README", "A", "B"])
+    && ["A", "B"].every((s) => src.sheets[s].some((r) => r.length === 1 && /^(Plotted values|Centre and error bars|Drawn curve)/.test(r[0]))
+      && src.sheets[s].some((r) => r.some((c) => typeof c === "number"))), JSON.stringify(src?.names));
+  lay.splice(lay.indexOf("layouts/layout-1-source-data.xlsx"), 1);
   for (const n of [...pdfs, ...lay]) {
     expect(`README lists ${n} on a line of its own with what it is`, new RegExp(`\\n${n.replace(/\./g, "\\.")}\\n {4}\\S`).test(readme));
   }

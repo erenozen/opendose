@@ -104,18 +104,20 @@ test("graphs as PDF and layout pages as PDF and SVG (P-63); the README lists eve
   const files = bundleFiles({
     ...input(),
     graphs: [{ name: "Graph of Dose response", svg: "<svg/>", png: new Uint8Array([137, 80]), pdf }],
-    layouts: [{ name: "Layout 1", svg: "<svg/>", pdf }, { name: "Figure 2: dose", svg: null, pdf: null }],
+    layouts: [{ name: "Layout 1", svg: "<svg/>", pdf, sourceData: new Uint8Array([80, 75]) },
+      { name: "Figure 2: dose", svg: null, pdf: null }],
     skipped: ["Figure 2: dose"],
   });
   const names = files.map((f) => f.name);
   assert.deepEqual(names.filter((n) => /^(graphs|layouts)\//.test(n)), [
     "graphs/graph-of-dose-response.svg", "graphs/graph-of-dose-response.png",
     "graphs/graph-of-dose-response.pdf",
-    "layouts/layout-1.pdf", "layouts/layout-1.svg",
+    "layouts/layout-1.pdf", "layouts/layout-1.svg", "layouts/layout-1-source-data.xlsx",
   ]);
   const readme = strFromU8(files[0].data);
   for (const n of names) assert.ok(readme.includes(`\n${n}\n`), `README lists ${n}`);
   assert.match(readme, /layouts\/layout-1\.pdf\n {4}Page layout "Layout 1" as a vector PDF/);
+  assert.match(readme, /layouts\/layout-1-source-data\.xlsx\n {4}Source data of page layout "Layout 1": a sheet per panel letter/);
   assert.match(readme, /Not included[\s\S]*Figure 2: dose/);
   // PDFs are stored as they are (already compressed) and round-trip
   const back = unzipSync(zipBundle(files));

@@ -16,8 +16,9 @@ export interface BundleInput {
   results: { name: string; analysis: string; data: string; matrix: string[][] }[];
   /** Each graph as SVG, PNG and (vector, fonts embedded) PDF. */
   graphs: { name: string; svg: string | null; png: Uint8Array | null; pdf?: Uint8Array | null }[];
-  /** Each page layout as a one-page PDF and an SVG (layout/pageExport.ts). */
-  layouts?: { name: string; svg: string | null; pdf: Uint8Array | null }[];
+  /** Each page layout as a one-page PDF and an SVG (layout/pageExport.ts),
+   *  with its source data workbook, a sheet per panel (P-65). */
+  layouts?: { name: string; svg: string | null; pdf: Uint8Array | null; sourceData?: Uint8Array | null }[];
   methods: { name: string; text: string }[];
   citation: { plain: string; bibtex: string };
   /** "OpenDose 0.2.0 (build abc123, 2026-10-04)" */
@@ -129,6 +130,11 @@ export function bundleFiles(b: BundleInput): BundleFile[] {
     if (l.svg) {
       files.push({ name: `layouts/${lStems[i]}.svg`, text: l.svg,
         about: `Page layout "${l.name}" as SVG.` });
+    }
+    if (l.sourceData) {
+      files.push({ name: `layouts/${lStems[i]}-source-data.xlsx`, bytes: l.sourceData,
+        about: `Source data of page layout "${l.name}": a sheet per panel letter with the values each graph plots,`
+          + " its centre, error bars, n and test (Excel workbook)." });
     }
   });
 

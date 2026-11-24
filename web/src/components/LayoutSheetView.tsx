@@ -3,6 +3,10 @@ import { BREAKPOINTS } from "../app/breakpoints";
 import { useCommands } from "../app/commands";
 import { useProject } from "../app/context";
 import { saveBlob } from "../export/download";
+import { versionLabel } from "../export/cite";
+import { sourceDataWorkbook } from "../export/sourceData";
+import { XLSX_MIME } from "../export/xlsx";
+import { readSourceData } from "../layout/sourceData";
 import { exportFigure, figureToSvg, waitForPlot } from "../export/figure";
 import {
   belowFontFloor, DPI_CHOICES, EXTENSIONS, FONT_FLOOR_PT, FORMATS, fileStem,
@@ -35,7 +39,7 @@ type Zoom = "fit" | number;
  * export or print the page as a whole.
  */
 export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
-  const { project, apply, engineReady } = useProject();
+  const { project, apply, engineReady, results } = useProject();
   const cmd = useCommands();
   const layout = resolveLayout(sheet);
   const readOnly = !!sheet.frozen;
@@ -46,6 +50,8 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
   const [cols, setCols] = useState(String(layout.grid.cols));
   const [busy, setBusy] = useState(false);
   const downloaded = useLabelSwap();
+  const [sourceBusy, setSourceBusy] = useState(false);
+  const sourceSaved = useLabelSwap();
   const [minPt, setMinPt] = useState<number | null>(null);
   const [dark, setDark] = useState(isDarkMode());
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -197,6 +203,36 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
       setBusy(false);
     }
   };
+  // One workbook of the page's source data: a sheet per panel (P-65).
+  const doSourceData = async () => {
+    const el = pageRef.current;
+    if (!el) return;
+    setSourceBusy(true);
+    try {
+      const input = await readSourceData(el, layout, project, results,
+        { name: sheet.name, app: `OpenDose ${versionLabel()}` });
+      if (!input.panels.length) {
+        notify(`Could not export the source data of “${sheet.name}”: no panel holds a graph `
+          + "that has been drawn. Bind a graph to a placeholder, then try again.", { tone: "error" });
+        return;
+      }
+      const wb = sourceDataWorkbook(input);
+      const name = `${fileStem(sheet.name, "layout")}-source-data.xlsx`;
+      saveBlob(new Blob([wb.bytes as Uint8Array<ArrayBuffer>], { type: XLSX_MIME }), name);
+      sourceSaved.flash(`Downloaded “${name}”.`);
+      const notes = [
+        ...input.without.map((w) => `panel ${w.letter} has no source data (${w.why})`),
+        ...(wb.overNature ? [`at ${(wb.bytes.length / 1048576).toFixed(1)} MB it is over Nature's 30 MB limit for a source data file`] : []),
+      ];
+      if (notes.length) notify(`Saved “${name}”; ${notes.join("; ")}.`, { tone: "info" });
+    } catch (e) {
+      notify(`Could not export the source data of “${sheet.name}”: `
+        + `${String(e instanceof Error ? e.message : e).replace(/\.$/, "")}. Try again once every graph shows.`,
+      { tone: "error" });
+    } finally {
+      setSourceBusy(false);
+    }
+  };
   const rowsN = Number(rows);
   const colsN = Number(cols);
 
@@ -295,13 +331,18 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
             {vector ? `${Math.round(dims.w)} × ${Math.round(dims.h)} mm`
               : `${px.w} × ${px.h} px`}
           </span>
+          <Button variant="ghost" onClick={() => void doSourceData()} disabled={!engineReady}
+            busy={sourceBusy} busyLabel="Reading the graphs…"
+            title="One Excel workbook, a sheet per panel: the values each graph plots, with centre, error bars, n and the test">
+            <SwapLabel swapped={sourceSaved.swapped} done="Downloaded">Source data (.xlsx)</SwapLabel>
+          </Button>
         </div>
       </div>
       {(!engineReady || belowFontFloor(minPt) || (dark && settings.paper)) && (
         <div className="layout-notes">
           {!engineReady && (
             <span className="export-note">
-              Export page waits for the analysis engine, which is still loading.
+              Export page and Source data wait for the analysis engine, which is still loading.
             </span>
           )}
           <span className="status-slot" role="status">
