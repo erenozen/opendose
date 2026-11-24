@@ -286,6 +286,15 @@ export function LogisticControls({ table, options, onChange }: ControlsProps<Log
           </Field>
         </Section>
       )}
+      <Section title="Separation">
+        <label className="check-row">
+          <input type="checkbox" checked={options.firth === true}
+            onChange={(e) => set({ firth: e.target.checked })} />
+          <span>Firth&apos;s penalized likelihood</span>
+        </label>
+        <p className="field-note">For data where a predictor separates the outcome (every treated animal
+          responds): finite odds ratios, shrunk toward no effect.</p>
+      </Section>
       <Section title="Classification">
         <Field label="Cutoff probability"
           note="Rows with a predicted probability above it are classified as 1.">

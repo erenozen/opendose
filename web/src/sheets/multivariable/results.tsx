@@ -10,7 +10,7 @@ import {
   type LogisticOptions, type PcaOptions, type PoissonOptions, type RearrangeOptions, type RegressionOptions,
 } from "./model";
 import type {
-  Coefficient, CorrelationResult, DescriptiveResult, LogisticResult, PcaResult, PoissonResult,
+  Coefficient, CorrelationResult, DescriptiveResult, FirthResult, LogisticResult, PcaResult, PoissonResult,
   RearrangeResult, RegressionResult,
 } from "./run";
 import { pLabel } from "../../report/pformat";
@@ -300,9 +300,53 @@ export function RegressionMethods({ result }: ResultsProps<RegressionOptions, Re
 
 /* ------------------------------------------------------------ logistic */
 
+function FirthResults({ result }: { result: FirthResult }) {
+  const L = lvl(result.ci_level);
+  const lr = result.likelihood_ratio_test;
+  const coding = Object.entries(result.outcome_coding)
+    .sort((a, b) => a[1] - b[1]).map(([k, v]) => `${k} → ${v}`).join(", ");
+  return (
+    <Card title={`Firth logistic regression of ${result.outcome}`}>
+      <p className="hint-block">
+        Outcome coding: {coding}. {result.n_ones} rows are 1 and {result.n_zeros} are 0;
+        {" "}{result.n_rows_analyzed} rows analyzed, {result.n_rows_skipped} skipped.
+        {result.separation && ` The predictors ${result.separation === "complete" ? "completely" : "quasi-completely"} `
+          + "separate the outcome, so ordinary maximum likelihood has no finite estimate."}
+      </p>
+      <h4>Parameter estimates</h4>
+      <Grid caption="Parameter estimates"
+        head={["Parameter", "Estimate", "SE", `${L} CI`, "χ²", "P value", "", "Odds ratio", `${L} CI of odds ratio`]}
+        rows={result.coefficients.map((k, i) => [
+          i === 0 ? "β0 (Intercept)" : `β${i}: ${k.name}`, f(k.estimate), f(k.se), ci(k.ci), f(k.chi2),
+          fmtP(k.p), summaryStars(k.p), f(k.odds_ratio), ci(k.odds_ratio_ci ?? null),
+        ])} />
+      <p className="hint-block">
+        Firth&apos;s penalized likelihood (the Jeffreys prior) keeps every estimate finite and pulls it toward no
+        effect (an odds ratio toward 1), so the odds ratios are smaller than the infinite maximum-likelihood ones
+        would suggest. {result.ci_method === "profile" ? "Profile penalized-likelihood" : "Wald"} confidence
+        intervals; P values from penalized likelihood ratio tests (χ², 1 df), as in R&apos;s logistf (Heinze &amp;
+        Schemper 2002).{Object.keys(result.reference_levels).length > 0 && ` Reference levels: ${
+          Object.entries(result.reference_levels).map(([k, v]) => `${k} = ${v}`).join("; ")}.`}
+      </p>
+      <div className="stat-cols">
+        <KV title="Penalized likelihood ratio test (vs intercept only)" rows={[
+          ["χ²", f(lr.chi2)],
+          ["Degrees of freedom", String(lr.df)],
+          ["P value", lr.p === null ? "n/a" : `${fmtP(lr.p)} ${summaryStars(lr.p)}`],
+        ]} />
+        <KV title="Likelihood" rows={[
+          ["Penalized log likelihood", f(result.penalized_log_likelihood)],
+          ["Log likelihood", f(result.log_likelihood)],
+        ]} />
+      </div>
+    </Card>
+  );
+}
+
 export function LogisticResults({ result }: ResultsProps<LogisticOptions, LogisticResult>) {
   if (!result) return null;
   if (result.error) return <Problem result={result} />;
+  if (result.method === "firth") return <FirthResults result={result as unknown as FirthResult} />;
   const lr = result.likelihood_ratio_test;
   const pr = result.pseudo_r_squared;
   const hl = result.hosmer_lemeshow;
@@ -380,6 +424,16 @@ export function LogisticResults({ result }: ResultsProps<LogisticOptions, Logist
 
 export function LogisticMethods({ result }: ResultsProps<LogisticOptions, LogisticResult>) {
   if (!result || result.error) return null;
+  if (result.method === "firth") {
+    const r = result as unknown as FirthResult;
+    const ors = r.coefficients.slice(1).map((k) => `${k.name}: OR ${f(k.odds_ratio)} (${lvl(r.ci_level)} CI `
+      + `${ci(k.odds_ratio_ci ?? null)}; ${pLabel(k.p)})`);
+    return <Methods text={`${r.outcome} was modeled by logistic regression with Firth's penalized likelihood `
+      + `(Firth 1993; Heinze & Schemper 2002)${r.separation ? ", because the predictors separated the outcome" : ""}, `
+      + `on ${list(r.predictors ?? [])}, with ${r.ci_method === "profile" ? "profile penalized-likelihood" : "Wald"} `
+      + `confidence intervals and penalized likelihood ratio tests, using ${TOOL} (${r.n_rows_analyzed} rows; `
+      + `${r.n_ones} events). The estimates are shrunk toward no effect. ${ors.join("; ")}.`} />;
+  }
   const ors = result.coefficients.slice(1).map((k) =>
     `${k.name}: OR ${f(k.odds_ratio)} (${lvl(result.ci_level)} CI ${ci(k.odds_ratio_ci ?? null)})`);
   return <Methods text={`${result.outcome} was modeled by ${result.coefficients.length > 2 ? "multiple" : "simple"} `

@@ -309,7 +309,8 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (r.analysis === "method_regression") return methodRegFacts(r);
   if (r.analysis === "icc") return iccFacts(r);
   if (r.analysis === "ancova") return ancovaFacts(r);
-  if (r.analysis === "binomial_regression" || r.analysis === "negative_binomial_regression") return glmFacts(r);
+  if (r.analysis === "binomial_regression" || r.analysis === "negative_binomial_regression"
+    || (r.analysis === "logistic_regression" && r.method === "firth")) return glmFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
   if (r.analysis === "ttest" && !r.test?.toString().match(/kolmogorov|ratio_paired/)) return ttestFacts(r);
   if (r.analysis === "anova") return anovaFacts(r);

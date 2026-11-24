@@ -208,3 +208,24 @@ export function binomialDispersionChip(analysisId: string, result: unknown, resu
       + `${df} df), so the binomial standard errors hold.` };
 }
 
+/** Is this result a logistic regression refused for separation (P-89)?
+ *  The failed answer then offers Firth's fit (guide/FirthAction). */
+export function offersFirth(analysisId: string, result: unknown): boolean {
+  const r = result as Failure | null;
+  return analysisId === "mv_logistic" && !!r?.error && r.error_kind === "separation";
+}
+
+/** The Checks row note of a Firth fit: what the correction does to the
+ *  estimate, with its sources. */
+export function firthChip(analysisId: string, result: unknown): Chip | null {
+  const r = result as { error?: string; method?: string; separation?: string | null } | null;
+  if (analysisId !== "mv_logistic" || !r || r.error || r.method !== "firth") return null;
+  return { id: "firth", label: "Firth's correction: estimates shrunk", state: "info",
+    sources: [SRC.firth1993, SRC.heinzeSchemper2002],
+    detail: (r.separation ? "The predictors separate the outcome, so ordinary maximum likelihood has no finite "
+      + "estimate. " : "")
+      + "Firth's penalized likelihood pulls every estimate toward no effect (an odds ratio toward 1) by about its "
+      + "small-sample bias, which keeps it finite. Report it as Firth's estimate with its profile penalized-"
+      + "likelihood interval; with separation the interval is wide and one end is set by the penalty, not by "
+      + "many events." };
+}

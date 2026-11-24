@@ -919,14 +919,177 @@ def _code_outcome(var, rows, positive=None):
     return y, labels
 
 
+class SeparationError(ValueError):
+    """Logistic regression refused for (quasi-)separation; api.analyze
+    reports error_kind = "separation" so the app can offer Firth's fit."""
+    kind = "separation"
+
+
+def _firth_pll(X, y, beta):
+    """Firth's penalized log-likelihood l(b) + log|I(b)| / 2 (the
+    Jeffreys-prior penalty) and the plain log-likelihood l(b)."""
+    eta = X @ beta
+    p = expit(eta)
+    ll = float(np.sum(y * eta - np.logaddexp(0.0, eta)))
+    sign, logdet = np.linalg.slogdet(X.T @ (X * (p * (1 - p))[:, None]))
+    return (ll + 0.5 * logdet if sign > 0 else -math.inf), ll
+
+
+def _firth_fit(X, y, *, beta0=None, free=None, max_iter: int = 200,
+               tol: float = 1e-10) -> dict:
+    """Maximize Firth's penalized likelihood over the coefficients in
+    `free` (all by default), the others held at beta0. Newton steps on the
+    modified score U*(b) = X'(y - p + h (1/2 - p)), h the diagonal of the
+    hat matrix W^1/2 X (X'WX)^-1 X' W^1/2, with the Fisher information of
+    the free coefficients as the step matrix, steps capped at 5 and halved
+    until the penalized likelihood rises (Heinze & Schemper 2002; R's
+    logistf). The penalty always uses the information of the full model,
+    as logistf's profile CIs and penalized likelihood ratio tests do."""
+    k = X.shape[1]
+    free = list(range(k)) if free is None else list(free)
+    beta = np.zeros(k) if beta0 is None else np.array(beta0, dtype=float)
+    pl, ll = _firth_pll(X, y, beta)
+    converged = not free
+    it = 0
+    for it in range(1, max_iter + 1):
+        if not free:
+            break
+        p = expit(X @ beta)
+        w = p * (1 - p)
+        info = X.T @ (X * w[:, None])
+        inv = np.linalg.inv(info)
+        h = np.einsum("ij,jk,ik->i", X, inv, X) * w
+        score = X.T @ (y - p + h * (0.5 - p))
+        sub = info[np.ix_(free, free)]
+        try:
+            step_f = np.linalg.solve(sub, score[free])
+        except np.linalg.LinAlgError:
+            step_f = np.linalg.lstsq(sub, score[free], rcond=None)[0]
+        big = float(np.max(np.abs(step_f)))
+        if big > 5:
+            step_f *= 5 / big
+        step = np.zeros(k)
+        step[free] = step_f
+        t = 1.0
+        for _ in range(60):
+            cand = beta + t * step
+            pl_new, ll_new = _firth_pll(X, y, cand)
+            if pl_new >= pl - 1e-12 * (1 + abs(pl)):
+                break
+            t /= 2
+        delta = float(np.max(np.abs(cand - beta)))
+        beta, pl, ll = cand, pl_new, ll_new
+        if delta < tol * (1 + float(np.max(np.abs(beta)))):
+            converged = True
+            break
+    p = expit(X @ beta)
+    info = X.T @ (X * (p * (1 - p))[:, None])
+    return {"beta": beta, "pll": pl, "ll": ll, "p": p, "info": info,
+            "converged": converged, "iterations": it}
+
+
+def _firth_profile_ci(X, y, j, fit, se_j, q):
+    """Profile penalized-likelihood interval for coefficient j: the values
+    b where 2 (pl_max - max pl with b_j = b) equals the chi-square(1)
+    critical value q (logistf's default CIs). None for a side that never
+    reaches q."""
+    from scipy.optimize import brentq
+
+    others = [i for i in range(X.shape[1]) if i != j]
+    start = fit["beta"].copy()
+
+    def dev(b):
+        b0 = start.copy()
+        b0[j] = b
+        return 2 * (fit["pll"] - _firth_fit(X, y, beta0=b0, free=others)["pll"]) - q
+
+    out = []
+    for sign in (-1.0, 1.0):
+        step = se_j if se_j > 0 and math.isfinite(se_j) else 1.0
+        inner, outer = fit["beta"][j], None
+        for _ in range(40):
+            cand = fit["beta"][j] + sign * step
+            if dev(cand) > 0:
+                outer = cand
+                break
+            inner = cand
+            step *= 2
+        out.append(None if outer is None else float(
+            brentq(dev, min(inner, outer), max(inner, outer), xtol=1e-10, rtol=1e-12)))
+    return out
+
+
+def _firth_logistic(d, X, y, labels, outcome, sep, ci_level, ci_method):
+    """Firth's logistic regression (Firth 1993, Biometrika 80:27; Heinze &
+    Schemper 2002, Stat Med 21:2409, "A solution to the problem of
+    separation in logistic regression"): maximum penalized likelihood with
+    the Jeffreys prior, which keeps every estimate finite under separation
+    and removes the first-order bias of the ML estimate, shrinking it
+    towards 0. As R's logistf reports it: SEs from the inverse Fisher
+    information at the estimate, profile penalized-likelihood CIs
+    (ci_method='wald' for Wald ones), and for each coefficient the
+    penalized likelihood ratio test of b_j = 0 (chi-square, 1 df); the
+    overall test refits with every coefficient but the intercept at 0."""
+    n, k = X.shape
+    fit = _firth_fit(X, y)
+    if not fit["converged"] or not np.all(np.isfinite(fit["beta"])):
+        raise ValueError("Firth's logistic regression did not converge")
+    beta = fit["beta"]
+    se = np.sqrt(np.diag(np.linalg.inv(fit["info"])))
+    q = float(stats.chi2.ppf(ci_level, 1))
+    zcrit = float(stats.norm.ppf((1 + ci_level) / 2))
+    coefs = []
+    for j, name in enumerate(d["columns"]):
+        if ci_method == "profile":
+            ci = _firth_profile_ci(X, y, j, fit, se[j], q)
+        elif ci_method == "wald":
+            ci = [float(beta[j] - zcrit * se[j]), float(beta[j] + zcrit * se[j])]
+        else:
+            raise ValueError(f"unknown CI method: {ci_method}")
+        b0 = beta.copy()
+        b0[j] = 0.0
+        sub = _firth_fit(X, y, beta0=b0, free=[i for i in range(k) if i != j])
+        chi2 = max(2 * (fit["pll"] - sub["pll"]), 0.0)
+        coefs.append({
+            "name": name, "estimate": float(beta[j]), "se": float(se[j]), "ci": ci,
+            "chi2": float(chi2), "p": float(stats.chi2.sf(chi2, 1)),
+            "odds_ratio": float(math.exp(beta[j])),
+            "odds_ratio_ci": [None if c is None else float(math.exp(c)) for c in ci],
+        })
+    b0 = np.zeros(k)
+    b0[0] = beta[0]
+    null = _firth_fit(X, y, beta0=b0, free=[0])
+    g = max(2 * (fit["pll"] - null["pll"]), 0.0)
+    extra = {}
+    if k == 2 and len(d["terms"]) == 1 and d["columns"][1] in d["terms"]:
+        # one continuous predictor: the fitted curve and X at 50% (-b0 / b1)
+        extra["x_at_50_percent"] = float(-beta[0] / beta[1]) if beta[1] else None
+    return {
+        **extra,
+        "outcome": outcome, "outcome_coding": labels, "method": "firth",
+        "separation": sep,
+        "n_rows_analyzed": n, "n_rows_skipped": d["n_rows"] - n, "rows_used": d["rows"],
+        "n_ones": int(y.sum()), "n_zeros": int(n - y.sum()), "n_parameters": k,
+        "reference_levels": d["reference"], "ci_level": ci_level, "ci_method": ci_method,
+        "coefficients": coefs, "iterations": fit["iterations"],
+        "penalized_log_likelihood": fit["pll"], "log_likelihood": fit["ll"],
+        "likelihood_ratio_test": {"chi2": g, "df": k - 1,
+                                  "p": float(stats.chi2.sf(g, k - 1)) if k > 1 else None},
+        "predicted_probability": _aligned(d["rows"], d["n_rows"], fit["p"]),
+        "observed": _aligned(d["rows"], d["n_rows"], y),
+    }
+
+
 def logistic_regression(variables, outcome: str, predictors, *,
                         interactions=(), reference_levels=None,
                         outcome_positive=None, ci_level: float = 0.95,
                         ci_method: str = "profile", cutoff: float = 0.5,
-                        hl_groups: int = 10) -> dict:
+                        hl_groups: int = 10, firth: bool = False) -> dict:
     """Simple (one predictor) or multiple logistic regression.
 
     ci_method: 'profile' (profile likelihood, default) or 'wald'.
+    firth=True fits Firth's penalized likelihood (_firth_logistic), which
+    gives finite estimates when the data are separated.
     """
     table = parse_table(variables)
     d = _design(table, outcome, predictors, interactions, reference_levels)
@@ -942,16 +1105,18 @@ def logistic_regression(variables, outcome: str, predictors, *,
         lp_checked = True
     except Exception:  # LP solver unavailable: fall back to the fit
         sep, lp_checked = None, False
+    if firth:
+        return _firth_logistic(d, X, y, labels, outcome, sep, ci_level, ci_method)
     if sep:
         kind = "Perfect" if sep == "complete" else "Quasi-perfect"
-        raise ValueError(f"{kind} separation: the predictors classify the "
-                         "outcome (almost) perfectly, so the best-fit "
-                         "coefficients are infinite and cannot be reported")
+        raise SeparationError(f"{kind} separation: the predictors classify the "
+                              "outcome (almost) perfectly, so the best-fit "
+                              "coefficients are infinite and cannot be reported")
     fit = _logit_fit(X, y)
     if not fit["converged"] or (
             not lp_checked and np.max(np.abs(X @ fit["beta"])) > 30):
-        raise ValueError("logistic regression did not converge (the data "
-                         "may be perfectly or quasi-perfectly separated)")
+        raise SeparationError("logistic regression did not converge (the data "
+                              "may be perfectly or quasi-perfectly separated)")
     beta, ll, p = fit["beta"], fit["ll"], fit["p"]
     cov = np.linalg.inv(fit["hess"])
     se = np.sqrt(np.diag(cov))

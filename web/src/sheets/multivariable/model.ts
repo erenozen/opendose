@@ -126,6 +126,8 @@ export interface LogisticOptions extends RegressionOptions {
   ciMethod: "profile" | "wald";
   cutoff: string;
   hlGroups: string;
+  /** Firth's penalized likelihood (P-89): finite estimates under separation. */
+  firth: boolean;
 }
 
 export interface PoissonOptions extends RegressionOptions {
@@ -233,7 +235,9 @@ export function defaultLogistic(t: DataTableModel): LogisticOptions {
   const first = nonBinaryContinuous(info).find((v) => v.name !== outcome);
   return {
     outcome,
-    predictors: first ? [first.name] : [],
+    // else a categorical predictor (a two-group study): the odds ratio of the groups
+    predictors: first ? [first.name]
+      : info.filter((v) => v.kind === "categorical" && v.name !== outcome).slice(0, 1).map((v) => v.name),
     interactions: [],
     referenceLevels: {},
     ciLevel: "95",
@@ -241,6 +245,7 @@ export function defaultLogistic(t: DataTableModel): LogisticOptions {
     ciMethod: "profile",
     cutoff: "0.5",
     hlGroups: "10",
+    firth: false,
   };
 }
 

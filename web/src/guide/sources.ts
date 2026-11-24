@@ -307,6 +307,13 @@ export const SRC = {
   // Negative binomial regression: MASS::glm.nb, the reference method.
   venablesRipley2002: { label: "Venables & Ripley 2002, Modern Applied Statistics with S, 4th ed., section 7.4",
     url: "https://doi.org/10.1007/978-0-387-21706-2" },
+  // Firth's logistic regression (P-89): finite, less biased estimates
+  // under separation, shrunk toward no effect. Crossref: Biometrika
+  // 80(1):27-38 and Stat Med 21(16):2409-2419, read 2026-11-24.
+  firth1993: { label: "Firth 1993, Bias reduction of maximum likelihood estimates, Biometrika 80:27",
+    url: "https://doi.org/10.1093/biomet/80.1.27" },
+  heinzeSchemper2002: { label: "Heinze & Schemper 2002, A solution to the problem of separation in logistic regression, Stat Med 21:2409",
+    url: "https://doi.org/10.1002/sim.1047" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

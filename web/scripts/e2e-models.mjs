@@ -206,6 +206,34 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   expect("P-86 negative binomial: θ = 20.51", theta === "θ (shape) 20.51", theta);
 }
 
+// --- P-89: Firth's correction from the separation message -------------------
+{
+  // engine/tests/reference/firth_logistic.py (an independent penalized
+  // likelihood fit): every treated animal responds; Firth's odds ratio 45
+  // = (10.5 x 7.5) / (0.5 x 3.5), profile penalized-likelihood CI 3.845 to
+  // 6439, penalized LR P = 0.000905
+  const r = ref("firth_logistic").dose_study;
+  await pastedTable("multivariable", "Dose study", tsv(["Response", "Group"], [r.data.response, r.data.group]));
+  await analyze(/^Logistic regression/);
+  const refused = await appears(page.locator(".pane-answer .answer-failed", { hasText: /separation/ }), 60000);
+  const offer = page.locator(".pane-answer").getByRole("button", { name: "Fit with Firth's correction" });
+  expect("P-89 acceptance: the separation message offers Firth's correction", refused && await appears(offer),
+    await text(page.locator(".pane-answer")));
+  await offer.click();
+  await liveResults(/Firth logistic regression of Response/);
+  const answer = await text(page.locator(".pane-answer .answer-items"));
+  expect("P-89 acceptance: a finite odds ratio, 45 (95% CI 3.845 to 6439), with the shrinkage said next to it",
+    answer === "Group: Treated vs. Control Odds ratio 45 95% CI 3.845 to 6439 P = 9.050e-4 (penalized likelihood "
+      + "ratio) · Firth's correction: shrunk toward no effect", answer);
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: "Note: Firth's correction: estimates shrunk" });
+  expect("P-89 the Checks row explains that the estimate is shrunk", await appears(chip));
+  const methods = await text(page.locator(".methods-text p"));
+  expect("P-89 the methods text names Firth's penalized likelihood and the separation",
+    /with Firth's penalized likelihood \(Firth 1993; Heinze & Schemper 2002\), because the predictors separated/
+      .test(methods), methods.slice(0, 220));
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));
