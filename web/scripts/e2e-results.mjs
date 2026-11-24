@@ -1177,7 +1177,7 @@ const analyzeWith = async (re) => {
   expect("P-83 acceptance: RM 2 x 2, the drug effect in KO minus the drug effect in WT with its CI "
     + "(the t test of the per-mouse drug effects)",
     shown && dod.includes(`is ${sig4(mx.effect_wt)} in WT and ${sig4(mx.effect_ko)} in KO: the difference between `
-      + `these effects is ${sig4(mx.difference)} (95% CI ${sig4(mx.ci[0])} to ${sig4(mx.ci[1])}), P = 0.028`), dod);
+      + `these effects is ${sig4(mx.difference)} (95% CI ${sig4(mx.ci[0])} to ${sig4(mx.ci[1])}), P = ${sig4(mx.p)}.`), dod);
   const test = (await block.locator(".interaction-test").innerText().catch(() => "")).replace(/\s+/g, " ");
   expect("P-83 its t^2 is the RM ANOVA's interaction F(1, 10) = 6.642 (pingouin)",
     test.includes(`F(1, 10) = ${sig4(mx.interaction_F_pingouin)}`), test);
