@@ -14,6 +14,16 @@ export function BootstrapNote({ name, fit }: { name: string; fit: FitResult }) {
   return (
     <>
       <p className="model-line fit-bootstrap"><NumText text={note} /></p>
+      {rows.length > 0 && (
+        // The coverage caveat sits next to the numbers (P-101 validation:
+        // 91 to 94.5% for 95% percentile intervals at 27 points, 4 parameters).
+        <p className="model-line fit-note fit-bootstrap-coverage">
+          <NumText text={"Percentile intervals can run a little narrow with few points: in this app's"
+            + " simulations of a 4-parameter fit to 27 points, 95% intervals held the true value"
+            + " 91% to 94.5% of the time. Compare them with the asymptotic CIs under Bootstrap"
+            + " details (Efron & Tibshirani 1993, An Introduction to the Bootstrap, ch. 13)."} />
+        </p>
+      )}
       {warnings.map((w) => (
         <p key={w} className="model-line fit-note fit-bootstrap-warning"><NumText text={w} /></p>
       ))}
