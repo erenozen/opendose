@@ -19,6 +19,7 @@ import { familyChildren, familyRootId, findSheet } from "../project/ops";
 import type { Sheet } from "../project/types";
 import { analysisDef, tableDef } from "../sheets/registry";
 import { openPowerTool } from "../power/events";
+import { addProjectFiles } from "./addProject";
 import { openRatesTool } from "../rates/events";
 import { openFlowEvents } from "../sheets/assays/flow/eventsModel";
 import {
@@ -103,6 +104,9 @@ export function useCommandRegistry(): Command[] {
       { id: "recent", label: "Open recent…", group: "file",
         keywords: "recent projects versions sessions history restore autosave",
         run: () => requestShell("recent") },
+      { id: "add-project", label: "Add from project…", group: "file", disabled: readOnly,
+        keywords: "merge combine add import families sheets tables another project colleague json",
+        run: () => addProjectFiles() },
       { id: "example", label: "Open the example project…", group: "file",
         keywords: "sample demo dose response contingency survival", run: () => requestShell("example") },
       { id: "save", label: "Save project", group: "file", shortcut: modKey("S"),

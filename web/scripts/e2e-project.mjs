@@ -1,7 +1,8 @@
 // End-to-end check of the project file and its history in this browser:
 // save in place and Save as… with the File System Access API, the
 // installed app's file handler and the web app manifest (P-71); saved
-// versions and recent projects (P-72); comparing two versions (P-73).
+// versions and recent projects (P-72); comparing two versions (P-73);
+// adding another project's families, from File and by a drop (P-74).
 //
 // Playwright cannot answer the browser's own file pickers, so the
 // Chromium checks stand in a small file system for them (FSA_MOCK: the
@@ -465,6 +466,92 @@ await ctx.close();
   expect("P-72 a full quota refuses the version and says how much room is left",
     await e.waitFor({ timeout: 120000 }).then(() => true, () => false));
   expect("P-72 nothing is stored when the quota is full", (await storedVersions(p)).length === 0);
+  await c.close();
+}
+
+// ------------------------------------------------------------ P-74 add from project
+// A colleague's file of two families (one with the open project's own
+// ids, so they clash) and another digits preference: File › Add from
+// project… lists the difference, keeps this project's, and adds both
+// families with unique ids and working links; each computes the t test
+// of e2e-fixtures/reference/compare_versions_ttest.json. Then two project
+// files dropped at once are both added.
+{
+  const c = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const p = await c.newPage();
+  watch(p, "add-project");
+  await p.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await p.locator(".shell").waitFor({ timeout: 60000 });
+  await p.setInputFiles(OPEN_INPUT, STUDY_FILE);
+  await toast(p, /Opened “project-study\.json”/);
+  expect("P-74 the study opens with live results", await live(p));
+  const study = JSON.parse(STUDY);
+  const twin = study.sheets.map((s) => ({
+    ...s, id: `${s.id}b`, name: s.name.replace("Viability", "Viability B"),
+    ...(s.parentId ? { parentId: `${s.parentId}b` } : {}),
+  }));
+  const colleague = {
+    ...study, title: "Colleague", prefs: { ...study.prefs, digits: 6 }, sheets: [...study.sheets, ...twin],
+  };
+  const asFile = (name, json) => ({ name, mimeType: "application/json", buffer: Buffer.from(JSON.stringify(json)) });
+
+  const chooser = p.waitForEvent("filechooser");
+  await fileMenu(p, "Add from project…");
+  await (await chooser).setFiles(asFile("colleague.json", colleague));
+  const d = p.getByRole("dialog", { name: "Add “colleague.json” to this project?" });
+  const shown = await d.waitFor({ timeout: 15000 }).then(() => true, () => false);
+  const row = shown ? (await d.getByRole("row", { name: /Significant digits in results/ }).innerText()).replace(/\s+/g, " ") : "";
+  expect("P-74 a preference that differs is listed before adding, this project's kept",
+    shown && /Significant digits in results 4 6/.test(row), row);
+  await d.getByRole("button", { name: "Add 4 sheets" }).click();
+  expect("P-74 Add from project… says what it added",
+    await toast(p, /Added 2 data tables with 2 more sheets from “colleague\.json”/));
+  await settled(p);
+  const merged = JSON.parse(await fileText(p));
+  const ids = merged.sheets.map((s) => s.id);
+  const data = new Set(merged.sheets.filter((s) => s.kind === "data").map((s) => s.id));
+  expect("P-74 both families are in, sheet for sheet",
+    merged.sheets.length === 6 && ["Viability", "Viability (2)", "Viability B"]
+      .every((n) => merged.sheets.some((s) => s.kind === "data" && s.name === n)),
+    merged.sheets.map((s) => s.name).join(" | "));
+  expect("P-74 every id is unique", new Set(ids).size === ids.length, ids.join(","));
+  expect("P-74 every results sheet points at its own data table",
+    merged.sheets.filter((s) => s.kind === "results").every((s) => data.has(s.parentId)));
+  expect("P-74 the open project's preferences are kept", merged.prefs.digits === 4);
+  checkSchema("a project with another project's families added", merged);
+  // each added family computes the same Welch t test as the study
+  for (const name of ["Viability (2)", "Viability B"]) {
+    await p.getByRole("treeitem", { name, exact: true }).first().locator(":scope > .nav-row").click();
+    await p.getByRole("tab", { name: "t test" }).click();
+    const pRow = p.locator(".pane-results .results-table tr", { hasText: "P value" }).first();
+    const text = await pRow.innerText({ timeout: 120000 }).catch(() => "");
+    const shownP = Number((text.match(/\d\.\d+/) ?? [])[0]);
+    expect(`P-74 “${name}” computes its t test (P = ${REF.before.p.toPrecision(4)}, scipy)`,
+      near(shownP, REF.before.p), text.replace(/\s+/g, " "));
+  }
+  // Undo takes the whole addition back in one step
+  await p.locator(".toast", { hasText: /Added 2 data tables/ }).getByRole("button", { name: "Undo" }).click();
+  await settled(p);
+  expect("P-74 Undo removes everything that was added", JSON.parse(await fileText(p)).sheets.length === 2);
+
+  // Two project files dropped on the page: both are added.
+  const one = { ...study, title: "One" };
+  const two = { ...study, title: "Two", sheets: twin };
+  await p.evaluate(async (files) => {
+    const dt = new DataTransfer();
+    for (const f of files) dt.items.add(new File([f.text], f.name, { type: "application/json" }));
+    const at = document.querySelector("main") ?? document.body;
+    at.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    at.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, [{ name: "one.json", text: JSON.stringify(one) }, { name: "two.json", text: JSON.stringify(two) }]);
+  expect("P-74 a drop of two project files adds the first", await toast(p, /from “one\.json”/));
+  expect("P-74 ...and the second", await toast(p, /from “two\.json”/));
+  await settled(p);
+  const dropped = JSON.parse(await fileText(p));
+  const dIds = dropped.sheets.map((s) => s.id);
+  expect("P-74 after the drop: three families, unique ids, the open project's title",
+    dropped.sheets.length === 6 && new Set(dIds).size === dIds.length && dropped.title === "Study",
+    dropped.sheets.map((s) => `${s.id}:${s.name}`).join(" | "));
   await c.close();
 }
 
