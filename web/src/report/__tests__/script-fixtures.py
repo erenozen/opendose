@@ -188,6 +188,11 @@ CASES = [
      {"method": "mixed", "comparisons": "tukey"}),
     ("bland_altman", "bland_altman", {}, BA_T, "bland_altman", BA_P, {}),
     ("roc", "roc", {}, BA_T, "roc", BA_P, {}),
+    # custom contrasts (P-83): one planned and one post hoc (Scheffe)
+    ("anova_contrasts", "column", {"analysis": "anova"}, COLUMN_T, "anova", COLUMN_P,
+     {"kind": "parametric", "comparisons": "tukey", "control_index": 0, "custom_contrasts": [
+         {"name": "Treated vs control", "coefficients": [-2, 1, 1], "planned": True},
+         {"name": "B vs A", "coefficients": [0, -1, 1], "planned": False}]}),
 ]
 
 DROP = {"traceback", "kde", "percentiles", "curve", "residuals", "points", "predicted", "observed",

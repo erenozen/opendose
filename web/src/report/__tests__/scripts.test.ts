@@ -91,6 +91,15 @@ test("analysis.py reproduces the engine's numbers on every fixture", { skip: has
   r("anova_dunnett").multiple_comparisons.comparisons.forEach((c: any, i: number) => {
     close(`Dunnett ${c.pair}`, o("anova_dunnett").dunnett_p[i], c.p_adjusted, 0, 2e-5);
   });
+  // custom contrasts (P-83): estimate, SE and t to 1e-9; P planned from t,
+  // post hoc from Scheffe's F, to 1e-9
+  for (const c of r("anova_contrasts").custom_contrasts.contrasts) {
+    const got = o("anova_contrasts").contrasts[`${c.name} (${c.planned ? "planned" : "post hoc"})`];
+    close(`contrast ${c.name} estimate`, got?.estimate, c.estimate, 1e-9);
+    close(`contrast ${c.name} SE`, got?.se, c.se, 1e-9);
+    close(`contrast ${c.name} t`, got?.t, c.t, 1e-9);
+    close(`contrast ${c.name} P (${c.kind})`, got?.p, c.p, 1e-9);
+  }
   close("Kruskal-Wallis H", o("kruskal").H, r("kruskal").H, 1e-9);
   close("Kruskal-Wallis P", o("kruskal").p, r("kruskal").p, 1e-9);
   close("Welch F", o("welch_anova").welch_F, r("welch_anova").welch.W, 1e-9);

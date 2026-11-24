@@ -146,6 +146,12 @@ expect("plate QC: robust Z′ 0.864 and S/B 12.7", plateQc.includes("0.864") && 
 const plateLine = await analysedLine("mapped wells read");
 expect("P-16 plate: Analysed: 96 of 96 mapped wells read (72 sample, 24 control).",
   plateLine === "Analysed: 96 of 96 mapped wells read (72 sample, 24 control).", plateLine);
+// P-69: "What this means" of the plate module reads the Z′ the QC block shows
+const plateMeaning = (await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => ""))
+  .replace(/\s+/g, " ");
+expect("P-69 plate meaning: Z′ = 0.8491 (excellent), the controls are well separated",
+  plateMeaning.includes("Z′ = 0.8491 (excellent): the positive and negative controls are separated by much more "
+    + "than their scatter") && plateQc.includes("Z′ 0.849 excellent"), plateMeaning);
 await page.locator(".plate-results").getByRole("button", { name: "Open “Dose-response of Plate”" }).click();
 await page.waitForSelector(".results-table tr:has-text('LogIC50')", { timeout: 60000 });
 await page.waitForTimeout(800);
@@ -502,6 +508,12 @@ expect("the ratio t test is explained", dens.includes("consistently different fr
 const densLine = await analysedLine("lanes on");
 expect("P-16 densitometry: 16 of 16 lanes on 4 blots, n = 4 blots",
   densLine === "Analysed: 16 of 16 lanes on 4 blots in the ratios; n = 4 blots.", densLine);
+// P-69: the meaning states the ratio and CI of the ratio paired t test
+const densMeaning = (await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => ""))
+  .replace(/\s+/g, " ");
+expect("P-69 densitometry meaning: Drug 2.427 times Control (95% CI 1.99 to 2.96; 4 blots), P = 0.0008",
+  densMeaning.includes("The normalised target signal in Drug was 2.427 times that in Control (95% CI 1.99 to 2.96; 4 blots); "
+    + "a ratio this far from 1 would be unusual (P = 0.0008)") && dens.includes("2.427"), densMeaning);
 
 const gp = ["Blot,Lane,Group,Target,Reference",
   "B1,1,Control,4.2,1", "B1,2,Treated,8.7,1", "B2,1,Control,2.5,1", "B2,2,Treated,4.9,1",

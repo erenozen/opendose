@@ -17,7 +17,7 @@
 // - Sex as a biological variable: SAGER guidelines (Heidari et al. 2016,
 //   Res Integr Peer Rev 1:2) and NIH SABV (Clayton & Collins 2014, Nature
 //   509:282): report sex, and results by sex or why not (guide/sex.ts).
-import type { TestInfo } from "./describe.ts";
+import { nCount, type TestInfo } from "./describe.ts";
 import type { ErrorBars } from "./legend.ts";
 import type { ReportMeta } from "./meta.ts";
 import type { PlanFacts } from "../project/plan.ts";
@@ -123,8 +123,8 @@ export const RULES: Record<string, Rule> = {
         fix: { kind: "results", sheetId: missing[0].sheetId, label: "Open the results" } };
     }
     const g = rs[0].info.groups;
-    const same = g.every((x) => x.n === g[0].n);
-    return { status: "met", reason: `Exact n per group is in the legend (${same ? `n = ${g[0].n} per group` : g.map((x) => `${x.name} ${x.n}`).join(", ")}).` };
+    const same = g.every((x) => nCount(x) === nCount(g[0]));
+    return { status: "met", reason: `Exact n per group is in the legend (${same ? `n = ${nCount(g[0])} per group` : g.map((x) => `${x.name} ${nCount(x)}`).join(", ")}).` };
   },
   n_unit: (f) => (f.meta.unit
     ? { status: "met", reason: `n counts ${f.meta.unit}.` }

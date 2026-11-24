@@ -154,7 +154,31 @@ function oneWay(r: R, t: DataTableModel): Part {
         + "uses the same pooled SD; SciPy has no such call.");
     }
   }
+  customContrasts(r, py, rr, caveats);
   return { py, r: rr, caveats };
+}
+
+/** Custom contrasts of a one-way ANOVA (P-83): each contrast of the group
+ *  means with the pooled residual SD, P from t when planned and from
+ *  Scheffe's F when chosen after looking at the data. Adds to the
+ *  sheet's report (`gs` holds the groups in the contrast's order). */
+function customContrasts(r: R, py: string[], rr: string[], caveats: string[]): void {
+  const cs: R[] = Array.isArray(r.custom_contrasts?.contrasts) ? r.custom_contrasts.contrasts : [];
+  if (!cs.length) return;
+  const spec = cs.map((c) => `(${q(String(c.name))}, [${(c.coefficients as number[]).join(", ")}], ${c.planned ? "True" : "False"})`);
+  py.push("# custom contrasts: estimate, SE and t from the pooled residual SD; P from t if planned, Scheffe's F if post hoc",
+    "k = len(gs); dfr = sum(len(g) for g in gs) - k",
+    "mse = sum(((g - g.mean()) ** 2).sum() for g in gs) / dfr",
+    "means = np.array([g.mean() for g in gs]); ns = np.array([len(g) for g in gs], dtype=float)",
+    "contrasts = {}",
+    `for name, c, planned in [${spec.join(", ")}]:`,
+    "    c = np.array(c, dtype=float); est = c @ means; se = np.sqrt(mse * np.sum(c ** 2 / ns)); tc = est / se",
+    "    pc = 2 * stats.t.sf(abs(tc), dfr) if planned else stats.f.sf(tc ** 2 / (k - 1), k - 1, dfr)",
+    "    contrasts[f\"{name} ({'planned' if planned else 'post hoc'})\"] = {\"estimate\": est, \"se\": se, \"t\": tc, \"p\": pc}",
+    "RESULTS[SHEET][\"contrasts\"] = plain(contrasts)");
+  rr.push("# custom contrasts: emmeans::contrast(emmeans::emmeans(fit, ~ g), list(...), adjust = \"none\") for planned ones,",
+    "# adjust = \"scheffe\" for those chosen after looking at the data");
+  caveats.push("Custom contrasts: planned ones are not adjusted; post hoc ones use Scheffe's method, as in OpenDose.");
 }
 
 function welchAnova(r: R, t: DataTableModel): Part {
@@ -303,6 +327,13 @@ function dose(r: R, t: DataTableModel, o: R): Part {
         + "ROUT (Motulsky & Brown 2006) has no standard call in SciPy or R, so this fit uses every value.");
     }
     if (fit.robust || o.robust) caveats.push(`"${ds.name}" was fitted by robust regression in OpenDose; this is an ordinary least-squares fit.`);
+    if (fit.ci_method === "bootstrap" && fit.bootstrap) {
+      const b = fit.bootstrap;
+      caveats.push(`"${ds.name}": OpenDose's CIs are bootstrap (${b.method === "residual" ? "residual" : "case"} resampling, `
+        + `${num(b.resamples) ? `${b.resamples} resamples, ` : ""}${String(b.interval ?? "percentile")}${num(b.seed) ? `, seed ${b.seed}` : ""}); `
+        + "the CI printed here is the asymptotic one from curve_fit's covariance. boot::boot over the rows in R resamples the same way, "
+        + "with other random numbers.");
+    }
   }
   if (!py.length) return none("No data set of this fit has a result to re-run.");
   caveats.push("drc's LL.4 writes the slope as b = −HillSlope and fits on the dose scale; the midpoint and its CI agree.");
@@ -535,6 +566,60 @@ function simple(r: R): Part {
   }
 }
 
+/** Kinds merged after P-67 with no SciPy or statsmodels call that computes
+ *  what OpenDose computes: why, in Python, and the closest R package call,
+ *  named in a comment (never run as if it matched). */
+const NO_CALL: Record<string, { py: string; r: string }> = {
+  relative_potency: {
+    py: "Relative potency (parallel-line global fit with a Fieller CI): SciPy and statsmodels have no such call; its numbers are in its results CSV.",
+    r: "Closest call: drc::drm(y ~ dose, curveid = group, fct = drc::LL.4(), pmodels = ...) with drc::EDcomp(fit, c(50, 50), interval = \"fieller\").",
+  },
+  compare_global_fits: {
+    py: "Two global models with shared parameters compared by the extra sum-of-squares F test: no standard Python call; its numbers are in its results CSV.",
+    r: "Closest call: fit each global model with nls() on the stacked data sets, then anova(fit_simpler, fit_complex) for the F test.",
+  },
+  precision_study: {
+    py: "Precision study (nested variance components with CLSI EP05-A3 CIs): statsmodels' mixedlm fits the components by REML, not by the ANOVA estimators used here; no matching call.",
+    r: "Closest call: VCA::anovaVCA(y ~ run, data) (CLSI EP05 variance components); its CI methods are those OpenDose follows.",
+  },
+  competing_risks: {
+    py: "Cumulative incidence with Gray's test: SciPy and statsmodels have no such call (lifelines' AalenJohansenFitter gives the curves, not Gray's test).",
+    r: "Closest call: cmprsk::cuminc(ftime, fstatus, group) gives the cumulative incidence and Gray's test.",
+  },
+  parametric_survival: {
+    py: "Parametric (AFT) survival regression: statsmodels has no Weibull, exponential or log-normal AFT model; no matching call.",
+    r: "Closest call: survival::survreg(Surv(time, event) ~ group, dist = \"weibull\") (or \"exponential\", \"lognormal\").",
+  },
+  meta_analysis: {
+    py: "statsmodels.stats.meta_analysis.combine_effects pools the same estimates, but its random-effects tau² is DerSimonian-Laird or Paule-Mandel, not REML; not run here.",
+    r: "Closest call: metafor::rma(yi, sei = se, method = \"REML\", test = \"z\") (test = \"knha\" for Hartung-Knapp).",
+  },
+  ordinal_regression: {
+    py: "Ordinal (proportional-odds) regression: statsmodels' OrderedModel fits the same model, but this script does not rebuild the ordered outcome levels; not run here.",
+    r: "Closest call: MASS::polr(factor(y, ordered = TRUE) ~ predictors, method = \"logistic\", Hess = TRUE) or ordinal::clm.",
+  },
+  two_way_art: {
+    py: "Aligned rank transform ANOVA: no SciPy or statsmodels call aligns and ranks per effect; not run here.",
+    r: "Closest call: ARTool::art(y ~ A * B, data) with anova(); ARTool::art.con for the ART-C contrasts.",
+  },
+  lmm: {
+    py: "statsmodels.formula.api.mixedlm fits the same random-intercept model by REML, but tests with Wald z, not OpenDose's df; not run here.",
+    r: "Closest call: lmerTest::lmer(y ~ fixed + (1 | group), REML = TRUE) with anova(fit, ddf = \"Satterthwaite\").",
+  },
+  smooth_xy: {
+    py: "Smoothing has no test or estimate to re-run; statsmodels.nonparametric.lowess and scipy.interpolate.make_smoothing_spline draw comparable curves (their span and penalty scales differ).",
+    r: "Closest call: lowess(x, y) (R's defaults: f = 2/3, iter = 3) or smooth.spline(x, y) (GCV).",
+  },
+  compare_fits: {
+    py: "Comparing fits (extra sum-of-squares F test and AICc of two models, a parameter across data sets, or relative potency): no SciPy or statsmodels call fits the shared-parameter models compared here; its numbers are in its results CSV.",
+    r: "Closest call: fit each model with nls() and compare them with anova(fit_simpler, fit_complex); relative potency with drc::EDcomp(fit, c(50, 50), interval = \"fieller\").",
+  },
+  curve_ops: {
+    py: "A data manipulation (derivative, integral or smoothing of a curve): numpy.gradient and scipy.integrate.cumulative_trapezoid compute the same operations; nothing to test.",
+    r: "A data manipulation: diff() and cumulative trapezoid sums compute the same operations; nothing to test.",
+  },
+};
+
 function part(e: ScriptEntry): Part {
   const r = e.result as R | null;
   const o = (e.options && typeof e.options === "object" ? e.options : {}) as R;
@@ -587,8 +672,11 @@ function part(e: ScriptEntry): Part {
           + "with anova(fit, ddf = \"Satterthwaite\") is the closest call; the containment df OpenDose uses is not an lmerTest option."],
         caveats: [],
       };
-    default:
+    default: {
+      const why = NO_CALL[String(r.analysis ?? "")];
+      if (why) return { py: [`# ${why.py}`], r: [`# ${why.r}`], caveats: [] };
       return none(`No standard call is written for this analysis (${String(r.analysis ?? e.analysisId)}); its numbers are in its results CSV.`);
+    }
   }
 }
 
