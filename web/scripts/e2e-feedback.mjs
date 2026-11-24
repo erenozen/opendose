@@ -327,9 +327,15 @@ await ctx.close();
   await p.locator(".example-banner").waitFor({ timeout: 60000 });
   const boot = p.getByRole("region", { name: "Analysis engine" });
   await boot.getByRole("button", { name: "Try again" }).waitFor({ timeout: 120000 });
+  // The shipped figure can still be drawing when the boot fails under load.
+  await p.locator(".answer-figure").first().waitFor({ state: "visible", timeout: 30000 }).catch(() => {});
+  // "Try again" can appear a moment before the saved-results relabel.
+  await boot.getByText("These are saved results").waitFor({ timeout: 15000 }).catch(() => {});
+  const bootText = await boot.innerText();
+  const figureShown = await p.locator(".answer-figure").first().isVisible();
   expect("failed boot on the example: the shipped result stays on screen, relabelled",
-    (await boot.innerText()).includes("These are saved results")
-    && await p.locator(".answer-figure").first().isVisible());
+    bootText.includes("These are saved results") && figureShown,
+    `${JSON.stringify(bootText)} | figure ${figureShown} | ${await p.locator(".pane-results").innerText().then((t) => t.slice(0, 200)).catch(() => "")}`);
   await p.evaluate((t) => {
     const dt = new DataTransfer();
     dt.setData("text/plain", t);
