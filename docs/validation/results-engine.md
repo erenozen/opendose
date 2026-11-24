@@ -3381,3 +3381,10 @@ row note pointing to the blocked analysis and the methods sentence, then
 the normalized dose series (row "1" 5.364, SD 1.064, SEM 0.6607; reference
 rows SEM 0); ui-stage scenes results-propagation and
 results-propagation-note.
+
+Independent check (2026-11-24, by the lead, by hand): Sample A
+(0.412, 0.398, 0.405; mean 0.405, SD 0.007) minus a blank of 0.0513
+(SD 0.0035, n 3) is 0.3537, SD of one value sqrt(0.007^2 + 0.0035^2/3)
+= 0.007286, SEM sqrt(0.007^2/3 + 0.0035^2/3) = 0.004518 of which the
+blank's 0.0035/sqrt(3) = 0.002021. The ordinal coefficients are pinned
+to the values clm prints in the ordinal package's article (above).
