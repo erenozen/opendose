@@ -21,7 +21,7 @@ test("where a family applies", () => {
   assert.equal(familyTarget(o({ analysis: "anova", anovaKind: "nonparametric" })), "dunn");
   assert.equal(familyTarget(o({ analysis: "rm_anova", rmKind: "nonparametric" })), "dunn");
   assert.equal(familyTarget(o({ analysis: "anova", comparisons: "sidak" })), "posthoc");
-  assert.equal(familyTarget(o({ analysis: "anova", comparisons: "sidak" }), true), null);
+  assert.equal(familyTarget(o({ analysis: "anova", comparisons: "sidak" }), true), "posthoc");
   for (const m of ["tukey", "dunnett", "newman_keuls", "none"] as const) {
     assert.equal(familyTarget(o({ analysis: "anova", comparisons: m })), null, m);
   }

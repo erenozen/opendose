@@ -34,10 +34,10 @@ export const RM_METHOD_LABELS: Record<"none" | RmMethod, string> = {
   fisher_lsd: "Fisher's LSD (no correction)",
 };
 
-/** The mixed-effects model's methods (engine mixedmodel._METHODS). */
+/** The mixed-effects model's methods (engine mixedmodel._ONE_WAY_METHODS). */
 const MIXED_METHODS: Record<string, string> = {
   tukey: "tukey", dunnett: "dunnett", bonferroni: "bonferroni", sidak: "sidak",
-  holm_sidak: "holm_sidak", fisher_lsd: "fisher",
+  holm: "holm", holm_sidak: "holm_sidak", fisher_lsd: "fisher",
 };
 
 /** The RM post hoc method chosen, or null (none, or a method the RM
@@ -97,25 +97,23 @@ export function fitsMixedModel(o: ColumnOptionsState, table: DataTableModel): bo
     && incompleteSubjects(table) > 0;
 }
 
-/** Options of the engine's mixed_rm_oneway handler (the model's
- *  comparisons use its estimated means; planned families and Holm are not
- *  available there). */
+/** Options of the engine's mixed_rm_oneway handler: the comparisons use
+ *  the model's estimated means, with the same planned families as RM
+ *  ANOVA (engine mixedmodel.mixed_rm_one_way). */
 export function mixedOptions(o: ColumnOptionsState, k: number): Record<string, unknown> {
   const m = rmMethod(o);
   const cmp = m ? MIXED_METHODS[m] ?? null : null;
-  return { method: "mixed", comparisons: cmp, control_index: rmBaseline(o, k),
-    ddf: ddfOf(o.mixedDdf) };
-}
-
-/** What the mixed model cannot do of the chosen comparisons, or "". */
-export function mixedLimitations(o: ColumnOptionsState, k: number): string {
-  const m = rmMethod(o);
-  if (!m) return "";
-  if (!MIXED_METHODS[m]) return "Holm's correction is not available with the mixed-effects model; choose Holm-Šídák, Šídák or Bonferroni.";
-  if (PLANNED_METHODS.has(m) && effectiveFamily(o, k) !== "all") {
-    return "With the mixed-effects model the comparisons cover every pair (planned families need complete subjects).";
+  const out: Record<string, unknown> = { method: "mixed", comparisons: cmp,
+    control_index: rmBaseline(o, k), ddf: ddfOf(o.mixedDdf) };
+  if (m && PLANNED_METHODS.has(m)) {
+    const fam = effectiveFamily(o, k);
+    if (fam === "control") out.comparisons_family = "control";
+    else if (fam === "pairs") {
+      out.comparisons_family = "pairs";
+      out.pairs = validPairs(o.plannedPairs, k);
+    }
   }
-  return "";
+  return out;
 }
 
 /** The methods phrase of the comparisons, e.g. "Dunnett's test vs. Baseline". */

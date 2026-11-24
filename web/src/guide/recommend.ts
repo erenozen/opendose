@@ -435,9 +435,12 @@ function draft(d: Design, checks: DataChecks | null): Draft {
         + "number of independent units.");
     }
     if (d.distribution === "not_normal") {
-      notes.push("There is no standard nonparametric two-way ANOVA. If the data are skewed "
-        + "and positive, analyse log(values); otherwise two-way ANOVA is reasonably robust "
-        + "with balanced groups.");
+      notes.push(rm || nested
+        ? "The nonparametric two-way ANOVA here (aligned rank transform) is for independent "
+          + "values. If the data are skewed and positive, analyse log(values); otherwise "
+          + "two-way ANOVA is reasonably robust with balanced groups."
+        : "If the data are positive and skewed (the SD grows with the mean), a two-way ANOVA "
+          + "of log(values) keeps the effects as ratios and is often better than ranks.");
     }
     const alts: Alternative[] = [
       { test: rm ? "Two-way ANOVA without repeated measures"
@@ -457,6 +460,27 @@ function draft(d: Design, checks: DataChecks | null): Draft {
     if (d.distribution === "lognormal") {
       notes.push("Lognormal data: transform Y = log(Y) (Analyze › Transform) and run the ANOVA "
         + "on the logs; differences of logs are ratios.");
+    }
+    // Not Gaussian, independent values, n enough for ranks: the aligned
+    // rank transform tests both factors and the interaction on ranks
+    // (Wobbrock et al. 2011); ART-C contrasts (Elkin et al. 2021).
+    if (rank.use && !rm && !nested) {
+      return { ...base, rule: "two_way_art", test: "Aligned rank transform two-way ANOVA (nonparametric)",
+        reason: "Two grouping factors with independent values that are not Gaussian: the aligned "
+          + "rank transform aligns the values for each effect (the other effects removed), ranks "
+          + "them and runs the factorial ANOVA on the ranks, so it tests both factors and their "
+          + "interaction without assuming a Gaussian distribution.",
+        target: { ...target, options: { design: "none", method: "art",
+          artContrasts: d.question === "all" ? "cells" : "col" } },
+        alternatives: [{ test: "Two-way ANOVA", when: "if the values are roughly Gaussian, or "
+          + "Gaussian after a log transform (it also gives differences with CIs)", target }, ...alts],
+        postHoc: { family: "all pairs", method: "ART-C contrasts with Tukey's adjustment",
+          why: "Contrasts after the aligned rank transform must re-align the values for the "
+            + "levels compared (ART-C); the ANOVA's own aligned ranks are only valid for its F tests.",
+          inOpenDose: "The results compare the levels of one factor, or every cell, as differences "
+            + "of mean aligned ranks." },
+        sources: src("wobbrock2011", "elkin2021", "gpTwoWay"),
+        explainers: ["exact-adjusted"] };
     }
     return { ...base,
       rule: rm ? (checks?.missing ? "two_way_mixed" : "two_way_rm") : "two_way",

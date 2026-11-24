@@ -16,6 +16,9 @@
 // unit-tested with node --test.
 import { numericData } from "../../project/table.ts";
 import type { DataTableModel } from "../../project/types.ts";
+import {
+  SUBCOLUMN_FORMAT_ENGINE, SUBCOLUMN_FORMAT_HAS_N, SUBCOLUMN_FORMAT_LABELS,
+} from "../../project/types.ts";
 import { formatPValue, type PStyle } from "../../report/pformat.ts";
 import { formatSig } from "../../types.ts";
 import type { ModelMeta } from "../../lib/modelLibrary.ts";
@@ -94,16 +97,26 @@ export function chosenSets(table: DataTableModel, sets: number[]): number[] {
   return sets.length ? picked : ok;
 }
 
+/** Engine options for a table of means with errors and N: each row enters
+ *  the fits as its mean, SD and N, which gives the fits of the replicates
+ *  (engine summary.replicate_view). Nothing for replicate tables. */
+export function summaryFitOptions(table: DataTableModel): R {
+  return table.subcolumnFormat === "replicates" ? {}
+    : { summary_format: SUBCOLUMN_FORMAT_ENGINE[table.subcolumnFormat], replicates: "account" };
+}
+
 /** The engine payload of the comparison. */
 export function compareParameterPayload(table: DataTableModel, i: ParameterInput): R {
   const pick = i.sets ? { datasets: chosenSets(table, i.sets) }
     : { dataset_a: i.datasetA, dataset_b: i.datasetB };
+  const { summary_format: fmt } = summaryFitOptions(table);
   return {
     analysis: "compare_parameter",
     data: numericData(table),
     options: {
       model: i.model.engineId, parameter: i.parameter, ...pick, constraints: i.held, x_is_log: i.xIsLog,
       ...(i.weighting ? { weighting: i.weighting } : {}),
+      ...(fmt ? { summary_format: fmt } : {}),
     },
   };
 }
@@ -132,9 +145,10 @@ export function midpointFlag(name: string, fit: R | null | undefined, unit: stri
 export function runParameter(engine: Engine, table: DataTableModel, i: ParameterInput): R {
   const fail = (error: string) => ({ analysis: "compare_fits", mode: "parameter", rows: [],
     datasets: [], error });
-  if (table.subcolumnFormat !== "replicates") {
-    return fail("Compare a parameter needs the replicate values (this table holds summary data): "
-      + "use “One curve for all data sets vs. a separate curve for each” instead");
+  if (!SUBCOLUMN_FORMAT_HAS_N[table.subcolumnFormat]) {
+    return fail(`Compare a parameter needs N with the means (this table is `
+      + `${SUBCOLUMN_FORMAT_LABELS[table.subcolumnFormat]}): change the format to one with N, `
+      + "or enter the replicate values");
   }
   if (!i.parameter) return fail("Choose a parameter to compare");
   if (i.sets) return runSets(engine, table, i, fail);
@@ -150,7 +164,7 @@ export function runParameter(engine: Engine, table: DataTableModel, i: Parameter
     analysis: "dose_response",
     data: { x: data.x, datasets: [data.datasets[i.datasetA], data.datasets[i.datasetB]] },
     options: { model: i.model.engineId, x_is_log: i.xIsLog, error_bars: i.errorBars, constraints: i.held,
-      ...(i.weighting ? { weighting: i.weighting } : {}) },
+      ...(i.weighting ? { weighting: i.weighting } : {}), ...summaryFitOptions(table) },
   });
   const fits: R[] = (sep && !sep.error ? sep.datasets ?? [] : []);
   const mid = isMidpoint(String(res.parameter_internal ?? res.parameter ?? ""));
@@ -182,7 +196,7 @@ function runSets(engine: Engine, table: DataTableModel, i: ParameterInput, fail:
     analysis: "dose_response",
     data: { x: data.x, datasets: idx.map((k) => data.datasets[k]) },
     options: { model: i.model.engineId, x_is_log: i.xIsLog, error_bars: i.errorBars, constraints: i.held,
-      ...(i.weighting ? { weighting: i.weighting } : {}) },
+      ...(i.weighting ? { weighting: i.weighting } : {}), ...summaryFitOptions(table) },
   });
   const fits: R[] = (sep && !sep.error ? sep.datasets ?? [] : []);
   const mid = isMidpoint(String(res.parameter_internal ?? res.parameter ?? ""));

@@ -341,6 +341,22 @@ function sourcesRows(ctx: Ctx, r: R): StatsRow[] {
   return [...out, ...comparisonRows(ctx, r.multiple_comparisons)];
 }
 
+/** The aligned rank transform two-way ANOVA (P-85): each effect from the
+ *  ranks aligned for it, then the ART-C contrasts (mean rank differences). */
+function artRowsOf(ctx: Ctx, r: R): StatsRow[] {
+  const src: R = r.sources && typeof r.sources === "object" ? r.sources : {};
+  const out: StatsRow[] = [];
+  for (const [name, s] of Object.entries(src) as [string, R][]) {
+    if (!s || !num(s.F)) continue;
+    out.push(finish(ctx, { comparison: SOURCE_LABELS[name] ?? name, statistic: "F (aligned ranks)",
+      value: f(s.F), df: dfPair(s.df, s.df_residual), pValue: s.p, adjustment: PER_TERM,
+      note: "ranks aligned for this effect" }));
+  }
+  const cc = r.art_contrasts as R | undefined;
+  const rows = comparisonRows(ctx, cc ? { ...cc, method: cc.family?.method } : null);
+  return [...out, ...rows.map((x) => ({ ...x, estimate: x.estimate ? "Difference of mean aligned ranks" : "" }))];
+}
+
 /** Mixed models with an "anova" list ({term, f, dfn, dfd, p}). */
 function termListRows(ctx: Ctx, r: R, mc: R | null | undefined): StatsRow[] {
   const terms: R[] = Array.isArray(r.anova) ? r.anova : [];
@@ -654,6 +670,7 @@ const MAPPERS: Record<string, (ctx: Ctx, r: R) => StatsRow[]> = {
   mixed_rm_one_way: mixedRmOneWayRows,
   friedman: friedmanRows,
   two_way_anova: sourcesRows,
+  two_way_art: artRowsOf,
   three_way_anova: sourcesRows,
   rm_two_way_mixed: sourcesRows,
   rm_two_way_both: sourcesRows,
@@ -745,7 +762,13 @@ export function statsRows(entry: StatsEntry, opts: { style?: PStyle; prefs?: Pic
   try { rows = map(ctx, r); } catch (e) {
     return only(`Not tabulated: the result could not be read (${e instanceof Error ? e.message : String(e)}); see its results sheet.`);
   }
-  return rows.length ? rows : only("No comparison or estimate in this result; see its results sheet.");
+  if (!rows.length) return only("No comparison or estimate in this result; see its results sheet.");
+  // P-84: the log scale from means and SDs is approximate; say so on every row
+  if (r.log_scale && typeof r.log_scale === "object" && r.log_scale.approximate === true) {
+    const approx = "approximate: log scale estimated from means and SDs (lognormal moment conversion)";
+    rows = rows.map((row) => ({ ...row, note: row.note ? `${row.note}; ${approx}` : approx }));
+  }
+  return rows;
 }
 
 export interface StatsTable {

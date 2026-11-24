@@ -933,3 +933,66 @@ const longData = (name, names, rows, categorical) => data(name, {
   const lay = layout("Figure 1", [cg.id, g.id], 1, 2);
   write("stats-table.json", project("Statistics table", [c, t, tt, an, r, cg, g, lay], { selected: tt.id }));
 }
+
+// summary-parity.json (P-84; engine/tests/reference/summary_parity.py):
+// four groups entered as mean, SD, N under one-way ANOVA with Holm, each
+// vs. Control; titres as mean, SD, N on the log scale (approximate); a
+// repeated-measures table with missing values under the mixed model with
+// Holm vs. Baseline; a dose-response twice, as replicates and as mean,
+// SD, N, each under Compare a parameter (logEC50)
+{
+  n = 0;
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/summary_parity.json"), "utf8"));
+  const msn = (groups) => groups.map((g) => ({ name: g.name, subTitles: ["", "", ""],
+    rows: [[String(g.mean), String(g.sd), String(g.n)]] }));
+  const four = data("Four groups (mean, SD, N)", { ...table("column", { datasets: msn(ref.groups) }),
+    subcolumnFormat: "mean_sd_n" });
+  const r4 = results(four, "column", { analysis: "anova", anovaKind: "parametric", comparisons: "holm",
+    comparisonsFamily: "control", controlIndex: 0 }, "One-way ANOVA of Four groups");
+  const titres = data("Titres (mean, SD, N)", { ...table("column", { datasets: msn(ref.log_groups) }),
+    subcolumnFormat: "mean_sd_n" });
+  const rt = results(titres, "column", { analysis: "anova", anovaKind: "parametric", comparisons: "holm",
+    comparisonsFamily: "control", controlIndex: 0, logScale: true }, "Log-scale ANOVA of Titres");
+  const mx = ref.mixed;
+  const rm = data("Weekly scores", table("column", {
+    datasets: mx.names.map((nm, t) => col(nm, mx.rows.map((r) => (r[t] === null ? "" : r[t])))) }));
+  const rr = results(rm, "column", { analysis: "rm_anova", rmKind: "parametric", comparisons: "holm",
+    comparisonsFamily: "control", controlIndex: 0, rmMixed: true }, "Mixed model of Weekly scores");
+  const xs = ["-9", "-8.5", "-8", "-7.5", "-7", "-6.5", "-6", "-5.5"];
+  const reps = [
+    [[2, 4, 3], [8, 6, 9], [18, 21, 16], [41, 38, 45], [70, 66, 73], [88, 91, 85], [96, 98, 95], [99, 101, 100]],
+    [[1, 2, 3], [3, 4, 2], [7, 9, 8], [19, 17, 22], [42, 47, 40], [72, 69, 75], [90, 88, 92], [97, 99, 96]]];
+  const mean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+  const sd = (v) => Math.sqrt(v.reduce((a, b) => a + (b - mean(v)) ** 2, 0) / (v.length - 1));
+  const cmp = { mode: "parameter", model1: "log_agonist_vs_response_4pl", parameter: "logEC50",
+    datasetA: 0, datasetB: 1, xIsLog: true, method: "both" };
+  const rawXY = data("Agonist (replicates)", table("xy", { x: xs, xTitle: "log[Agonist]", yTitle: "Response",
+    datasets: ["A", "B"].map((nm, k) => ({ name: nm, subTitles: ["", "", ""],
+      rows: reps[k].map((r) => r.map(String)) })) }));
+  const rawR = results(rawXY, "compare_fits", cmp, "Compare logEC50 of Agonist (replicates)");
+  const sumXY = data("Agonist (mean, SD, N)", { ...table("xy", { x: xs, xTitle: "log[Agonist]",
+    yTitle: "Response", datasets: ["A", "B"].map((nm, k) => ({ name: nm, subTitles: ["", "", ""],
+      rows: reps[k].map((r) => [String(mean(r)), String(sd(r)), String(r.length)]) })) }),
+  subcolumnFormat: "mean_sd_n" });
+  const sumR = results(sumXY, "compare_fits", cmp, "Compare logEC50 of Agonist (mean, SD, N)");
+  write("summary-parity.json", project("Summary data",
+    [four, r4, titres, rt, rm, rr, rawXY, rawR, sumXY, sumR], { selected: r4.id }));
+}
+
+// art-anova.json (P-85; engine/tests/reference/art_anova.py): ARTool's
+// Higgins1990Table5 (dry matter, 4 moisture levels x 4 fertilizers, the 3
+// trays of each moisture level as replicates) under the aligned rank
+// transform with ART-C contrasts of Moisture, and the same table under the
+// ordinary two-way ANOVA (the e2e switches it to the aligned rank transform)
+{
+  n = 0;
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/art_anova.json"), "utf8"));
+  const higgins = data("Higgins 1990 Table 5", table("grouped", { rowTitles: ref.moisture, yTitle: "Dry matter",
+    datasets: ref.fertilizer.map((f) => ({ name: f, subTitles: ["", "", ""],
+      rows: ref.moisture.map((m) => ref.cells[m][f].map(String)) })) }));
+  const ra = results(higgins, "grouped_two_way", { design: "none", rowFactor: "Moisture", colFactor: "Fertilizer",
+    method: "art", artContrasts: "row" }, "Aligned rank transform of Higgins 1990 Table 5");
+  const ro = results(higgins, "grouped_two_way", { design: "none", rowFactor: "Moisture",
+    colFactor: "Fertilizer" }, "Two-way ANOVA of Higgins 1990 Table 5");
+  write("art-anova.json", project("Aligned rank transform", [higgins, ra, ro], { selected: ra.id }));
+}

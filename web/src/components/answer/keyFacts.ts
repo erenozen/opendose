@@ -400,5 +400,18 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
   if (r.analysis === "ttest" && !r.test?.toString().match(/kolmogorov|ratio_paired/)) return ttestFacts(r);
   if (r.analysis === "anova") return anovaFacts(r);
+  if (r.analysis === "two_way_art") return artFacts(r);
   return null;
+}
+
+/** Aligned rank transform two-way ANOVA (P-85): the interaction's P, with
+ *  its F on the aligned ranks. */
+function artFacts(r: R): KeyFacts {
+  const s = (r.sources as R | undefined)?.interaction;
+  if (!s || typeof s.p !== "number") return null;
+  const f = Array.isArray(r.factor_names) ? r.factor_names.map(String) : [];
+  return { kind: "figures", items: [{
+    title: `Interaction${f.length === 2 ? ` (${f[0]} × ${f[1]})` : ""}, aligned rank transform`,
+    figure: { name: "P value", value: tableP(s.p),
+      facts: [`F(${s.df}, ${s.df_residual}) = ${formatSig(s.F)} on aligned ranks`] } }] };
 }

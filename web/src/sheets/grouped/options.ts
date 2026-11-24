@@ -63,7 +63,20 @@ export interface TwoWayOptions {
   /** Custom contrasts over the cells, row by row (P-83, ordinary design;
    *  sheets/common/customContrasts.ts). */
   customContrasts?: CustomContrast[];
+  /** "art": the nonparametric two-way ANOVA by the aligned rank transform
+   *  (P-85, engine art.py; ordinary design, replicate values). Absent =
+   *  the two-way ANOVA. */
+  method?: TwoWayMethod;
+  /** ART-C contrasts after the aligned rank transform: levels of the row
+   *  factor, of the column factor, or every cell (absent = none). */
+  artContrasts?: ArtContrasts;
+  /** Their adjustment (absent = Tukey, as ARTool's art.con). */
+  artAdjust?: ArtAdjust;
 }
+
+export type TwoWayMethod = "anova" | "art";
+export type ArtContrasts = "none" | "row" | "col" | "cells";
+export type ArtAdjust = "tukey" | "holm";
 
 export const DEFAULT_TWO_WAY: TwoWayOptions = {
   design: "none",
@@ -105,6 +118,10 @@ export function normalizeTwoWay(raw: unknown): TwoWayOptions {
     ...(o.mixedDdf === undefined ? {} : { mixedDdf: ddfOf(o.mixedDdf) }),
     ...(normalizeContrasts(o.customContrasts).length
       ? { customContrasts: normalizeContrasts(o.customContrasts) } : {}),
+    ...(o.method === "art" ? { method: "art" as const } : {}),
+    ...(o.artContrasts === "row" || o.artContrasts === "col" || o.artContrasts === "cells"
+      ? { artContrasts: o.artContrasts } : {}),
+    ...(o.artAdjust === "holm" ? { artAdjust: "holm" as const } : {}),
   };
 }
 

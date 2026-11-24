@@ -5256,6 +5256,98 @@ to and the analysis the link holds.
 Independent check (2026-11-24, by the lead): scipy.stats.ttest_ind of
 Treated against Control without its row 3 (21.8) gives t = 5.244906 on 9
 df, P = 5.3128e-4, the sensitivity copy's numbers.
+
+## Feature validation: mean, SD and N tables get the options of raw data (2026-11-24)
+
+P-84. One-way ANOVA from mean, SD and N takes planned families (each vs.
+a control, planned pairs) and every post test the raw-data ANOVA takes,
+Holm included; the unpaired t test and one-way ANOVA from mean and SD
+run on the log scale; Compare a parameter accepts XY tables of mean,
+SD / SEM / %CV / CI and N; the mixed-model RM path (missing values)
+takes Holm and planned families. R is not installed: the oracles are
+statsmodels and scipy (`engine/tests/reference/summary_parity.py`),
+tested in `engine/tests/test_summary_parity.py`.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| Control 12.0 (SD 2.5, n 6), Low 14.1 (3.0, 6), Mid 17.8 (3.6, 5), High 22.4 (4.9, 6); Holm, each vs. Control (acceptance) | data with exactly those means, SDs and Ns through statsmodels OLS: F(3, 19) = 9.52933, P = 0.000470255; Holm P 0.326828, 0.0315708, 0.000246896 (multipletests) | 1e-8; equal to the raw-data path of the engine to 1e-9 |
+| the same, Holm-Šídák vs. control, Bonferroni and Šídák on 2 planned pairs, Holm on every pair | multipletests holm-sidak, bonferroni, sidak, holm over exactly that family | 1e-8 |
+| Tukey, Dunnett, Newman-Keuls, Fisher's LSD on planned pairs | the engine's raw-data path on the exact-moment data | 1e-7 |
+| Vehicle 3.2 (1.1, 8), Dose 1 6.9 (2.6, 8), Dose 2 15.4 (6.8, 7), log scale | lognormal moment conversion sigma^2 = ln(1 + SD^2/mean^2), mu = ln(mean) - sigma^2/2 (Higgins, White & Anzures-Cabrera 2008, Stat Med 27:6072): scipy.stats.lognorm(s = sigma, scale = e^mu) has exactly the entered mean and SD; ANOVA, Holm, geometric means and ratios equal the raw log-scale path on values whose log10 have exactly mu and sigma | 1e-12 (conversion), 1e-8 (pipeline) |
+| a lognormal sample, n = 10 per group, sigma_ln 0.45 | sample log10 mean and SD vs. the converted ones: within 0.03 log10 units and 25% | the approximation, stated as such in the results, methods, legend and statistics table |
+| two dose-response sets, 8 doses x 3 replicates, as mean, SD, N and as mean, SEM, N; Compare a parameter (logEC50) | the engine's comparison of the replicates: difference, SE, df, P, ratio, F test | 1e-6 |
+| 7 subjects x 4 weeks, 3 missing values; mixed model, Holm vs. Baseline | statsmodels MixedLM (REML) variance components, GLS contrasts on the containment df 15, multipletests holm: differences 0.702706, 1.59831, 2.46502; Holm P 8.92e-6, 4.11e-10, 1.21e-12 | 1e-5 (SE), 1e-4 (P) |
+
+Also tested: with complete subjects the mixed model's Holm vs. Baseline
+equals RM ANOVA's pooled-error Holm; Bonferroni on planned pairs is 2 x
+the uncorrected P; Tukey and Dunnett refuse a planned family; reversing
+the group order with the control moved gives the same P values; means
+and SDs x 1e-9 leave F and P unchanged and scale the differences; a
+mean of 0 or below refuses the log scale ("needs every mean > 0"), n =
+1 refuses with "n >= 2"; a format without N refuses Compare a parameter
+with what to do. e2e (`e2e-results.mjs`): the acceptance table (Holm vs.
+Control) against statsmodels; Šídák on two pairs ticked in the
+comparisons picker; the geometric means and the "Approximate" sentence
+with its source; the mixed model's differences; Compare a parameter on
+the mean, SD, N table identical to the replicate table.
+
+Independent check values (for the lead): in
+`web/e2e-fixtures/stage/summary-parity.json`, "One-way ANOVA of Four
+groups": F(3, 19) = 9.529, Holm adjusted P 0.3268 (Low), 0.03157 (Mid),
+2.469e-4 (High) vs. Control. "Log-scale ANOVA of Titres": geometric
+means 3.026, 6.457, 14.09; Dose 2 / Vehicle 4.66-fold. "Mixed model of
+Weekly scores": differences 0.7027, 1.598, 2.465 vs. Baseline.
+
+## Feature validation: aligned rank transform two-way ANOVA (2026-11-24)
+
+P-85. A nonparametric two-way ANOVA with the interaction by the aligned
+rank transform (Wobbrock, Findlater, Gergle & Higgins 2011, CHI; Higgins
+& Tashtoush 1994), with ART-C contrasts (Elkin, Kay, Higgins & Wobbrock
+2021, UIST), `engine/opendose/art.py`, on Grouped tables (Two-way ANOVA ›
+Method › Aligned rank transform) and from the "Which test?" wizard when two
+factors with independent values are not Gaussian. R is not installed, so
+ARTool is not run; the oracles are in `engine/tests/reference/art_anova.py`,
+tested in `engine/tests/test_art.py`.
+
+Data: ARTool's Higgins1990Table5 (Higgins, Blair & Tashtoush 1990, Table
+5; dry matter, 4 moisture levels x 4 fertilizers, 3 trays per moisture
+level), read from ARTool's data/Higgins1990Table5.RData and copied to
+`engine/tests/fixtures/higgins1990_table5.csv`.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| the aligned ranks of Higgins1990Table5 | an own pandas alignment with ARTool's rules (means of the observations, aligned values rounded to 8 decimals, average ranks for ties; ARTool R/art.R and R/internal.R) | 1e-12 |
+| those ranks in ARTool's split-plot model, Error(Tray) | ARTool's published reference (tests/testthat/test.anova.art.R, "matches results of the original ARTool"): F = 23.8326 (3, 8), 122.4017 (3, 24), 5.1180 (9, 24); P = 0.0002, < 0.0001, 0.0006 | reproduced to the 4 decimals printed |
+| Higgins1990Table5 as a grouped table (Moisture rows, Fertilizer columns, 3 replicates), fixed effects (acceptance) | statsmodels OLS anova_lm(typ=3) on the reference ranks: Moisture F(3, 32) = 41.5199, P = 3.85e-11; Fertilizer F(3, 32) = 69.4604, P = 4.20e-14; interaction F(9, 32) = 2.93875, P = 0.0116848 | 1e-10 (F), 1e-8 (P) |
+| ART-C of Moisture and of Fertilizer (6 pairs each), of every cell (120 pairs) | statsmodels OLS marginal means of the aligned ranks, SE from the OLS covariance, Tukey P from scipy.stats.studentized_range: m1 vs. m2 difference -23.0833, Tukey P 1.19e-7 | 1e-10 (differences, SE), 1e-4 (Tukey P) |
+| ART-C with Holm | statsmodels multipletests holm on the unadjusted P | 1e-12 |
+
+Also tested: the alignment check (aligned values sum to 0, the other
+effects' F on them ~0); x 1e-12, x 1e12 + 5 and + 1000 leave every F
+unchanged (rounding is in units of the values' leading power of ten, so
+the ties do not depend on the units); swapping rows and columns swaps
+the main effects; permuting replicates changes nothing; ties get average
+ranks; an empty cell is refused naming the cell ("needs values in every
+cell ... row 3, column 2"); a cell with one value, one row or column, and
+all values equal are refused with a sentence; unequal cell sizes run
+with a note. Web: options, payload, refusals, rows, methods paragraph,
+key facts, "What this means", describe, results sentence, statistics
+table rows and the wizard route (`art.test.ts`, `statsTable.test.ts`).
+e2e (`e2e-results.mjs`): the acceptance table against the reference,
+ART-C of Moisture, the log-scale note with its source, the Method choice
+in the two-way controls, and ART-C of every cell (120 pairs).
+
+When a log transform is the better route: the results and the controls
+say that for positive values whose SD grows with the mean a two-way
+ANOVA on the logarithms keeps the interaction on a ratio scale with
+geometric means and ratios (Bland & Altman 1996, BMJ 312:770), and that
+the ART is for scores and outcomes no transform makes Gaussian.
+
+Independent check values (for the lead): in
+`web/e2e-fixtures/stage/art-anova.json`, "Aligned rank transform of
+Higgins 1990 Table 5": interaction F(9, 32) = 2.939, P = 0.01168;
+Moisture F(3, 32) = 41.52; Fertilizer F(3, 32) = 69.46; ART-C m1 vs. m2
+difference of mean aligned ranks -23.08, Tukey P 1.191e-7.
 """
 
 

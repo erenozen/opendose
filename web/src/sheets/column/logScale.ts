@@ -21,11 +21,16 @@ type R = Record<string, any>;
 const num = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 /** Analyses the log-scale option applies to: the unpaired and Welch t
- *  tests and the ordinary one-way ANOVA (equal SDs), on raw values. A
- *  paired design has its own log-scale test, the ratio paired t test. */
+ *  tests and the ordinary one-way ANOVA (equal SDs). A paired design has
+ *  its own log-scale test, the ratio paired t test. Data entered as mean,
+ *  SD and N get it too: the engine estimates the mean and SD of the
+ *  logarithms by the lognormal moment conversion, an approximation the
+ *  results state (approximateLog). */
 export function logScaleApplies(o: ColumnOptionsState, summaryData = false): boolean {
-  if (summaryData) return false;
-  if (o.analysis === "ttest") return o.ttestKind === "unpaired" || o.ttestKind === "welch";
+  if (o.analysis === "ttest") {
+    return o.ttestKind === "unpaired" || o.ttestKind === "welch";
+  }
+  if (summaryData && o.analysis !== "anova") return false;
   return o.analysis === "anova" && o.anovaKind === "parametric"
     && (o.anovaSd ?? "equal") !== "unequal";
 }
@@ -40,6 +45,18 @@ export function logScaleOptions(o: ColumnOptionsState, summaryData = false): Rec
 export function onLogScale(result: unknown): boolean {
   const r = result as R | null;
   return !!r && typeof r === "object" && !!r.log_scale && typeof r.log_scale === "object";
+}
+
+/** The source of the lognormal moment conversion (engine summary.py). */
+export const LOGNORMAL_SOURCE = "Higgins, White & Anzures-Cabrera 2008, Stat Med 27:6072";
+
+/** The approximation of a log-scale result computed from means and SDs
+ *  (the engine's log_scale.approximate), as one sentence, or "". */
+export function approximateLog(result: unknown): string {
+  const ls = (result as R | null)?.log_scale as R | undefined;
+  if (!ls || ls.approximate !== true) return "";
+  return "Approximate: computed from the entered means and SDs, assuming each group is "
+    + "lognormal (lognormal moment conversion); the raw values could give a different result.";
 }
 
 /** "log10", "ln", "log2" of a log-scale result. */
@@ -150,16 +167,22 @@ export function logMethodsClause(result: unknown): string {
 export function logMethodsSentence(result: unknown): string {
   if (!onLogScale(result)) return "";
   const d = droppedValues(result);
+  const approx = approximateLog(result)
+    ? ". The means and SDs of the logarithms were estimated from the reported means and SDs by "
+      + `the lognormal moment conversion (${LOGNORMAL_SOURCE}), so the results are approximate`
+    : "";
   return `Data were ${logMethodsClause(result)}; P values are those of the test on the `
     + "logarithms (Bland & Altman 1996, BMJ 312:1153)"
     + (d ? `. ${d.count} value${d.count === 1 ? "" : "s"} ≤ 0 (no logarithm) ${d.count === 1 ? "was" : "were"} left out` : "")
-    + ".";
+    + approx + ".";
 }
 
 /** The figure-legend clause for a log-scale result. */
 export function logLegendClause(result: unknown): string {
   if (!onLogScale(result)) return "";
   const fold = ttestFold(result);
+  const approx = approximateLog(result)
+    ? " Approximate: estimated from means and SDs by the lognormal moment conversion." : "";
   return `Statistics on ${logBase(result)}-transformed values (geometric means; ratios of `
-    + `geometric means with 95% CIs)${fold ? `: ${fold}` : ""}.`;
+    + `geometric means with 95% CIs)${fold ? `: ${fold}` : ""}.${approx}`;
 }

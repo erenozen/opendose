@@ -1432,6 +1432,51 @@ const scenes = [
     await d.locator(".contrast-status[data-problem]").waitFor();
     await settle(s, 500);
   } },
+  // P-84: a log-scale ANOVA from mean, SD, N, its approximation stated
+  { name: "results-summary-log", setup: async (s) => {
+    await fixture(s, "summary-parity.json", { live: true });
+    await selectSheet(s, "Log-scale ANOVA of Titres");
+    const note = s.page.locator(".pane-results .log-note [data-approximate]").first();
+    await note.waitFor({ timeout: 240000 });
+    await s.page.locator(".pane-results .geometric-means").first()
+      .evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-84: planned pairs in the comparisons picker of a mean, SD, N table
+  { name: "controls-summary-family", setup: async (s) => {
+    await fixture(s, "summary-parity.json", { live: true });
+    const controls = s.page.locator(".pane-controls").first();
+    const fam = await reveal(s, controls.getByLabel("Comparisons", { exact: true }));
+    await fam.selectOption("pairs");
+    await controls.getByRole("checkbox", { name: "Control vs. High" }).check();
+    await controls.locator(".planned-pairs").evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
+  // P-84: the mixed model's comparisons picker (Holm, each vs. Baseline)
+  { name: "controls-mixed-family", setup: async (s) => {
+    await fixture(s, "summary-parity.json", { live: true });
+    await selectSheet(s, "Mixed model of Weekly scores");
+    const controls = s.page.locator(".pane-controls").first();
+    const pick = await reveal(s, controls.locator(".rm-posthoc .comparisons-picker"));
+    await pick.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
+  // P-85: the aligned rank transform of Higgins 1990 Table 5, ART-C of Moisture
+  { name: "results-art", setup: async (s) => {
+    await fixture(s, "art-anova.json", { live: true });
+    const card = s.page.locator(".pane-results .art-results").first();
+    await card.waitFor({ timeout: 240000 });
+    await card.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 800);
+  } },
+  // P-85: the two-way controls with the aligned rank transform chosen
+  { name: "controls-art", setup: async (s) => {
+    await fixture(s, "art-anova.json", { live: true });
+    const controls = s.page.locator(".pane-controls").first();
+    const sel = await reveal(s, controls.getByLabel("ART-C contrasts"));
+    await sel.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await settle(s, 800);
+  } },
   // P-94: the standard curve's Precision report (4 plates on 2 days)
   { name: "results-precision-report", setup: async (s) => {
     await fixture(s, "precision.json", { live: true });

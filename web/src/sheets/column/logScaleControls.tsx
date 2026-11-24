@@ -2,7 +2,7 @@
 // (logScale.ts). A paired design is routed to the ratio paired t test,
 // which already analyses the logarithms of the paired values.
 import type { ColumnOptionsState } from "../../types";
-import { logScaleApplies } from "./logScale";
+import { logScaleApplies, LOGNORMAL_SOURCE } from "./logScale";
 import { LOG_SOURCES } from "./logScaleSources";
 
 export default function LogScaleOption({ options, onChange, summaryData = false }: {
@@ -34,7 +34,10 @@ export default function LogScaleOption({ options, onChange, summaryData = false 
           The test runs on log10 of the values; the results report geometric means and the
           ratio of geometric means (a fold change) with its 95% CI. Values ≤ 0 have no
           logarithm and are left out (the results say how many). Use it for concentrations,
-          titres and other positive values whose SD grows with the mean.{" "}
+          titres and other positive values whose SD grows with the mean.
+          {summaryData && " From means and SDs the mean and SD of the logarithms are estimated "
+            + "by the lognormal moment conversion, which assumes each group is lognormal: "
+            + `the results are approximate (${LOGNORMAL_SOURCE}).`}{" "}
           <span className="source-line">Sources: {LOG_SOURCES.map((s, i) => (
             <span key={s.url}>{i > 0 && "; "}<a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></span>
           ))}.</span>

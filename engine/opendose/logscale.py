@@ -129,19 +129,29 @@ def geometric_means(logged_cols, names, base: str = "log10",
     """Per group: n, mean and SD of the logs, geometric mean (antilog of
     the mean log), its CI (antilog of mean log +/- t * SD / sqrt(n)) and
     the geometric SD factor (antilog of the SD of the logs)."""
-    out = []
-    for col, name in zip(logged_cols, names):
+    stats_ = []
+    for col in logged_cols:
         x = np.asarray(col, dtype=float)
         n = int(x.size)
-        entry = {"name": name, "n": n, "mean_log": None, "sd_log": None,
-                 "geometric_mean": None, "ci": None,
+        stats_.append((float(x.mean()) if n >= 1 else None,
+                       float(x.std(ddof=1)) if n >= 2 else None, n))
+    return geometric_means_from_stats(stats_, names, base, ci_level)
+
+
+def geometric_means_from_stats(stats_, names, base: str = "log10",
+                               ci_level: float = 0.95) -> list:
+    """geometric_means from (mean of the logs, SD of the logs, n) per
+    group (SD None when n < 2), e.g. the lognormal moment conversion of
+    data entered as mean, SD and n (opendose.summary)."""
+    out = []
+    for (m, sd, n), name in zip(stats_, names):
+        entry = {"name": name, "n": int(n), "mean_log": None,
+                 "sd_log": None, "geometric_mean": None, "ci": None,
                  "geometric_sd_factor": None}
-        if n >= 1:
-            m = float(x.mean())
+        if n >= 1 and m is not None:
             entry["mean_log"] = m
             entry["geometric_mean"] = antilog(m, base)
-        if n >= 2:
-            sd = float(x.std(ddof=1))
+        if n >= 2 and m is not None and sd is not None:
             half = float(stats.t.ppf((1 + ci_level) / 2, n - 1)) * sd \
                 / math.sqrt(n)
             entry["sd_log"] = sd
