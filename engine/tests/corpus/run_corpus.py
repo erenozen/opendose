@@ -4964,6 +4964,15 @@ Not covered yet: the other assay modules (standard curve, plate, flow,
 densitometry, luciferase, growth, wound, MIC, kinetics, synergy, AUC,
 volcano, cluster) have no "What this means" line; their results sheets
 are unchanged.
+
+Kinds merged from Wave 2 at hand-back: the general linear mixed model on
+a long table (`lmm`, P-87) has a statistics-table mapper (its F tests and
+comparisons) and a meaning (the grouping column as the unit), both pinned
+on a native result. Relative potency (`relative_potency`, P-100),
+comparing global and user-defined fits (`compare_global_fits`, P-99) and
+assay precision (`precision_study`, P-94) have neither yet: the
+statistics table lists each of them with a "Not tabulated" note, and
+their results sheets carry no "What this means" line.
 """
 
 

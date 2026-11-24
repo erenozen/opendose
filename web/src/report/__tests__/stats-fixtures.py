@@ -158,6 +158,9 @@ CASES = {
     "subject_auc": ("auc", {"subject": [x["subject"] for x in TC_RECORDS], "group": [x["group"] for x in TC_RECORDS],
                             "time": [x["time"] for x in TC_RECORDS], "value": [x["value"] for x in TC_RECORDS]},
                     {"baseline": "zero"}),
+    "lmm": ("lmm", {"variables": GROUPING_MV},
+            {"outcome": "Cells", "factors": ["Treatment"], "group": "Dish", "ddf": "kenward_roger",
+             "levels": {"Treatment": ["Vehicle", "Drug"]}}),
     "quantal": ("quantal", {"groups": [
         {"name": "Compound X", "dose": [1, 2, 4, 8, 16], "n": [20] * 5, "responders": [1, 4, 9, 15, 19]}]},
         {"link": "probit", "dose_transform": "log10"}),

@@ -95,6 +95,13 @@ test("nested two-way and grouping-column mixed models: n is the units, not the v
   assert.match(mean(ns).sentence, /^The data do not show a difference between the Treatment means \(F\(1, 6\) = 14\.53, P = 0\.2000\)/);
 });
 
+test("general mixed model on a long table: the grouping column is the unit", () => {
+  const m = mean(FX.lmm.result);
+  assert.match(m.sentence, /^The Treatment means differ \(F\(1, \S+\) = \S+, P = \S+\); the tests count the 8 Dish groups, not the 24 values \(86% of the variation lies between Dish groups\)\.$/);
+  const a = FX.lmm.result.anova[0];
+  assert.ok(m.sentence.includes(`F(1, ${Number(a.dfd.toPrecision(4))}) = ${Number(a.f.toPrecision(4))}`), m.sentence);
+});
+
 test("time-course mixed model: Group × Time first, with the difference at the first and last time", () => {
   const m = mean(FX.mixed_timecourse.result);
   assert.equal(m.sentence, "The Vehicle and Drug groups changed differently over time (Group × Time P < 0.0001): "

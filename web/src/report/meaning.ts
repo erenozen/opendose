@@ -1191,6 +1191,9 @@ export function meaningOf(input: MeaningInput): Meaning | null {
       case "mixed_nested_two_way":
       case "mixed_grouping": return mixedUnitMeaning(r, style);
       case "mixed_timecourse": return timecourseMeaning(r, style);
+      // the general mixed model on a long table: its grouping column is the unit
+      case "lmm": return mixedUnitMeaning({ ...r, analysis: "mixed_grouping", grouping: `${String(r.group)} groups`,
+        n_units: r.n_groups?.[r.group], icc: r.variance_shares?.[r.group], design_note: undefined }, style);
       case "subject_auc": return subjectAucMeaning(r, style);
       case "qpcr": return qpcrMeaning(r, o, style);
       default: return input.analysisId === "quantal" ? quantalMeaning(r) : null;

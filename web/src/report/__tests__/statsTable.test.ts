@@ -283,6 +283,10 @@ test("mixed models: nested two-way, grouping column and time course", () => {
   const g = FX.mixed_grouping.result;
   const [gr] = rowsOf("mixed_grouping");
   assert.deepEqual([gr.value, gr.df, gr.p], [S(g.anova[0].f), "1, 6", P(g.anova[0].p)]);
+  const lm = FX.lmm.result;
+  const [lr] = rowsOf("lmm");
+  assert.deepEqual([lr.comparison, lr.value, lr.df, lr.p], [lm.anova[0].term, S(lm.anova[0].f),
+    `${lm.anova[0].dfn}, ${S(lm.anova[0].dfd)}`, P(lm.anova[0].p)]);
   const tc = FX.mixed_timecourse.result;
   const tr = rowsOf("mixed_timecourse");
   assert.equal(tr.length, tc.anova.length + tc.group_difference_at_time.comparisons.length);

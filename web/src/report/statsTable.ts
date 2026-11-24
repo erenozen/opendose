@@ -674,6 +674,7 @@ const MAPPERS: Record<string, (ctx: Ctx, r: R) => StatsRow[]> = {
   mixed_nested_two_way: (ctx, r) => termListRows(ctx, r, r.comparisons),
   mixed_grouping: (ctx, r) => termListRows(ctx, r, r.comparisons),
   mixed_timecourse: (ctx, r) => termListRows(ctx, r, r.group_difference_at_time),
+  lmm: (ctx, r) => termListRows(ctx, r, r.comparisons),
   dose_response: doseRows,
   linear_regression: linregRows,
   column_statistics: columnStatsRows,
