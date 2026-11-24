@@ -1397,7 +1397,9 @@ const analyzeWith = async (re) => {
     && c1.includes("13 experiments"));
   // the normal (z) interval reproduces metafor's printed CI
   await page.getByLabel("Pooled CI").selectOption("z");
-  const z = await liveResults(new RegExp(`Random effects \\(REML, z\\) -0\\.7145 0\\.1798 0\\.4894 ${ratio(-1.0669)} to ${ratio(-0.3622)}`), 120000);
+  // textContent runs the cells together: the pattern allows no space between them
+  const z = await liveResults(new RegExp(`Random effects \\(REML, z\\)\\s*-0\\.7145\\s*0\\.1798\\s*0\\.4894\\s*`
+    + `${ratio(-1.0669).replace(".", "\\.")} to ${ratio(-0.3622).replace(".", "\\.")}`), 120000);
   expect("P-92 z interval: SE 0.1798, RR CI exp(-1.0669) to exp(-0.3622) (metafor)", z, (await card()).slice(0, 1600));
   await openChecks();
   const checks = (await page.locator(".pane-answer details.checks").first().innerText().catch(() => "")).replace(/\s+/g, " ");

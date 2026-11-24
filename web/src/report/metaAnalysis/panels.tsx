@@ -145,14 +145,12 @@ export function MetaResults({ result }: ResultsProps<MetaOptions, any>) {
           ))}
         </tbody>
       </table>
-      {(result.notes?.length > 0 || result.dropped?.length > 0) && (
-        <ul className="model-line meta-notes">
-          {(result.dropped ?? []).map((d: any) => (
-            <li key={d.label}>{d.label} left out: {d.reason}.</li>
-          ))}
-          {(result.notes ?? []).map((n: string) => <li key={n}>{n.replace(/tau\^2/g, "τ²")}</li>)}
-        </ul>
-      )}
+      {(result.dropped ?? []).map((d: any) => (
+        <p key={d.label} className="model-line">{d.label} left out: {d.reason}.</p>
+      ))}
+      {(result.notes ?? []).map((n: string) => (
+        <p key={n} className="model-line">{n.replace(/tau\^2/g, "τ²")}</p>
+      ))}
     </div>
   );
 }
