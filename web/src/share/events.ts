@@ -8,6 +8,7 @@ export const SHARE_EVENT = "opendose-share";
 export type ShareRequest =
   | { kind: "link"; dataId?: string }      // share the project, or one family
   | { kind: "bundle" }                     // download the export bundle
+  | { kind: "xlsx" }                       // tables and results as one Excel workbook
   | { kind: "pzfx"; dataId?: string }      // data tables as a .pzfx file (all, or one)
   | { kind: "validation"; scope?: ValidationFor }  // open the validation page
   | { kind: "privacy" }                    // open "Your data and privacy"
@@ -31,6 +32,8 @@ export const openRecipeImport = (files: File[], opts: { fresh?: boolean } = {}) 
   requestShare({ kind: "recipe", files, ...opts });
 export const openShareLink = (dataId?: string) => requestShare({ kind: "link", dataId });
 export const exportBundle = () => requestShare({ kind: "bundle" });
+/** Every data table and results sheet as one .xlsx workbook (P-64). */
+export const exportWorkbook = () => requestShare({ kind: "xlsx" });
 export const exportPzfxFile = (dataId?: string) => requestShare({ kind: "pzfx", dataId });
 export const openValidation = (scope?: ValidationFor) =>
   requestShare(scope ? { kind: "validation", scope } : { kind: "validation" });

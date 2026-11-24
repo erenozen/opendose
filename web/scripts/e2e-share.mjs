@@ -10,7 +10,10 @@
 // reachable from the info popover; the Incucyte,
 // LabChart and multi-read plate recipes make XY and grouped tables; a zip
 // of per-image CSVs becomes a SuperPlot-ready column table; a mapping
-// saved as a recipe is applied again after a reload.
+// saved as a recipe is applied again after a reload; File › Export tables
+// and results to Excel writes one sheet per table and results sheet equal
+// to the CSV export, read back by openpyxl, python-calamine and LibreOffice
+// (P-64).
 // Run with the dev server up: node scripts/e2e-share.mjs http://localhost:5193/
 import { chromium } from "playwright";
 import { fileURLToPath } from "node:url";
@@ -21,6 +24,7 @@ import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 import { projectSchemaErrors } from "./validate-project.mjs";
+import { parseCsv, readXlsx } from "./xlsx-read.mjs";
 
 // The header's View menu (DECISIONS 5): open it, pick an item.
 const viewMenu = async (p, item) => {
@@ -199,6 +203,66 @@ expect("bundle has the data tables as .pzfx", has("data.pzfx")
 const resultsCsv = names.filter((n) => n.startsWith("results/"));
 expect("bundle has one CSV per results sheet", resultsCsv.length === 3, resultsCsv.join(", "));
 expect("results CSV holds the LogIC50 row", resultsCsv.some((n) => /LogIC50,/.test(strFromU8(entries[n]))));
+// P-64: File › Export tables and results to Excel (.xlsx): one worksheet per
+// table and per results sheet, numbers stored as numbers, every value equal
+// to the CSV export (the bundle's CSVs); the bundle's workbook.xlsx too
+{
+  await fileMenu.click();
+  const [xl] = await Promise.all([
+    page.waitForEvent("download", { timeout: 120000 }),
+    page.getByRole("menuitem", { name: "Export tables and results to Excel (.xlsx)" }).click(),
+  ]);
+  const xlsxPath = join(tmp, xl.suggestedFilename());
+  await xl.saveAs(xlsxPath);
+  expect("the Excel export is named after the project", /\.xlsx$/.test(xl.suggestedFilename()), xl.suggestedFilename());
+  const book = readXlsx(new Uint8Array(readFileSync(xlsxPath)));
+  const tableCsv = names.filter((n) => /^data\/[^/]+\.csv$/.test(n) && !n.endsWith(".long.csv"));
+  expect("workbook: README, then one sheet per data table and per results sheet",
+    book.names[0] === "README" && book.names.length === 1 + tableCsv.length + resultsCsv.length,
+    book.names.join(", "));
+  // CSV fields that must be numbers: everything that reads as a plain
+  // decimal number, except the title row(s) and a row-title column
+  const NUM = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][-+]?\d+)?$/;
+  const expected = {};
+  let mismatch = "";
+  let numbers = 0;
+  [...tableCsv, ...resultsCsv].forEach((csvName, k) => {
+    const sheet = book.names[k + 1];
+    const csv = parseCsv(strFromU8(entries[csvName]));
+    const isTable = k < tableCsv.length;
+    const titleRows = isTable ? 1 : 0;
+    const textCol = isTable && csv[0]?.[0] === "Row title" ? 0 : -1;
+    expected[sheet] = csv.map((row, i) => row.map((v, j) => {
+      if (v === "") return null;
+      const num = i >= titleRows && j !== textCol && NUM.test(v) && Number.isFinite(Number(v));
+      return { t: num ? "n" : "s", v };
+    }));
+    expected[sheet].forEach((row, i) => row.forEach((c, j) => {
+      const got = book.sheets[sheet]?.[i]?.[j] ?? null;
+      if (c === null ? got !== null : c.t === "n" ? !(typeof got === "number" && got === Number(c.v))
+        : got !== c.v) mismatch ||= `${sheet}!R${i + 1}C${j + 1}: CSV ${JSON.stringify(c)} vs ${JSON.stringify(got)}`;
+      if (c?.t === "n") numbers++;
+    }));
+  });
+  expect("workbook: every cell equals the CSV export, numbers as number cells",
+    !mismatch && numbers > 100, mismatch || `${numbers} number cells`);
+  expect("workbook: the fit's LogIC50 is a number in its results sheet",
+    Object.values(book.sheets).some((rows) => rows.some((r) => r[0] === "LogIC50" && typeof r[1] === "number")));
+  const inBundle = entries["workbook.xlsx"] ? readXlsx(entries["workbook.xlsx"]) : null;
+  expect("the bundle's workbook.xlsx holds the same sheets and cells",
+    !!inBundle && JSON.stringify({ ...inBundle.sheets, README: null }) === JSON.stringify({ ...book.sheets, README: null })
+    && strFromU8(entries["README.txt"]).includes("workbook.xlsx"));
+  // independent readers: openpyxl, python-calamine and LibreOffice (PYTHON
+  // names an interpreter with openpyxl and python-calamine)
+  const expPath = join(tmp, "workbook-expected.json");
+  writeFileSync(expPath, JSON.stringify(expected));
+  const py = process.env.PYTHON ?? "python3";
+  const rb = spawnSync(py, [join(here, "xlsx-readback.py"), xlsxPath, expPath], { encoding: "utf8", timeout: 400000 });
+  const out = (rb.stdout || rb.stderr).trim();
+  if (rb.status === 2) console.log(`skip some readers are missing for ${py}: ${out.replace(/\s+/g, " ")}`);
+  expect("openpyxl, python-calamine and LibreOffice read every cell back equal to the CSV export",
+    rb.status === 0 || rb.status === 2, out.replace(/\s+/g, " "));
+}
 const svgs = names.filter((n) => /^graphs\/.+\.svg$/.test(n));
 const pngs = names.filter((n) => /^graphs\/.+\.png$/.test(n));
 expect("bundle has every graph (the example has two) as SVG and PNG",

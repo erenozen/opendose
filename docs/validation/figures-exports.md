@@ -365,3 +365,43 @@ graph with drop lines, their label and the legend drawn in the figure,
 on a plain and on a broken axis, as SVG and as PDF: the dashed strokes
 (stroke-dasharray in the SVG, the PDF's "d" dash operator: 2 lines, 3 on
 the broken axis), "IC50 = 1.040e-7 M" and the caption's text are in both.
+
+## Excel workbook of the tables and results (P-64, 2026-11-24)
+
+File, Export tables and results to Excel (.xlsx), writes one workbook: a
+README sheet, then one sheet per data table and one per results sheet.
+The writer is TypeScript with fflate (`export/xlsx.ts`, as
+`export/pptx.ts` writes PowerPoint): no engine call, no extra download,
+and a project's workbook is built in milliseconds, where openpyxl in the
+worker would first wait for the engine. Each sheet holds exactly the rows
+of that table's or results sheet's CSV export (`export/workbook.ts`): a
+field that reads as a plain decimal number is a number cell (Excel
+right-aligns and sums it), everything else is text (`<0.0001`, `1.2 to
+3.4`, `NaN`, `007`, an excluded value `12.5*`), blank is empty. Title
+rows and the row-title column stay text. Data tables keep every stored
+digit (the number is written as the shortest text that reads back as the
+same double); results are the digits shown, as their CSV is. Values Excel
+cannot hold (beyond 1.8e308, or nonzero below 2.2e-308) stay text, so no
+value changes on the way in. Sheet names are cut to 31 characters, `[ ]
+: * ? / \` become `_`, repeats get " (2)" and "History" is avoided; each
+change is listed on the README sheet with its reason, and the toast says
+how many names changed. A table over 1,048,576 rows or 16,384 columns is
+refused with the sheet and the limit named. The same workbook is
+`workbook.xlsx` in the export bundle, and the results strip's Download
+menu (CSV, TSV, Excel workbook) writes one results sheet.
+
+`xlsx.test.ts` pins the typing (1/3 as 0.3333333333333333 from
+"0.333333333333333314829616256247", 1e-300, -0, 1e21 written "1e+21",
+NaN and blanks), the name rules, the limits and the parts;
+`bundle.test.ts` the bundle's workbook. `scripts/xlsx-readback.py` reads a
+workbook with three independent readers and compares every cell with the
+CSV text: openpyxl 3.1.5, python-calamine 0.9.1 (installed into `.venv`
+for these tests) and LibreOffice 26.8 Calc over UNO (its CSV and ODS
+writers round to 15 digits, so a conversion cannot show what Calc read;
+`getDataArray` returns its doubles). All three read the edge cases above
+back exactly. `scripts/e2e-share.mjs` exports the example project, checks
+one sheet per table and results sheet and every cell against the
+bundle's CSVs (number cells where the CSV holds a number), the bundle's
+`workbook.xlsx`, and runs the three readers; `scripts/e2e-check.mjs`
+downloads the fit's results as .xlsx and finds LogIC50 a number equal to
+the CSV's.

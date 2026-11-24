@@ -53,7 +53,7 @@ one at a time: each boots its own engine.
 | `e2e-check.mjs` | The main suite: default fit, plate import, every table type, Prism import, projects (save, open, undo, autosave), chains, editing, exports of data and results |
 | `e2e-tiff.mjs` | TIFF export, parsed back byte by byte (`--no-deflate` tests the uncompressed path) |
 | `e2e-export.mjs` | Page layouts, PDF (embedded fonts, text read back as typed), PNG (in the plot font) and PowerPoint export, citation, Copy for Word |
-| `e2e-share.mjs` | Share links, the export bundle, import recipes, Apply to new data, the validation and privacy pages |
+| `e2e-share.mjs` | Share links, the export bundle, the Excel workbook of every table and results sheet (against the CSVs), import recipes, Apply to new data, the validation and privacy pages |
 | `e2e-figures.mjs` | SuperPlots, legends, P-value styles, the classic theme, the colour-vision check, volcano plots, censor marks, box plots against the column statistics |
 | `e2e-assays.mjs` | Every assay wizard, against numbers the engine computes natively |
 | `e2e-import.mjs` | Getting a table in: one CSV or .xlsx dropped on the page or opened lands in the Import dialog for a new table, equal to the toolbar Import's table from the same file; .xls and .ods; find and replace; the grid's spreadsheet keys (Ctrl+arrows, Ctrl+D fill down, Home / End, Ctrl+A); pairing a long table by subject ID; .pzfx Info sheets in and out |
@@ -96,6 +96,12 @@ all of the suites above against main in a clean worktree.
   suite fails while the two differ. `validate-project.mjs` validates a
   project file against it (ajv); the e2e suites run every project they
   save through it. The format page is `../docs/project-file-format.md`.
+- `xlsx-readback.py BOOK.xlsx EXPECTED.json` reads a workbook OpenDose
+  wrote with openpyxl, python-calamine and LibreOffice Calc (over UNO,
+  the system Python's pyuno) and compares every cell with the CSV text;
+  e2e-share and e2e-export run it with `PYTHON` (an interpreter with
+  openpyxl and python-calamine). `xlsx-read.mjs` is the suites' own small
+  reader.
 - `make-touch-icon.mjs` renders the PNG icons from `public/favicon.svg`.
 - `make-export-fonts.py` cuts the fonts PDF exports embed
   (`src/export/fonts/`: Inter and an Arial-compatible Liberation Sans,

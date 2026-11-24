@@ -3,14 +3,21 @@ import { fileSlug, toDelimited } from "../../project/exportTable";
 import { copyText, downloadText, resultsMatrix } from "./download";
 import { copyHtml, readSections } from "../../export/clipboard";
 import { wordHtml, wordPlain } from "../../export/wordTable";
-import { Button, SwapLabel, notify, useLabelSwap } from "../../components/ui";
+import { Button, Menu, SwapLabel, notify, useLabelSwap } from "../../components/ui";
+import { saveBlob } from "../../export/download";
+import { versionLabel } from "../../export/cite";
+import { projectWorkbook, renamedPhrase } from "../../export/workbook";
+import { XLSX_MIME } from "../../export/xlsx";
 import { useScrollRegions, useTypesetTables } from "./resultsTypeset";
 import "./grid.css";
 
-/** Copy / Copy for Word / CSV / TSV strip above a results sheet. Copy
- *  says "Copied" on the button itself for two seconds (DECISIONS 6); a
- *  failure is an error toast with the way out. The tables below it are
- *  typeset (numbers right-aligned) and scroll sideways when too wide. */
+/** Copy / Copy for Word / Download (CSV, TSV, Excel) strip above a
+ *  results sheet. Copy says "Copied" on the button itself for two
+ *  seconds (DECISIONS 6); a failure is an error toast with the way out.
+ *  The three downloads share one menu so the strip stays at three
+ *  controls on a phone (buttons.md: at most four in a row). The tables
+ *  below it are typeset (numbers right-aligned) and scroll sideways when
+ *  too wide. */
 export default function ResultsExport({ name, children }: { name: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const copied = useLabelSwap();
@@ -46,12 +53,36 @@ export default function ResultsExport({ name, children }: { name: string; childr
           }}>
           <SwapLabel swapped={word.swapped} done="Copied">Copy for Word</SwapLabel>
         </Button>
-        <Button size="sm" variant="ghost" title="Download the results as CSV"
-          onClick={() => downloadText(`${slug}.csv`, toDelimited(get(), "csv"),
-            "text/csv;charset=utf-8")}>CSV</Button>
-        <Button size="sm" variant="ghost" title="Download the results as tab-separated text"
-          onClick={() => downloadText(`${slug}.txt`, toDelimited(get(), "tsv"),
-            "text/tab-separated-values;charset=utf-8")}>TSV</Button>
+        <Menu>
+          <Menu.Trigger variant="ghost" size="sm">
+            Download<span className="caret" aria-hidden="true">▾</span>
+          </Menu.Trigger>
+          <Menu.Content aria-label="Download these results">
+            <Menu.Item description="Comma-separated, as shown"
+              onSelect={() => downloadText(`${slug}.csv`, toDelimited(get(), "csv"),
+                "text/csv;charset=utf-8")}>CSV</Menu.Item>
+            <Menu.Item description="Tab-separated text, as shown"
+              onSelect={() => downloadText(`${slug}.txt`, toDelimited(get(), "tsv"),
+                "text/tab-separated-values;charset=utf-8")}>TSV</Menu.Item>
+            <Menu.Item description="One sheet, numbers stored as numbers"
+              onSelect={() => {
+                const m = get();
+                if (!m.length) {
+                  notify("No results to download yet: the analysis has not produced any.", { tone: "info" });
+                  return;
+                }
+                const wb = projectWorkbook({ title: name, app: `OpenDose ${versionLabel()}`,
+                  date: new Date().toISOString(), tables: [],
+                  results: [{ name, analysis: "", data: "", matrix: m }] });
+                saveBlob(new Blob([wb.bytes as Uint8Array<ArrayBuffer>], { type: XLSX_MIME }), `${slug}.xlsx`);
+                // the browser shows the download; only a changed sheet name is news
+                if (wb.renamed.length) {
+                  notify(`Saved “${slug}.xlsx”: ${renamedPhrase(wb.renamed).replace(/^1 sheet name was/, "the sheet name was")}.`,
+                    { tone: "info" });
+                }
+              }}>Excel workbook (.xlsx)</Menu.Item>
+          </Menu.Content>
+        </Menu>
       </div>
       <div ref={ref}>{children}</div>
     </div>

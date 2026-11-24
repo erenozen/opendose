@@ -33,9 +33,28 @@ test("bundle lists every part under predictable names", () => {
     "data/dose-response.csv", "data/dose-response.long.csv",
     "data/dose-response-2.csv", "data/dose-response-2.long.csv",
     "results/column-stats-of-dose-response.csv",
+    "workbook.xlsx",
     "graphs/graph-of-dose-response.svg", "graphs/graph-of-dose-response.png",
     "methods.txt", "CITATION.txt",
   ]);
+});
+
+test("workbook.xlsx holds the tables and results as the CSVs do, numbers as numbers (P-64)", () => {
+  const files = bundleFiles(input());
+  const z = unzipSync(files.find((f) => f.name === "workbook.xlsx")!.data);
+  const names = [...strFromU8(z["xl/workbook.xml"]).matchAll(/<sheet name="([^"]*)"/g)].map((m) => m[1]);
+  assert.deepEqual(names, ["README", "Dose response", "Dose response (2)", "Column stats of Dose response"]);
+  const sheet2 = strFromU8(z["xl/worksheets/sheet2.xml"]);
+  assert.match(sheet2, /<c r="B2"><v>1.5<\/v><\/c>/);
+  assert.match(sheet2, /<c r="C3"><v>2<\/v><\/c>/);
+  assert.match(strFromU8(z["xl/worksheets/sheet4.xml"]), /<c r="B2"><v>1.5<\/v><\/c>/);
+  // a workbook that cannot be written is named in the README with the reason
+  const tall = emptyTable("column", { datasets: 1, rows: 1048576 });
+  tall.datasets[0].rows = tall.datasets[0].rows.map(() => ["1"]);
+  const big = { ...input(), tables: [{ name: "Huge", table: tall }] };
+  const out = bundleFiles(big);
+  assert.ok(!out.some((f) => f.name === "workbook.xlsx"));
+  assert.match(strFromU8(out[0].data), /workbook\.xlsx: “Huge” has 1,048,577 rows; an Excel worksheet holds 1,048,576\./);
 });
 
 test("README names the software versions and each file", () => {
