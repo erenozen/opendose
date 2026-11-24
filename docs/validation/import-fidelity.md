@@ -159,3 +159,9 @@ cells; the existing fixtures below pass as before).
   "1 cell edited by hand since the import" (3, row 3: 1.488 → 1.5);
   Apply to new data with plate-week2.csv re-runs the recipe and the
   table holds its readings (C1, C3 = 1.702, 1.527).
+
+Independent check of P-76 and P-124 (2026-11-24, by the lead): the
+SHA-256 History shows for `web/e2e-fixtures/plate-reader.csv`
+(743dcd3c…a6ffea) equals `sha256sum` of the file; scipy `f_oneway` on
+`web/e2e-fixtures/blind-4groups.json` gives F = 7.809057, P = 0.00121029
+(3 and 20 df), the ANOVA before blinding and while blind.
