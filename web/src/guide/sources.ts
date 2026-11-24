@@ -374,6 +374,98 @@ export const SRC = {
   elkin2021: { label: "Elkin, Kay, Higgins & Wobbrock 2021, An aligned rank transform procedure for "
     + "multifactor contrast tests, Proc. UIST 2021:754-768",
   url: "https://doi.org/10.1145/3472749.3474784" },
+
+  // "What this means" for the assay modules and the kinds merged after
+  // P-66 (report/meaningMore.ts, P-69). Each DOI was checked against its
+  // Crossref record (title, journal, volume, first page) on 2026-11-24;
+  // the EMA and CLSI pages were loaded the same day.
+  // P is not the probability the null is true; P > 0.05 is not "no
+  // difference" (the same sources as report/meaning.ts MEANING_SOURCES).
+  greenland2016: { label: "Greenland et al. 2016, Statistical tests, P values, confidence intervals, and power: a guide to misinterpretations, Eur J Epidemiol 31:337",
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4877414/" },
+  amrhein2019: { label: "Amrhein, Greenland & McShane 2019, Scientists rise up against statistical significance, Nature 567:305",
+    url: "https://doi.org/10.1038/d41586-019-00857-9" },
+  // Standard curves: accept by back-calculated standards (±20%, ±25% at
+  // the LLOQ), report only between LLOQ and ULOQ.
+  ichM10: { label: "ICH M10 (2022), Bioanalytical method validation and study sample analysis (EMA/CHMP/ICH/172948/2019)",
+    url: "https://www.ema.europa.eu/en/ich-m10-bioanalytical-method-validation-scientific-guideline" },
+  // Z' = 1 - 3(SDpos + SDneg)/|mean pos - mean neg|; 0.5 to 1 excellent.
+  zhang1999: { label: "Zhang, Chung & Oldenburg 1999, A simple statistical parameter for use in evaluation and validation of high throughput screening assays, J Biomol Screen 4:67",
+    url: "https://doi.org/10.1177/108705719900400206" },
+  // MIC: the lowest concentration with no visible growth in a two-fold
+  // series; replicate MICs within one dilution agree.
+  clsiM07: { label: "CLSI M07, Methods for dilution antimicrobial susceptibility tests for bacteria that grow aerobically",
+    url: "https://clsi.org/standards/products/microbiology/documents/m07/" },
+  // MIC50 / MIC90 from cumulative data; at least 10 isolates for MIC90.
+  clsiM39: { label: "CLSI M39, Analysis and presentation of cumulative antimicrobial susceptibility test data",
+    url: "https://clsi.org/standards/products/microbiology/documents/m39/" },
+  // Growth curves: the logistic K and the doubling time ln 2 / K.
+  sprouffske2016: { label: "Sprouffske & Wagner 2016, Growthcurver: an R package for obtaining interpretable metrics from microbial growth curves, BMC Bioinformatics 17:172",
+    url: "https://doi.org/10.1186/s12859-016-1016-7" },
+  zwietering1990: { label: "Zwietering et al. 1990, Modeling of the bacterial growth curve, Appl Environ Microbiol 56:1875",
+    url: "https://doi.org/10.1128/aem.56.6.1875-1881.1990" },
+  // Western blots: fold change against the loading reference; normalising
+  // to one control lane inflates the variability.
+  degasperi2014: { label: "Degasperi et al. 2014, Evaluating strategies to normalise biological replicates of Western blot data, PLoS ONE 9:e87293",
+    url: "https://doi.org/10.1371/journal.pone.0087293" },
+  // Synergy scores: the reference model decides what "synergy" means.
+  ianevski2017: { label: "Ianevski et al. 2017, SynergyFinder: a web application for analyzing drug combination dose-response matrix data, Bioinformatics 33:2413",
+    url: "https://doi.org/10.1093/bioinformatics/btx162" },
+  yadav2015: { label: "Yadav et al. 2015, Searching for drug synergy in complex dose-response landscapes using an interaction potency model, Comput Struct Biotechnol J 13:504",
+    url: "https://doi.org/10.1016/j.csbj.2015.09.001" },
+  bliss1939: { label: "Bliss 1939, The toxicity of poisons applied jointly, Ann Appl Biol 26:585",
+    url: "https://doi.org/10.1111/j.1744-7348.1939.tb06990.x" },
+  // FDR: about q of the discoveries are expected to be false.
+  benjaminiHochberg1995: { label: "Benjamini & Hochberg 1995, Controlling the false discovery rate, J R Stat Soc B 57:289",
+    url: "https://doi.org/10.1111/j.2517-6161.1995.tb02031.x" },
+  // Clustering: the silhouette and the gap statistic judge how well the
+  // data support the clusters an algorithm returns.
+  rousseeuw1987: { label: "Rousseeuw 1987, Silhouettes: a graphical aid to the interpretation and validation of cluster analysis, J Comput Appl Math 20:53",
+    url: "https://doi.org/10.1016/0377-0427(87)90125-7" },
+  tibshirani2001: { label: "Tibshirani, Walther & Hastie 2001, Estimating the number of clusters in a data set via the gap statistic, J R Stat Soc B 63:411",
+    url: "https://doi.org/10.1111/1467-9868.00293" },
+  // Wound healing: closure from the open area; migration and proliferation
+  // both close a wound.
+  jonkman2014: { label: "Jonkman et al. 2014, An introduction to the wound healing assay using live-cell microscopy, Cell Adh Migr 8:440",
+    url: "https://doi.org/10.4161/cam.36224" },
+  grada2017: { label: "Grada et al. 2017, Research techniques made simple: analysis of collective cell migration using the wound healing assay, J Invest Dermatol 137:e11",
+    url: "https://doi.org/10.1016/j.jid.2016.11.020" },
+  // Initial rates: the early, linear part of the progress curve.
+  bisswanger2014: { label: "Bisswanger 2014, Enzyme assays, Perspectives in Science 1:41",
+    url: "https://doi.org/10.1016/j.pisc.2014.02.005" },
+  // Area under the curve by the trapezoid rule, and its SE from replicates.
+  gpAuc: { label: "GraphPad Statistics Guide: Area under the curve",
+    url: `${S}stat_area_under_the_curve.htm` },
+  bailer1988: { label: "Bailer 1988, Testing for the equality of area under the curves when using destructive measurement techniques, J Pharmacokinet Biopharm 16:303",
+    url: "https://doi.org/10.1007/BF01062139" },
+  // Competing risks: cumulative incidence and Gray's test.
+  gray1988: { label: "Gray 1988, A class of K-sample tests for comparing the cumulative incidence of a competing risk, Ann Stat 16:1141",
+    url: "https://doi.org/10.1214/aos/1176350951" },
+  fineGray1999: { label: "Fine & Gray 1999, A proportional hazards model for the subdistribution of a competing risk, J Am Stat Assoc 94:496",
+    url: "https://doi.org/10.1080/01621459.1999.10474144" },
+  // Random-effects meta-analysis.
+  derSimonianLaird1986: { label: "DerSimonian & Laird 1986, Meta-analysis in clinical trials, Control Clin Trials 7:177",
+    url: "https://doi.org/10.1016/0197-2456(86)90046-2" },
+  // Smoothing: LOWESS and the smoothing spline by GCV describe a trend.
+  cleveland1979: { label: "Cleveland 1979, Robust locally weighted regression and smoothing scatterplots, J Am Stat Assoc 74:829",
+    url: "https://doi.org/10.1080/01621459.1979.10481038" },
+  cravenWahba1978: { label: "Craven & Wahba 1978, Smoothing noisy data with spline functions, Numer Math 31:377",
+    url: "https://doi.org/10.1007/BF01404567" },
+  // Bootstrap confidence intervals.
+  efron1987: { label: "Efron 1987, Better bootstrap confidence intervals, J Am Stat Assoc 82:171",
+    url: "https://doi.org/10.1080/01621459.1987.10478410" },
+  // Accelerated failure time models: a time ratio stretches survival time.
+  wei1992: { label: "Wei 1992, The accelerated failure time model: a useful alternative to the Cox regression model in survival analysis, Stat Med 11:1871",
+    url: "https://doi.org/10.1002/sim.4780111409" },
+  // Relative potency: the ratio of two correlated estimates (Fieller) from
+  // parallel curves; the drc implementation.
+  fieller1954: { label: "Fieller 1954, Some problems in interval estimation, J R Stat Soc B 16:175",
+    url: "https://doi.org/10.1111/j.2517-6161.1954.tb00159.x" },
+  ritz2015: { label: "Ritz, Baty, Streibig & Gerhard 2015, Dose-response analysis using R, PLoS ONE 10:e0146021",
+    url: "https://doi.org/10.1371/journal.pone.0146021" },
+  // Repeatability and within-laboratory precision.
+  blandAltman1996: { label: "Bland & Altman 1996, Statistics notes: measurement error, BMJ 313:744",
+    url: "https://doi.org/10.1136/bmj.313.7059.744" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

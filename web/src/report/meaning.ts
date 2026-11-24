@@ -32,6 +32,7 @@ import { ratioClause } from "./ratioToControl.ts";
 import { withheldInfo } from "../sheets/common/withheld.ts";
 import { SRC, type Source } from "../guide/sources.ts";
 import { REF_SOURCES } from "../sheets/assays/qpcr/refs.ts";
+import { assayMeaning } from "./meaningMore.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -1208,6 +1209,9 @@ export function meaningOf(input: MeaningInput): Meaning | null {
   const t = input.table ?? null;
   try {
     if (withheldInfo(r)) return withheldMeaning();
+    // the assay modules (meaningMore.ts)
+    const assay = assayMeaning(input.analysisId, r, o, t, style);
+    if (assay !== undefined) return assay;
     if (input.analysisId === "cox" || input.analysisId === "mv_cox" || r.analysis === "cox") return coxMeaning(r, style);
     switch (r.analysis) {
       case "ttest": return ttestMeaning(r, t, style);
