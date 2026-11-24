@@ -179,7 +179,7 @@ export function LmmResults({ result: r }: { result: R }) {
 
       <FamilyComparisons block={r.comparisons} ciLevel={level}
         name="Multiple comparisons" familyHead="Within"
-        what={`Compared: ${r.comparisons ? scopeLabel(r.comparisons.scope as ComparisonScope, a, b) : ""}`} />
+        what={`Compared: ${r.comparisons ? scopeLabel(r.comparisons.scope as ComparisonScope, a ?? "", b) : ""}`} />
 
       <section className="mixed-block" aria-label="Goodness of fit">
         <h4>Goodness of fit</h4>
