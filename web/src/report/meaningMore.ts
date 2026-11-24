@@ -14,6 +14,7 @@ import { SRC, type Source } from "../guide/sources.ts";
 import { scoreReading } from "../sheets/assays/synergyModel.ts";
 import { LINKAGE_LABEL, METRIC_LABEL } from "../sheets/assays/clusterModel.ts";
 import { FDR_LABEL } from "../sheets/assays/volcanoModel.ts";
+import { modelComparisons, potencyOf } from "./compareKinds.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -467,9 +468,11 @@ function metaMeaning(r: R, style: PStyle): Meaning | null {
 
 /** Smoothing: what the curve is, and that it has no model CI. */
 function smoothMeaning(r: R, t: MeaningTable | null | undefined): Meaning | null {
-  const d = (Array.isArray(r.datasets) ? r.datasets : []).find((x: R) => x?.fit && !x.error);
+  // the results sheet keeps the engine's fit as `smooth` (sheets/xy/smooth.ts
+  // smoothResult) beside a stub `fit` for the XY graph; the raw result as `fit`
+  const d = (Array.isArray(r.datasets) ? r.datasets : []).find((x: R) => (x?.smooth || x?.fit) && !x.error);
   if (!d) return null;
-  const fit = d.fit;
+  const fit = d.smooth ?? d.fit;
   const df = num(fit.df) ? ` with ${fmt(fit.df)} effective degrees of freedom${fit.chosen_by === "gcv" ? " chosen by generalized cross-validation" : ""}` : "";
   const span = fit.method === "lowess" && num(fit.span) ? ` with a span of ${fmt(fit.span)} of the points` : "";
   return mk(`The curve through ${String(d.name ?? t?.yTitle ?? "the data")} is a ${lower(String(fit.label ?? "smooth"))}${df}${span}: `
@@ -497,6 +500,16 @@ export function kindMeaning(r: R, t: MeaningTable | null | undefined, style: PSt
   switch (r.analysis) {
     case "relative_potency": return relPotencyMeaning(r, style);
     case "compare_global_fits": return globalCompareMeaning(r, style);
+    // the "Compare fits" sheet holds both (compareKinds.ts)
+    case "compare_fits": {
+      const pot = potencyOf(r);
+      if (pot) return relPotencyMeaning(pot, style);
+      const cmp = modelComparisons(r);
+      if (!cmp.length) return undefined;
+      const m = globalCompareMeaning(cmp[0].result, style);
+      if (!m || cmp[0].global) return m;
+      return { ...m, sentence: `For ${cmp[0].name}${cmp.length > 1 ? " (first data set shown)" : ""}: ${m.sentence}` };
+    }
     case "precision_study": return precisionMeaning(r);
     case "competing_risks": return competingMeaning(r, style);
     case "parametric_survival": return parametricMeaning(r, style);

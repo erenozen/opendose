@@ -379,7 +379,7 @@ test("every kind with a mapper is checked above on a native result", () => {
   const KINDS = JSON.parse(readFileSync(join(here, "kinds-fixtures.json"), "utf8")) as Record<string, { result: unknown }>;
   for (const c of Object.values(KINDS)) tested.add(statsKind("x", c.result));
   // aliases of a tested mapper
-  const alias = new Set(["mixed_rm_twoway"]);
+  const alias = new Set(["mixed_rm_twoway", "compare_fits"]); // compare_fits: on its app wrapper in kinds.test.ts
   const missing = STATS_KINDS.filter((k) => !tested.has(k) && !alias.has(k));
   assert.deepEqual(missing, []);
 });

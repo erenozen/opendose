@@ -21,6 +21,7 @@ import { familyOf, type Family } from "./family.ts";
 import { pNumber, type PStyle } from "./pformat.ts";
 import { DEFAULT_REPORT, type ReportPrefs } from "./prefs.ts";
 import { withheldInfo, withheldPhrase } from "../sheets/common/withheld.ts";
+import { modelComparisons, potencyOf } from "./compareKinds.ts";
 import type { WordCell, WordSection } from "../export/wordTable.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -702,6 +703,21 @@ function globalCompareRows(ctx: Ctx, r: R): StatsRow[] {
     n: num(r.n_points) ? `${r.n_points} points` : "", note: aiccNote })] : [];
 }
 
+/** A "Compare fits" sheet (compareKinds.ts): the relative potency it
+ *  holds, or each row's model comparison; comparing one parameter is not
+ *  tabulated yet, and the row says so. */
+function compareFitsRows(ctx: Ctx, r: R): StatsRow[] {
+  const pot = potencyOf(r);
+  if (pot) return relPotencyRows(ctx, pot);
+  const cmp = modelComparisons(r);
+  if (cmp.length) {
+    return cmp.flatMap((c) => globalCompareRows(ctx, c.result).map((row) => ({ ...row,
+      test: c.global ? row.test : row.test.replace(" (global models)", "").replace(" (global models, not nested)", " (not nested)"),
+      comparison: c.global ? row.comparison : `${c.name}: ${row.comparison}` })));
+  }
+  return [finish(ctx, { note: `Not tabulated: no statistics-table mapper for this comparison (compare_fits, ${String(r.mode ?? "")}) yet; see its results sheet.` })];
+}
+
 /** Precision study: repeatability and total CV with their CIs, and the
  *  recovery against the nominal value. No test, so no P. */
 function precisionRows(ctx: Ctx, r: R): StatsRow[] {
@@ -871,6 +887,7 @@ const MAPPERS: Record<string, (ctx: Ctx, r: R) => StatsRow[]> = {
   competing_risks: competingRows,
   parametric_survival: parametricRows,
   meta_analysis: metaRows,
+  compare_fits: compareFitsRows,
 };
 
 /** Names of the tests describe.ts does not name (regression models and

@@ -610,6 +610,10 @@ const NO_CALL: Record<string, { py: string; r: string }> = {
     py: "Smoothing has no test or estimate to re-run; statsmodels.nonparametric.lowess and scipy.interpolate.make_smoothing_spline draw comparable curves (their span and penalty scales differ).",
     r: "Closest call: lowess(x, y) (R's defaults: f = 2/3, iter = 3) or smooth.spline(x, y) (GCV).",
   },
+  compare_fits: {
+    py: "Comparing fits (extra sum-of-squares F test and AICc of two models, a parameter across data sets, or relative potency): no SciPy or statsmodels call fits the shared-parameter models compared here; its numbers are in its results CSV.",
+    r: "Closest call: fit each model with nls() and compare them with anova(fit_simpler, fit_complex); relative potency with drc::EDcomp(fit, c(50, 50), interval = \"fieller\").",
+  },
   curve_ops: {
     py: "A data manipulation (derivative, integral or smoothing of a curve): numpy.gradient and scipy.integrate.cumulative_trapezoid compute the same operations; nothing to test.",
     r: "A data manipulation: diff() and cumulative trapezoid sums compute the same operations; nothing to test.",

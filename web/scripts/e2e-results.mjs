@@ -1456,6 +1456,13 @@ const analyzeWith = async (re) => {
   expect(`P-100 acceptance: parallelism F (3, 60) = ${sig(f.F)}, P = 0.0507`,
     card.includes(`F test for parallelism F (3, 60) = ${sig(f.F)}, P = 0.0507`), card.slice(0, 600));
   expect("P-100 the delta-method SE as EDcomp prints it", card.includes(`SE (delta method) ${sig(p.se_delta)}`));
+  // P-69: "What this means" reads the potency the Compare fits sheet holds
+  const potMeaning = (await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect(`P-69 relative potency meaning: Glyphosate ${sig(p.ratio)} times as potent as Bentazone (Fieller CI), parallelism P = 0.0507`,
+    potMeaning.includes(`Glyphosate is ${sig(p.ratio)} times as potent as Bentazone (the EC50 of Bentazone divided by the EC50 `
+      + `of Glyphosate; 95% Fieller CI ${sig(p.fieller_ci[0])} to ${sig(p.fieller_ci[1])})`)
+    && potMeaning.includes("the data do not show that the curves differ in shape (F test of parallelism P = 0.0507)"), potMeaning);
   expect("P-100 without margins the results ask for them",
     /Set equivalence margins to show parallelism\./.test(card));
   // margins set before the data are seen: the slope ratio misses 0.8 to 1.25
@@ -1988,6 +1995,13 @@ const axeOn = (sel) => page.evaluate(async ([src, s]) => {
   expect("P-103 the results say there is no model CI",
     (await rowOf(card, "Confidence interval")) === "Confidence interval No model CI"
     && /no model-based confidence interval/.test(await page.locator(".smooth-no-ci").first().innerText()));
+  // P-69: the meaning names the spline and its df, as the card shows it
+  const smMeaning = (await page.locator(".pane-answer .meaning-sentence").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  expect(`P-69 smoothing meaning: a smoothing spline with ${sig(ex.df)} effective degrees of freedom by GCV, no model CI`,
+    smMeaning.includes(`a smoothing spline (natural cubic, penalised) with ${sig(ex.df)} effective degrees of freedom chosen by `
+      + "generalized cross-validation") && smMeaning.includes("so it gives no model-based confidence interval")
+    && df.endsWith(sig(ex.df)), smMeaning);
   await openSheet("LOWESS of Cars");
   const lcard = page.locator(".smooth-card").first();
   await page.waitForFunction(() => /Span f/.test(document.querySelector(".smooth-card")?.textContent ?? ""),

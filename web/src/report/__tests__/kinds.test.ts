@@ -73,6 +73,32 @@ test("two global models: F test and AICc", () => {
   assert.match(mean(nn).sentence, /^AICc prefers Mixed model inhibition \(difference −101\.2; probability 1 that it is the better of the two\); the models are not nested, so there is no F test\.$/);
 });
 
+test("the Compare fits sheet: the potency and the model comparison it wraps read the same", () => {
+  // as sheets/xy/relativePotency.ts and compareFits.ts store them
+  const pot = { analysis: "compare_fits", mode: "potency", rows: [], potency: FX.relative_potency.result, datasets: [] };
+  assert.deepEqual(rows("relative_potency", pot).map((r) => r.estimateValue || r.value),
+    rows("relative_potency").map((r) => r.estimateValue || r.value));
+  assert.equal(mean(pot).sentence, mean(FX.relative_potency.result).sentence);
+  const g = FX.compare_global_fits.result;
+  const row = (name: string) => ({ name, n: g.n_points,
+    f: { F: g.f_test.F, dfn: g.f_test.dfn, dfd: g.f_test.dfd, p: g.f_test.p, simpler: g.f_test.simpler_model },
+    aicc: { aicc1: g.aicc.aicc_1, aicc2: g.aicc.aicc_2, delta: g.aicc.delta, probability1: g.aicc.probability_1,
+      probability2: g.aicc.probability_2, prefer: g.aicc.prefer } });
+  const glob = { analysis: "compare_fits", mode: "models", global: true, labels: ["Competitive inhibition", "Mixed model inhibition"],
+    rows: [row("All data sets (one global fit per model)")], datasets: [] };
+  assert.deepEqual(rows("compare_global_fits", glob), rows("compare_global_fits").map((r) => ({ ...r })));
+  assert.equal(mean(glob).sentence, mean(g).sentence);
+  // one comparison per data set
+  const per = { ...glob, global: false, rows: [row("0"), row("6.25")] };
+  assert.deepEqual(rows("compare_global_fits", per).map((r) => [r.test, r.comparison, r.value]), [
+    ["extra sum-of-squares F test", "0: Competitive inhibition vs. Mixed model inhibition", "218.3"],
+    ["extra sum-of-squares F test", "6.25: Competitive inhibition vs. Mixed model inhibition", "218.3"]]);
+  assert.match(mean(per).sentence, /^For 0 \(first data set shown\): Mixed model inhibition fits better than Competitive inhibition/);
+  // comparing one parameter is not tabulated yet, and says so
+  const par = { analysis: "compare_fits", mode: "parameter", rows: [], datasets: [] };
+  assert.match(rows("x", par)[0].note, /^Not tabulated: no statistics-table mapper for this comparison \(compare_fits, parameter\)/);
+});
+
 test("precision study: CVs and recovery with their CIs, no P", () => {
   const rs = rows("precision_study");
   assert.deepEqual(rs.map((r) => [r.estimate, r.estimateValue, r.ciLower, r.ciUpper, r.p]), [
@@ -153,6 +179,12 @@ test("smoothing: descriptive in the table; the meaning says it has no model CI",
     + "Cleveland 1979) with a span of 0.6667 of the points: it describes the shape of the data and has no parameters, so it gives no "
     + "model-based confidence interval.");
   cites(mean(FX.smooth_lowess.result), SRC.cleveland1979, SRC.cravenWahba1978);
+  // the results sheet keeps the engine's fit as `smooth` beside a stub `fit`
+  // for the XY graph (sheets/xy/smooth.ts smoothResult): the same sentence
+  const raw = FX.smooth_spline.result;
+  const sheet = { analysis: "smooth_xy", method: raw.method, no_model_ci: true, datasets: raw.datasets.map((d: any) => ({
+    name: d.name, smooth: d.fit, fit: { model: "smooth_xy", label: d.fit.label, params: {}, param_order: [] } })) };
+  assert.equal(mean(sheet).sentence, mean(raw).sentence);
   assert.equal(meaningOf({ result: FX.curve_ops.result, style: "graphpad" }), null);
 });
 
