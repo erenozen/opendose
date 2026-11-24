@@ -9,5 +9,8 @@ export const ANALYSIS_SURVIVAL = "survival";
 export const GRAPH_XY = "xy";
 /** The Schild plot of an EC50-shift fit (sheets/xy/SchildPlot.tsx). */
 export const GRAPH_SCHILD = "schild_plot";
+/** The joint confidence region of two fitted parameters (P-102,
+ *  sheets/xy/FitRegionPlot.tsx). */
+export const GRAPH_FIT_REGION = "fit_region";
 export const GRAPH_SURVIVAL = "survival";
 export const COLUMN_GRAPHS = ["scatter", "bar", "box", "violin", "raincloud"] as const;

@@ -54,7 +54,8 @@
 //                      references of a Normalize (P-57)
 //   glm-models.json    ANCOVA (P-82), binomial and negative binomial
 //                      regression (P-86), a separated logistic regression
-//                      and its Firth fit (P-89)
+//                      and its Firth fit (P-89), histology scores under
+//                      ordinal regression with the experiment as a block (P-88)
 //   survival-models.json competing risks on tidycmprsk's trial data with
 //                      named kinds of event and the cumulative incidence
 //                      graph (P-90); a Weibull AFT model of R's ovarian
@@ -705,7 +706,9 @@ const longData = (name, names, rows, categorical) => data(name, {
 // controlling for Age and an XY table comparing X vs. SBP with X vs. BMI
 // (P-48; partial_compare_corr.py); survival::lung by sex at 365 days
 // (P-28; survival_difference.py); the P-55 normalize example and its
-// references (P-57)
+// references (P-57); OD of three samples in triplicate less a blank of
+// three wells, and a dose series normalized first row to last, for the
+// propagated uncertainty (P-98; propagation.py)
 {
   const ref = (f) => JSON.parse(readFileSync(join(here, "../../../engine/tests/reference", f), "utf8"));
   const qp = ref("quasi_poisson.json").data;
@@ -743,8 +746,20 @@ const longData = (name, names, rows, categorical) => data(name, {
   const nt = data("Viability", src);
   const rn = results(nt, "normalize", { zeroMode: "smallest", zeroValue: "0", hundredMode: "last",
     hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Viability");
-  write("derived-numbers.json", project("Derived numbers", [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn],
-    { selected: rp.id }));
+  const pg = ref("propagation.json").data;
+  const od = data("Absorbance", table("grouped", { yTitle: "OD 450", rowTitles: ["Sample A", "Sample B", "Sample C"],
+    datasets: [{ name: "OD", rows: pg.samples.map((r) => r.map(String)) }] }));
+  const rb = results(od, "remove_baseline", { baseline: "value", baselineDataset: 0, k: "2", value: "0.0513",
+    operation: "subtract", replicates: "mean", pairs: "total_first", linearBaseline: false, propagate: false,
+    valueSd: "", valueN: "" }, "Remove baseline of Absorbance");
+  const rbp = results(od, "remove_baseline", { ...rb.options, propagate: true, valueSd: "0.0035", valueN: "3" },
+    "Blank-corrected Absorbance with errors");
+  const ds = data("Dose series", table("grouped", { rowTitles: ["0", "1", "3", "10", "30"],
+    datasets: [{ name: "Response", rows: pg.dose.map((r) => r.map(String)) }] }));
+  const rd = results(ds, "normalize", { zeroMode: "first", zeroValue: "0", hundredMode: "last",
+    hundredValue: "100", asPercent: true, subcolumns: "mean", namedTitle: true }, "Normalize of Dose series");
+  write("derived-numbers.json", project("Derived numbers",
+    [ames, rp, four, rc, xy, rx, two, rt, surv, rs, nt, rn, od, rb, rbp, ds, rd], { selected: rp.id }));
 }
 
 // glm-models.json (wave 2 models): two groups of 10 with baseline and
@@ -754,7 +769,8 @@ const longData = (name, names, rows, categorical) => data(name, {
 // counts under negative binomial regression (count_glms.py); a two-group
 // dose study where every treated animal responds, refused by logistic
 // regression for separation and fitted with Firth's correction (P-89;
-// firth_logistic.py)
+// firth_logistic.py); EAE-like scores 0 to 4 in two groups over three
+// experiments under ordinal regression (P-88; ordinal_regression.py)
 {
   const ref = (f) => JSON.parse(readFileSync(join(here, "../../../engine/tests/reference", f), "utf8"));
   const an = ref("ancova.json").two_groups.data;
@@ -783,8 +799,14 @@ const longData = (name, names, rows, categorical) => data(name, {
     ciLevel: "95", positiveLevel: "", ciMethod: "profile", cutoff: "0.5", hlGroups: "10" };
   const rl = results(dose, "mv_logistic", { ...logit, firth: false }, "Logistic regression of Dose study");
   const rf = results(dose, "mv_logistic", { ...logit, firth: true }, "Firth logistic regression of Dose study");
+  const hs = ref("ordinal_regression.json").histology.data;
+  const histo = longData("Histology", ["Group", "Experiment", "Score"],
+    hs.group.map((g, i) => [g, hs.experiment[i], String(hs.score[i])]), ["Group", "Experiment"]);
+  const ro = results(histo, "mv_ordinal", { outcome: "Score", predictors: ["Group", "Experiment"],
+    interactions: [], referenceLevels: {}, ciLevel: "95", outcomeOrder: "", ciMethod: "profile" },
+  "Ordinal regression of Histology");
   write("glm-models.json", project("Count and covariate models",
-    [trial, ra, dishes, rb, ames, rn, dose, rl, rf], { selected: ra.id }));
+    [trial, ra, dishes, rb, ames, rn, dose, rl, rf, histo, ro], { selected: ra.id }));
 }
 
 // survival-models.json (wave 2 survival): tidycmprsk's trial data (200

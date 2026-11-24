@@ -151,6 +151,19 @@ const CASES: [string, Design, DataChecks | null, string, string, string, string,
   ["counts pooled from animals, one group", d({ outcome: "counts", replicates: "cells", groups: "one" }), null,
     "proportion_per_unit", "Proportion per biological replicate, then a t test or ANOVA",
     "column", "column", { analysis: "anova" }],
+  // P-88: scores on an ordered scale (histology 0 to 4, EAE) in independent
+  // groups: ordinal regression with the experiment as a block
+  ["ordinal scores, two groups", d({ outcome: "scores" }), null,
+    "ordinal_regression", "Ordinal regression (proportional odds), experiment as a block",
+    "multivariable", "mv_ordinal", {}],
+  ["ordinal scores, three groups, scored per section", d({ outcome: "scores", groups: "three_plus",
+    replicates: "cells" }), null,
+  "ordinal_regression", "Ordinal regression (proportional odds), experiment as a block",
+  "multivariable", "mv_ordinal", {}],
+  ["ordinal scores, paired", d({ outcome: "scores", paired: true }), null,
+    "wilcoxon_pairs", "Wilcoxon matched-pairs signed-rank test", "column", "column", { ttestKind: "wilcoxon" }],
+  ["ordinal scores, one group", d({ outcome: "scores", groups: "one" }), null,
+    "wilcoxon_signed_rank", "Wilcoxon signed-rank test", "column", "column", { analysis: "column_statistics" }],
   ["survival, two groups", d({ outcome: "survival" }), null,
     "logrank", "Kaplan-Meier curves with the log-rank (Mantel-Cox) test", "survival", "survival", {}],
   ["survival, one group", d({ outcome: "survival", groups: "one" }), null,
@@ -194,6 +207,19 @@ for (const [name, design, checks, rule, testName, tableType, analysisId, opts] o
     for (const s of r.sources) assert.match(s.url, /^https:\/\//);
   });
 }
+
+test("ordinal scores: the rank test is the alternative, per-section scores are named", () => {
+  const two = recommend(d({ outcome: "scores" }));
+  assert.equal(two.alternatives[0].test, "Mann-Whitney test");
+  assert.deepEqual(two.alternatives[0].target?.options, { analysis: "ttest", ttestKind: "mann_whitney" });
+  assert.match(two.methods, /^Ordinal \(proportional-odds\) logistic regression was chosen/);
+  assert.doesNotMatch(two.reason, /one score per animal/);
+  const three = recommend(d({ outcome: "scores", groups: "three_plus", replicates: "cells" }));
+  assert.equal(three.alternatives[0].test, "Kruskal-Wallis test");
+  assert.match(three.reason, /Use one score per animal/);
+  const paired = recommend(d({ outcome: "scores", paired: true }));
+  assert.ok(paired.notes.some((n) => /ordered categories/.test(n)));
+});
 
 test("post hoc family follows the question", () => {
   assert.equal(recommend(d({ groups: "three_plus" })).postHoc?.method, "Tukey");

@@ -984,6 +984,34 @@ function countModelMeaning(r: R, style: PStyle): Meaning | null {
     `${model}: ${why}`);
 }
 
+/** Ordinal (proportional-odds) regression (P-88): the odds ratio of a
+ *  higher score for the first predictor, and the proportional-odds check
+ *  when it fails. */
+function ordinalMeaning(r: R, style: PStyle): Meaning | null {
+  const coefs: R[] = (Array.isArray(r.coefficients) ? r.coefficients : []).filter((c: R) => c && num(c.p));
+  if (!coefs.length || !num(coefs[0].odds_ratio)) return null;
+  const c = coefs[0];
+  const ci = ci2(c.odds_ratio_ci);
+  const lvl = num(r.ci_level) ? `${Number((r.ci_level * 100).toPrecision(4))}%` : "95%";
+  const ciT = ci ? `, ${lvl} CI ${fmt(ci[0])} to ${fmt(ci[1])}` : "";
+  const { vs, variable } = termWords(c, r.reference_levels);
+  const others = [...new Set(coefs.slice(1).map((x) => splitLevel(String(x.name)).variable))].filter((v) => v !== variable);
+  const hold = others.length ? `, holding ${list(others)} constant` : "";
+  const outcome = String(r.outcome ?? "the score");
+  const sig = c.p < ALPHA;
+  const lead = vs ? `${vs} multiplies the odds of a higher ${outcome} by ${fmt(c.odds_ratio)}`
+    : `Each one-unit increase in ${variable} multiplies the odds of a higher ${outcome} by ${fmt(c.odds_ratio)}`;
+  const verdict = sig
+    ? `a ratio this far from 1 would be unusual (${P(c.p, style)}) if ${variable} had no association with ${outcome}`
+    : `the data do not show an association (${P(c.p, style)}), and the CI includes 1`;
+  const bad = (r.proportional_odds?.tests ?? []).some((t: R) => t?.term === variable && num(t.p) && t.p < ALPHA);
+  const po = bad ? `; the proportional-odds check rejects one ratio for every cut point, so this is an average over them` : "";
+  return meaning(`${lead} (odds ratio${ciT})${hold}${po}; ${verdict}.`,
+    [SRC.mccullagh1980, ...(bad ? [SRC.petersonHarrell1990] : []), sig ? S.greenland2016 : S.amrhein2019],
+    "an odds ratio of a higher score as a difference in mean score. It multiplies the odds of being above any cut point; the scores' spacing is not used.",
+    "Ordinal (proportional-odds) regression: models the chance of each score or higher, using the order of the scores but not their spacing.");
+}
+
 /** Three-way ANOVA: the highest-order interaction the data show first. */
 function threeWayMeaning(r: R, style: PStyle): Meaning | null {
   const src: R = r.sources && typeof r.sources === "object" ? r.sources : {};
@@ -1217,6 +1245,7 @@ export function meaningOf(input: MeaningInput): Meaning | null {
       case "poisson_regression":
       case "negative_binomial_regression":
       case "binomial_regression": return countModelMeaning(r, style);
+      case "ordinal_regression": return ordinalMeaning(r, style);
       case "three_way_anova": return threeWayMeaning(r, style);
       case "mixed_nested_two_way":
       case "mixed_grouping": return mixedUnitMeaning(r, style);

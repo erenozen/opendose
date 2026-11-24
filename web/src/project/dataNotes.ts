@@ -48,7 +48,7 @@ const GROUPED_MULTI_T = "grouped_multiple_t";
 /** Models of a multiple-variables table that drop incomplete rows
  *  (listwise): the engine says which (analysed_rows). */
 const ROW_MODELS = new Set(["mv_regression", "mv_logistic", "mv_poisson", "mv_cox", "mv_ancova", "mv_binomial",
-  "mv_negbin"]);
+  "mv_negbin", "mv_ordinal"]);
 /** Cox on a survival table: the engine counts subjects, not grid rows. */
 const SURVIVAL_COX = "cox";
 

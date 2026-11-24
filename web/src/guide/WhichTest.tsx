@@ -257,6 +257,7 @@ export function DesignQuestions({ d, set, words, hasChecks }: {
       <Choice legend="What did you measure?" value={d.outcome}
         options={[["continuous", "A measurement (weight, signal, concentration)"],
           ["counts", "Counts or proportions (yes/no per subject)"],
+          ["scores", "Scores on an ordered scale (histology 0 to 4, clinical score)"],
           ["survival", "Time to an event (survival)"],
           ["curve", "A dose-response or other curve"]]}
         onChange={(v) => set({ outcome: v })} />
@@ -299,7 +300,7 @@ export function DesignQuestions({ d, set, words, hasChecks }: {
           options={[["none", "No"], ["one", "One factor (e.g. time)"], ["both", "Both"]]}
           onChange={(v) => set({ repeated: v, paired: v !== "none" })}
           hint={words.repeatedHint ?? undefined} />
-      ) : (d.outcome === "continuous" || d.outcome === "counts") && d.groups !== "one"
+      ) : (d.outcome === "continuous" || d.outcome === "counts" || d.outcome === "scores") && d.groups !== "one"
         && d.factors !== "three" && !(c && (d.blocked || d.baseline)) ? (
           <Choice legend={c && words.pairing ? words.pairing
             : "Are measurements paired or repeated on the same subject (or matched, e.g. by experiment)?"}
@@ -307,7 +308,7 @@ export function DesignQuestions({ d, set, words, hasChecks }: {
             onChange={(v) => set({ paired: v === "yes" })}
             hint={c && words.pairing ? words.pairingHint ?? undefined : undefined} />
         ) : null}
-      {(c || d.outcome === "counts") && (
+      {(c || d.outcome === "counts" || d.outcome === "scores") && (
         <Choice legend={c && words.replicates ? words.replicates : "What is each value?"}
           value={d.replicates}
           options={[["independent", "One independent subject or experiment"],

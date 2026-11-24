@@ -55,6 +55,11 @@ export function constraintLines(fit: FitResult, options?: OptionsState): string[
 
 function ciMethodText(fit: FitResult): string {
   if (fit.fit_method === "robust") return "none (robust regression gives best-fit values only)";
+  if (fit.ci_method === "bootstrap" && fit.bootstrap && !fit.bootstrap.error) {
+    const b = fit.bootstrap;
+    return `bootstrap percentile, 95% (${(b.resamples ?? 0).toLocaleString("en-US")} `
+      + `${b.method === "residual" ? "residual" : "case"} resamples, seed ${b.seed})`;
+  }
   return fit.ci_method === "profile" ? "profile likelihood (asymmetrical), 95%"
     : "asymptotic (symmetrical), 95%";
 }

@@ -19,13 +19,16 @@ import json
 import math
 import traceback
 
+import numpy as np
+from scipy.optimize import brentq
+
 from . import (anova, columnstats, contingency, correlation, descriptive,
                diagnostics, doseresponse, globalfit, interpolate, linregress,
                methodcomp, nlfit, normalize, outliers, plate, plate_io,
                prism_project, pzfx, repeated, schild, survival, transform,
                ttests, twoway)
-from . import multivar, partsofwhole
-from . import formulas, manipulate, simulate
+from . import multivar, ordinal, partsofwhole
+from . import formulas, manipulate, propagate, simulate
 from . import summary
 from . import mixedmodel, nested
 from . import fdr, letters, rowtests, threeway
@@ -46,6 +49,7 @@ from . import logscale, rm_posthoc, twoway_contrasts
 from . import art
 from . import compare_models, compare_params, flow, qpcr_refs, relpotency
 from . import potency
+from . import fitboot, fitregion
 
 
 def _expand(x_col, replicate_rows):
@@ -109,6 +113,43 @@ def _model_residuals(build):
 
 
 def _dose_response(data, options):
+    """Nonlinear regression for any registered model: _dose_response_steps
+    run to the end (the web worker steps it instead, for progress)."""
+    return _drain(_dose_response_steps(data, options))
+
+
+def _drain(gen):
+    """The return value of a step generator, run to the end."""
+    while True:
+        try:
+            next(gen)
+        except StopIteration as stop:
+            return stop.value
+
+
+def _relay(gen, offset, total, what):
+    """Run a fitboot / fitregion step generator, reporting its steps as
+    {"done", "total", "what"} of the whole job; returns its summary."""
+    while True:
+        try:
+            done = next(gen)
+        except StopIteration as stop:
+            return stop.value
+        yield {"done": offset + done, "total": total, "what": what}
+
+
+def _offset_steps(gen, index, count):
+    """Progress of data set `index` of `count`, each its own job."""
+    while True:
+        try:
+            p = next(gen)
+        except StopIteration as stop:
+            return stop.value
+        yield {"done": index * p["total"] + p["done"],
+               "total": count * p["total"], "what": p.get("what")}
+
+
+def _dose_response_steps(data, options):
     """Nonlinear regression for any registered model. For models whose X
     is log10(concentration), x_is_log=False means the engine applies
     X = log10(X) first (Prism's 'transform concentrations to logs').
@@ -148,9 +189,30 @@ def _dose_response(data, options):
     data can be drawn apart (doseresponse.curve_points). Bands follow the
     drawn curve; interpolation and the absolute IC50 keep their range.
     Settings that cannot be drawn keep the default curve, with a warning
-    ("Curve range not used: ...")."""
+    ("Curve range not used: ...").
+
+    options.ci_method "bootstrap" (P-101): the parameters' and derived
+    values' CIs are bootstrap percentile intervals (fitboot), with
+    options.bootstrap {method: "case" | "residual", resamples (200 to
+    10,000, default 2,000), seed (default 1)}; the fit gets "bootstrap"
+    {method, resamples, seed, ci_level, interval, converged, failed,
+    params: {name: {value, ci95, se, bias, median, asymptotic_ci95}},
+    warnings} or {"error": why} (mean/SD/n data, robust or ROUT fits,
+    an ambiguous fit, too many failed refits), and then keeps the
+    asymptotic CIs. Bands and interpolated values stay asymptotic.
+
+    Every least-squares fit carries "covariance" {params, matrix,
+    correlation} (P-102, fitregion.covariance_block): the asymptotic
+    covariance of the free parameters its SEs come from. options.
+    joint_region [a, b] adds "joint_region" (fitregion.JointRegion:
+    params, level, df, f_crit, ss_min, threshold, estimate, contour {x,
+    y} with null where a ray leaves the region open, ellipse {x, y},
+    open, rays, refits; or {params, error}).
+
+    This generator yields {"done", "total", "what": "bootstrap" |
+    "region"} between chunks of refits."""
     if options.get("user_equation"):
-        return _user_equation_dose_response(data, options)
+        return (yield from _user_equation_steps(data, options))
     model = options.get("model", "log_inhibitor_vs_response_4pl")
     spec = nlfit.MODELS.get(model)
     if spec is None:
@@ -162,6 +224,19 @@ def _dose_response(data, options):
     starts = options.get("initial_values") or None
     weighting = options.get("weighting", "none")
     ci_method = options.get("ci_method", "asymptotic")
+    boot_opt = None
+    if ci_method == "bootstrap":
+        boot_opt = fitboot.read_options(options.get("bootstrap"))
+        ci_method = "asymptotic"  # the fit's own CIs, replaced below
+    # options.joint_region [a, b] (P-102): the joint confidence region of
+    # two free parameters of every data set (fitregion.JointRegion)
+    region_opt = options.get("joint_region") or None
+    if region_opt is not None and (not isinstance(region_opt, (list, tuple))
+                                   or len(region_opt) != 2):
+        raise ValueError("the joint region needs two parameters")
+    # steps per data set, for progress: resamples, then rays
+    n_boot = boot_opt["resamples"] if boot_opt is not None else 0
+    n_rays = fitregion.RAYS if region_opt is not None else 0
     rout_q = options.get("rout_q")  # e.g. 0.01 turns on ROUT
     # fit_method "robust": nlfit.robust_model_fit, best-fit values only
     fit_method = options.get("fit_method", "least_squares")
@@ -196,7 +271,8 @@ def _dose_response(data, options):
     exp_opt = options.get("experiments")
     zero_param = _zero_dose_param(options.get("zero_dose_plateau"), spec)
     results = []
-    for ds in data["datasets"]:
+    n_sets = len(data["datasets"])
+    for i_set, ds in enumerate(data["datasets"]):
         entry = {"name": ds.get("name", "")}
         curve_problem = curve_bad
         ds_constraints, ds_bounds, ds_starts = constraints, bounds, starts
@@ -305,6 +381,36 @@ def _dose_response(data, options):
             if abs_level is not None:
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
                     fit, float(abs_level), x_lo, x_hi)
+            per_set = n_boot + n_rays
+            # the refits hold what this data set's fit held (P-104: its
+            # own zero-dose plateau)
+            fit_kw = dict(constraints=ds_constraints, weighting=weighting,
+                          weight_source=options.get("weight_source",
+                                                    "predicted"),
+                          bounds=ds_bounds)
+            if boot_opt is not None:
+                yield from _bootstrap_steps(
+                    fit, xs, ys, spec, boot_opt, offset=i_set * per_set,
+                    total=n_sets * per_set, refusal=_bootstrap_refusal(
+                        fit, robust=robust, rout=bool(rout_q),
+                        summary_fmt=summary_fmt),
+                    fit_kw=fit_kw,
+                    abs_ic50=(None if abs_level is None else
+                              (float(abs_level), x_lo, x_hi)))
+            if not robust:
+                # P-102: the covariance behind the SEs, and its correlations
+                fit["covariance"] = fitregion.covariance_block(
+                    spec, fit.get("_cov"))
+            if region_opt is not None:
+                yield from _region_steps(
+                    fit, xs, ys, region_opt, fit_kw=dict(fit_kw, **s_kw),
+                    offset=i_set * per_set + n_boot, total=n_sets * per_set,
+                    refusal=_region_refusal(fit, robust=robust,
+                                            rout=bool(rout_q)))
+            if per_set:
+                yield {"done": (i_set + 1) * per_set,
+                       "total": n_sets * per_set,
+                       "what": "region" if n_rays else "bootstrap"}
             fit.pop("_cov", None)  # internal; keep the JSON payload lean
             entry["residual_check"] = _fit_residual_check(
                 fit.pop("_residuals", None), entry["name"], robust=robust,
@@ -441,6 +547,125 @@ def _zero_dose_mean(raw_x, x_col, ds, summary_fmt, replicates):
             "n_values": len(rows), "x_values": xs0}
 
 
+def _bootstrap_steps(fit, xs, ys, spec, boot_opt, *, offset, total,
+                     refusal, fit_kw, abs_ic50):
+    """Bootstrap one fitted data set (fitboot.FitBootstrap) and put its
+    percentile CIs in the fit; a failure costs the CIs, never the fit."""
+    if refusal:
+        fit["bootstrap"] = {"error": refusal}
+        return
+    try:
+        extra = (None if abs_ic50 is None else
+                 {"AbsoluteIC50": _abs_ic50_fn(spec, *abs_ic50)})
+        setup = nlfit.fit_setup(xs, ys, fit["model"], **fit_kw)
+        boot = fitboot.FitBootstrap(
+            setup, fit["fitted_values"], weighting=fit_kw["weighting"],
+            weight_source=fit_kw["weight_source"],
+            method=boot_opt["method"], resamples=boot_opt["resamples"],
+            seed=boot_opt["seed"], ci_level=boot_opt["ci_level"],
+            extra=extra)
+        summary_ = yield from _relay(boot.steps(), offset, total, "bootstrap")
+    except Exception as exc:  # the fit stands with its asymptotic CIs
+        fit["bootstrap"] = {"error": f"Bootstrap failed: {exc}"}
+        return
+    _apply_bootstrap(fit, summary_)
+
+
+def _region_steps(fit, xs, ys, pair, *, fit_kw, offset, total, refusal):
+    """The joint confidence region of two parameters of one fitted data
+    set (fitregion.JointRegion), as fit["joint_region"]; a failure is
+    reported there and costs nothing else."""
+    if refusal:
+        fit["joint_region"] = {"params": list(pair), "error": refusal}
+        return
+    try:
+        setup = nlfit.fit_setup(xs, ys, fit["model"], **fit_kw)
+        g = fit["goodness"]
+        ss_min = (g["ss_res_weighted"] if g.get("ss_res_weighted") is not None
+                  else g["ss_res"])
+        region = fitregion.JointRegion(
+            setup, fit["fitted_values"], fit["_cov"], str(pair[0]),
+            str(pair[1]), weighting=fit_kw["weighting"],
+            weight_source=fit_kw["weight_source"], ss_min=ss_min)
+        fit["joint_region"] = yield from _relay(region.steps(), offset, total,
+                                                "region")
+    except Exception as exc:
+        fit["joint_region"] = {"params": list(pair),
+                               "error": f"No joint region: {exc}"}
+
+
+def _region_refusal(fit, *, robust, rout):
+    """Why a fit gets no joint confidence region, or None."""
+    if robust:
+        return ("No joint region for a robust fit, which reports best-fit "
+                "values only")
+    if rout:
+        return ("No joint region with ROUT: it would not repeat the outlier "
+                "removal")
+    if fit.get("status") == "ambiguous":
+        return ("No joint region: the fit is ambiguous, so its parameters "
+                "are not determined by the data")
+    return None
+
+
+def _bootstrap_refusal(fit, *, robust, rout, summary_fmt):
+    """Why a fit gets no bootstrap CIs, or None."""
+    if robust:
+        return ("Bootstrap CIs are not computed for a robust fit, which "
+                "reports best-fit values only")
+    if rout:
+        return ("Bootstrap CIs are not computed with ROUT: the resamples "
+                "would not repeat the outlier removal. The CIs shown are "
+                "asymptotic")
+    if summary_fmt:
+        return ("Bootstrap CIs need the individual values, not mean / SD / "
+                "n. The CIs shown are asymptotic")
+    if fit.get("status") == "ambiguous":
+        return ("Bootstrap not run: the fit is ambiguous, so its parameters "
+                "are not determined by the data")
+    return None
+
+
+def _abs_ic50_fn(spec, level, x_lo, x_hi):
+    """The absolute IC50 of parameters p (model names): the first X in
+    [x_lo, x_hi] where the curve crosses `level` (interpolate.
+    absolute_ic50's value), as a concentration for log-X models."""
+    grid = np.linspace(x_lo, x_hi, 512)
+
+    def fn(p):
+        with np.errstate(all="ignore"):
+            ys = np.asarray(spec.func(grid, p), dtype=float) - level
+        for k in range(grid.size - 1):
+            a, b = ys[k], ys[k + 1]
+            if not (math.isfinite(a) and math.isfinite(b)):
+                continue
+            if a == 0.0:
+                root = float(grid[k])
+            elif a * b < 0:
+                root = float(brentq(
+                    lambda v: float(spec.func(np.array([v]), p)[0]) - level,
+                    grid[k], grid[k + 1], maxiter=100))
+            else:
+                continue
+            return 10.0 ** root if spec.x_is_log else root
+        return None
+    return fn
+
+
+def _apply_bootstrap(fit, boot):
+    """Bootstrap percentile CIs in place of the fit's own (fitboot)."""
+    fit["bootstrap"] = boot
+    if boot.get("error"):
+        return
+    for name, b in boot["params"].items():
+        entry = fit["params"].get(name)
+        if entry is None or entry.get("constrained"):
+            continue
+        b["asymptotic_ci95"] = entry.get("ci95")
+        entry["ci95"] = b.get("ci95")
+    fit["ci_method"] = "bootstrap"
+
+
 CURVE_POINTS = (10, 5000)
 
 
@@ -575,7 +800,8 @@ def _experiments(x_col, ds, exp_opt, model, spec, *, constraints, weighting,
 def _normalize(data, options):
     """Normalize every data set (normalize.normalize_dataset). Each output
     data set also carries "references": the 0% and 100% values it used,
-    their rule and row (normalize.normalize_references)."""
+    their rule and row (normalize.normalize_references). options.propagate
+    adds "propagation": the references' error carried to each row."""
     out = []
     for ds in data["datasets"]:
         out.append({
@@ -598,7 +824,18 @@ def _normalize(data, options):
                 subcolumns=options.get("subcolumns", "mean"),
             ),
         })
-    return {"analysis": "normalize", "x": data["x"], "datasets": out}
+    result = {"analysis": "normalize", "x": data["x"], "datasets": out}
+    if options.get("propagate"):
+        # the references' error carried to each row (propagate.normalize)
+        result["propagation"] = propagate.normalize(
+            data["datasets"],
+            zero_mode=options.get("zero_mode", "smallest"),
+            zero_value=options.get("zero_value"),
+            hundred_mode=options.get("hundred_mode", "largest"),
+            hundred_value=options.get("hundred_value"),
+            as_percent=options.get("as_percent", True),
+            subcolumns=options.get("subcolumns", "mean"))
+    return result
 
 
 def _transform(data, options):
@@ -2624,17 +2861,25 @@ def _remove_baseline(data, options):
     "operation": "subtract"|"divide"|"fraction_difference"|
     "percent_difference"|"percent_of_baseline"|"add"|"multiply",
     "replicates": "mean"|"each", "pairs": "total_first"|"baseline_first",
-    "linear_baseline": bool}. Returns {"x", "datasets",
-    "baseline_lines"?} (baseline data sets omitted)."""
-    return {"analysis": "remove_baseline", **manipulate.remove_baseline(
-        data["x"], data["datasets"],
-        baseline=options.get("baseline", "column"),
-        baseline_dataset=options.get("baseline_dataset", 0),
-        k=options.get("k", 1), value=options.get("value"),
-        operation=options.get("operation", "subtract"),
-        replicates=options.get("replicates", "mean"),
-        pairs=options.get("pairs", "total_first"),
-        linear_baseline=options.get("linear_baseline", False))}
+    "linear_baseline": bool, "propagate"?: bool, "value_sd"?, "value_n"?}.
+    Returns {"x", "datasets", "baseline_lines"?} (baseline data sets
+    omitted); with propagate, "propagation": the delta-method SD and SE of
+    each derived row (propagate.remove_baseline; value_sd and value_n
+    describe a typed baseline's replicates)."""
+    kw = dict(baseline=options.get("baseline", "column"),
+              baseline_dataset=options.get("baseline_dataset", 0),
+              k=options.get("k", 1), value=options.get("value"),
+              operation=options.get("operation", "subtract"),
+              replicates=options.get("replicates", "mean"),
+              pairs=options.get("pairs", "total_first"),
+              linear_baseline=options.get("linear_baseline", False))
+    out = {"analysis": "remove_baseline", **manipulate.remove_baseline(
+        data["x"], data["datasets"], **kw)}
+    if options.get("propagate"):
+        out["propagation"] = propagate.remove_baseline(
+            data["x"], data["datasets"], value_sd=options.get("value_sd"),
+            value_n=options.get("value_n"), **kw)
+    return out
 
 
 def _transpose(data, options):
@@ -2909,6 +3154,28 @@ def _negative_binomial_regression(data, options):
              exposure=options.get("exposure") or None,
              ci_level=options.get("ci_level", 0.95),
              ci_method=options.get("ci_method", "profile"))},
+        variables, [options["outcome"], *options["predictors"]])
+
+
+def _ordinal_regression(data, options):
+    """data: multiple-variables table. options: {outcome (scores on an
+    ordered scale), predictors, interactions?, reference_levels?,
+    outcome_order? ([levels], lowest first: needed for text levels),
+    ci_level?, ci_method?: profile|wald, proportional_odds_test?: true}.
+    Cumulative logit (proportional-odds) model as ordinal::clm fits it
+    (ordinal.ordinal_regression). A refusal for separation carries
+    error_kind = "separation"."""
+    variables = _mv_variables(data)
+    return _with_analysed_rows(
+        {"analysis": "ordinal_regression",
+         **ordinal.ordinal_regression(
+             variables, options["outcome"], options["predictors"],
+             interactions=options.get("interactions") or (),
+             reference_levels=options.get("reference_levels"),
+             outcome_order=options.get("outcome_order") or None,
+             ci_level=options.get("ci_level", 0.95),
+             ci_method=options.get("ci_method", "profile"),
+             proportional_odds_test=bool(options.get("proportional_odds_test", True)))},
         variables, [options["outcome"], *options["predictors"]])
 
 
@@ -3641,6 +3908,7 @@ _HANDLERS = {
     "poisson_regression": _poisson_regression,
     "binomial_regression": _binomial_regression,
     "negative_binomial_regression": _negative_binomial_regression,
+    "ordinal_regression": _ordinal_regression,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,
@@ -3723,6 +3991,11 @@ def _column_constant_values(data, options, names):
 
 
 def _user_equation_dose_response(data, options):
+    """_user_equation_steps run to the end."""
+    return _drain(_user_equation_steps(data, options))
+
+
+def _user_equation_steps(data, options):
     """Fit a user-defined equation to each data set separately.
 
     options.user_equation = {"text": "Y = ...", "rules": {param: rule},
@@ -3745,9 +4018,10 @@ def _user_equation_dose_response(data, options):
         constraints = dict(options.get("constraints") or {})
         for name, vals in cols.items():
             constraints.setdefault(name, vals[i])
-        sub = _dose_response(dict(data, datasets=[ds]),
-                             dict(sub_options, model=eq.register(i),
-                                  constraints=constraints))
+        sub = yield from _offset_steps(_dose_response_steps(
+            dict(data, datasets=[ds]),
+            dict(sub_options, model=eq.register(i), constraints=constraints)),
+            i, len(data["datasets"]))
         flags = {k: v for k, v in sub.items() if k not in ("datasets",)}
         results.append(sub["datasets"][0])
     out = dict(flags)
@@ -5324,11 +5598,15 @@ def analyze(payload: dict) -> dict:
     try:
         return _HANDLERS[kind](payload["data"], payload.get("options") or {})
     except Exception as exc:
-        out = {"error": str(exc), "traceback": traceback.format_exc()}
-        # a refusal the app can act on (multivar.SeparationError: offer Firth)
-        if getattr(exc, "kind", None):
-            out["error_kind"] = exc.kind
-        return out
+        return _error_result(exc)
+
+
+def _error_result(exc):
+    out = {"error": str(exc), "traceback": traceback.format_exc()}
+    # a refusal the app can act on (multivar.SeparationError: offer Firth)
+    if getattr(exc, "kind", None):
+        out["error_kind"] = exc.kind
+    return out
 
 
 def _json_safe(obj):
@@ -5346,3 +5624,44 @@ def _json_safe(obj):
 def analyze_json(payload_json: str) -> str:
     """String-in/string-out wrapper for the Pyodide bridge."""
     return json.dumps(_json_safe(analyze(json.loads(payload_json))))
+
+
+# Analyses that can run in steps: a generator yielding {"done", "total"}
+# between chunks and returning the result (the bootstrap of a curve fit).
+_STEPPED = {"dose_response": _dose_response_steps}
+
+
+class StepJob:
+    """One analysis run in steps, for the web worker: each step() does
+    the next chunk and returns the progress as JSON text
+    ('{"done": 400, "total": 2000}'), or None once the analysis has
+    finished; result() is then the JSON text analyze_json would return.
+    Between two steps the worker reads its messages, so a job can be
+    stopped there. Analyses without a step generator finish in the first
+    step."""
+
+    def __init__(self, payload_json: str):
+        self._payload = json.loads(payload_json)
+        self._gen = self._run()
+        self._out = None
+
+    def _run(self):
+        payload = self._payload
+        handler = _STEPPED.get(payload.get("analysis"))
+        if handler is None:
+            return analyze(payload)
+        try:
+            return (yield from handler(payload["data"],
+                                       payload.get("options") or {}))
+        except Exception as exc:
+            return _error_result(exc)
+
+    def step(self):
+        try:
+            return json.dumps(next(self._gen))
+        except StopIteration as stop:
+            self._out = stop.value
+            return None
+
+    def result(self) -> str:
+        return json.dumps(_json_safe(self._out))

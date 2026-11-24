@@ -1,7 +1,8 @@
 // End-to-end checks of the wave 2 models on a multiple-variables table:
 // the baseline-adjusted comparison (ANCOVA, P-82) and its route in Help me
 // choose; binomial and negative binomial regression (P-86) and the counts
-// route; Firth's logistic regression from the separation message (P-89).
+// route; Firth's logistic regression from the separation message (P-89);
+// ordinal (proportional-odds) regression and the ordinal-scores route (P-88).
 // Each number asserted here is pinned in the engine tests from an
 // independent reference (engine/tests/reference/).
 // Usage: node scripts/e2e-models.mjs [http://localhost:5173/]
@@ -232,6 +233,88 @@ await page.waitForSelector('.pane-results[data-live="true"] .results-table', { t
   expect("P-89 the methods text names Firth's penalized likelihood and the separation",
     /with Firth's penalized likelihood \(Firth 1993; Heinze & Schemper 2002\), because the predictors separated/
       .test(methods), methods.slice(0, 220));
+}
+
+// --- P-88: ordinal (proportional-odds) regression: the wine acceptance test --
+{
+  // engine/tests/test_ordinal_regression.py: ordinal::clm's printed fit of
+  // rating ~ temp + contact on the wine data (Christensen, clm vignette
+  // 4.1), also statsmodels OrderedModel: tempwarm 2.5031 (SE 0.5287),
+  // contactyes 1.5278 (SE 0.4766), thresholds -1.3444 1.2508 3.4669 5.0064,
+  // profile CI 1.5097627 to 3.595225, nominal_test P 0.3654 and 0.9040
+  const rows = readFileSync(join(here, "../../engine/tests/fixtures/wine.csv"), "utf8").trim().split("\n").slice(1)
+    .map((l) => l.split(","));
+  await pastedTable("multivariable", "Wine", tsv(["rating", "temp", "contact"],
+    [rows.map((r) => r[1]), rows.map((r) => r[2]), rows.map((r) => r[3])]));
+  await analyze(/^Ordinal regression/);
+  await liveResults(/Ordinal regression \(proportional odds\) of rating/);
+  const answer = await text(page.locator(".pane-answer .answer-items"));
+  expect("P-88 the answer is the odds ratio of a higher rating for temp, 12.22 (95% CI 4.526 to 36.42)",
+    answer === "temp: warm vs. cold Odds ratio of a higher score 12.22 95% CI 4.526 to 36.42 P < 0.0001 · "
+      + "ordinal (proportional odds) regression, 72 rows", answer);
+  const temp = await row("β1: temp[warm]");
+  const contact = await row("β2: contact[yes]");
+  expect("P-88 acceptance: temp[warm] 2.503 (SE 0.5287) and contact[yes] 1.528 (SE 0.4766) as clm prints them",
+    /^β1: temp\[warm\] 2\.503 0\.5287 1\.51 to 3\.595 4\.735 /.test(temp)
+      && /^β2: contact\[yes\] 1\.528 0\.4766 0\.6158 to 2\.492 3\.205 /.test(contact), `${temp} | ${contact}`);
+  const cuts = page.locator(".pane-results table", { has: page.locator("caption", { hasText: /^Thresholds$/ }) });
+  const th = [];
+  for (let i = 0; i < 4; i++) th.push(await text(cuts.locator("tbody tr").nth(i)));
+  expect("P-88 acceptance: the thresholds -1.344, 1.251, 3.467, 5.006 (SE 0.5171 to 0.7309)",
+    th.join(" | ") === "1|2 -1.344 0.5171 -2.6 | 2|3 1.251 0.4379 2.857 | 3|4 3.467 0.5978 5.8 | 4|5 5.006 0.7309 6.85",
+    th.join(" | "));
+  const drop = await text(page.locator(".pane-results table", { has: page.locator("caption", { hasText: "Tests of each term" }) })
+    .locator("tbody tr", { hasText: "temp" }));
+  expect("P-88 the likelihood ratio test of temp is clm's drop1 LRT, 26.93 on 1 df", /^temp 1 26\.93 /.test(drop), drop);
+  await openChecks();
+  const chip = page.locator(".pane-answer").getByRole("button", { name: "OK: Proportional odds not rejected" });
+  expect("P-88 acceptance: the Checks row has the proportional-odds check", await appears(chip));
+  await chip.click();
+  const pane = await text(page.locator(".pane-answer"));
+  expect("P-88 the check names each term's test (nominal_test: temp χ² 3.175, P 0.3654; contact 0.5667, P 0.904)",
+    /temp: χ² = 3\.175 on 3 df, P = 0\.3654; contact: χ² = 0\.5667 on 3 df, P = 0\.904/.test(pane), pane.slice(-500));
+  const methods = await text(page.locator(".methods-text p"));
+  expect("P-88 the methods text names the cumulative logit model and the odds ratios",
+    /was modeled by ordinal logistic regression \(cumulative logit, proportional odds; McCullagh 1980\)/.test(methods)
+      && /temp\[warm\]: odds ratio 12\.22 \(95% CI 4\.526 to 36\.42\)/.test(methods), methods.slice(0, 260));
+}
+
+// --- P-88: histology scores with the experiment as a block -------------------
+{
+  // engine/tests/reference/ordinal_regression.py (OrderedModel, profile CI
+  // by refitting with an offset): Drug vs Vehicle odds ratio 0.01825
+  // (95% CI 0.002086 to 0.1006), experiment as a block on 2 df
+  // (the score first: an import reads a leading text column as row titles)
+  const r = ref("ordinal_regression").histology;
+  await pastedTable("multivariable", "Histology", tsv(["Score", "Group", "Experiment"],
+    [r.data.score, r.data.group, r.data.experiment]));
+  await analyze(/^Ordinal regression/);
+  await liveResults(/Ordinal regression \(proportional odds\) of Score/);
+  const answer = await text(page.locator(".pane-answer .answer-items"));
+  expect("P-88 histology: the odds ratio of a higher score, Drug vs Vehicle, 0.01825 (0.002086 to 0.1006)",
+    answer === "Group: Drug vs. Vehicle Odds ratio of a higher score 0.01825 95% CI 0.002086 to 0.1006 "
+      + "P < 0.0001 · ordinal (proportional odds) regression, 36 rows", answer);
+  const block = await text(page.locator(".pane-results table", { has: page.locator("caption", { hasText: "Tests of each term" }) })
+    .locator("tbody tr", { hasText: "Experiment" }));
+  expect("P-88 the experiment enters as a block with its likelihood ratio test on 2 df", /^Experiment 2 /.test(block), block);
+}
+
+// --- P-88: Help me choose routes ordinal scores here -------------------------
+{
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: /^Help me choose/ }).click();
+  const dlg = page.getByRole("dialog", { name: "Help me choose a test" });
+  await dlg.waitFor();
+  await dlg.locator("fieldset", { hasText: "What did you measure?" }).getByLabel(/^Scores on an ordered scale/).check();
+  await dlg.locator("fieldset", { hasText: "How many groups or conditions?" }).getByLabel("Two", { exact: true }).check();
+  const test = await text(dlg.locator(".wt-test"));
+  expect("P-88 the wizard's ordinal-scores answer recommends ordinal regression",
+    test === "Ordinal regression (proportional odds), experiment as a block", test);
+  const alts = await text(dlg.locator(".wt-alts"));
+  expect("P-88 the Mann-Whitney test is the simpler alternative", /Mann-Whitney test/.test(alts), alts.slice(0, 200));
+  const open = dlg.getByRole("button", { name: "Open on “Histology”" });
+  expect("P-88 the wizard opens ordinal regression on the current multiple-variables table", await appears(open));
+  await page.keyboard.press("Escape");
 }
 
 // ------------------------------------------------------------------------

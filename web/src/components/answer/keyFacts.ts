@@ -100,7 +100,8 @@ function fitFigure(fit: FitResult, xUnit: string): KeyFigure | null {
   const fig: KeyFigure = {
     name: label,
     value: e.constrained ? `= ${formatSig(e.value)}` : formatSig(e.value),
-    ci: ci && ci !== "n/a" ? `95% CI ${ci}` : undefined,
+    ci: ci && ci !== "n/a"
+      ? `95% CI ${ci}${fit.ci_method === "bootstrap" ? " (bootstrap)" : ""}` : undefined,
     facts,
   };
   // The incomplete-curve report (sheets/xy/rangeFlags.tsx) decides what
@@ -271,11 +272,11 @@ function ancovaFacts(r: R): KeyFacts {
   })) };
 }
 
-/** Binomial and negative binomial regression (P-86) and Firth's logistic
- *  regression (P-89): the odds or rate ratio of the first predictor (each
- *  level against the reference level, or per unit), with its CI and P.
- *  The other predictors (a block such as the experiment) stay in the
- *  table. */
+/** Binomial and negative binomial regression (P-86), Firth's logistic
+ *  regression (P-89) and ordinal regression (P-88, no intercept row): the
+ *  odds or rate ratio of the first predictor (each level against the
+ *  reference level, or per unit), with its CI and P. The other predictors
+ *  (a block such as the experiment) stay in the table. */
 function glmFacts(r: R): KeyFacts {
   const pred = (r.predictors as string[] | undefined)?.[0];
   if (!pred || !Array.isArray(r.coefficients)) return null;
@@ -283,16 +284,18 @@ function glmFacts(r: R): KeyFacts {
   const ratio = r.analysis === "negative_binomial_regression" ? "rate_ratio" : "odds_ratio";
   const ref = (r.reference_levels as Record<string, string> | undefined)?.[pred];
   const pct = `${Number(((r.ci_level ?? 0.95) * 100).toPrecision(4))}%`;
+  const ordinal = r.analysis === "ordinal_regression";
   const model = firth ? "Firth's correction: shrunk toward no effect"
-    : `${r.analysis === "negative_binomial_regression" ? "negative binomial"
+    : `${r.analysis === "negative_binomial_regression" ? "negative binomial" : ordinal ? "ordinal (proportional odds)"
       : r.family === "quasibinomial" ? "quasi-binomial" : "binomial"} regression, ${r.n_rows_analyzed} rows`;
-  const items = (r.coefficients as R[]).slice(1).filter((c) => c.name === pred || c.name.startsWith(`${pred}[`))
+  const items = (r.coefficients as R[]).slice(ordinal ? 0 : 1).filter((c) => c.name === pred || c.name.startsWith(`${pred}[`))
     .map((c): KeyItem => {
       const level = c.name === pred ? null : c.name.slice(pred.length + 1, -1);
       const lims = c[`${ratio}_ci`] as (number | null)[] | undefined;
       return { title: level === null ? `${pred}, per unit` : `${pred}: ${level} vs. ${ref ?? "reference"}`,
         figure: {
-          name: ratio === "rate_ratio" ? "Rate ratio" : "Odds ratio", value: formatSig(c[ratio]),
+          name: ratio === "rate_ratio" ? "Rate ratio" : ordinal ? "Odds ratio of a higher score" : "Odds ratio",
+          value: formatSig(c[ratio]),
           ci: lims ? `${pct} CI ${lims[0] === null ? "n/a" : formatSig(lims[0])} to ${
             lims[1] === null ? "n/a" : formatSig(lims[1])}` : undefined,
           facts: [firth ? `${pLabel(c.p)} (penalized likelihood ratio)` : pLabel(c.p), model],
@@ -396,6 +399,7 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (r.analysis === "parametric_survival") return parametricFacts(r);
   if (r.analysis === "meta_analysis") return metaFacts(r);
   if (r.analysis === "binomial_regression" || r.analysis === "negative_binomial_regression"
+    || r.analysis === "ordinal_regression"
     || (r.analysis === "logistic_regression" && r.method === "firth")) return glmFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
   if (r.analysis === "ttest" && !r.test?.toString().match(/kolmogorov|ratio_paired/)) return ttestFacts(r);

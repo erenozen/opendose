@@ -254,6 +254,7 @@ test("regression models: one row per coefficient (not the intercept), ratio scal
     ["poisson_quasi", "quasi-Poisson regression", "Rate ratio", "rate_ratio"],
     ["negbin", "negative binomial regression", "Rate ratio", "rate_ratio"],
     ["binomial", "binomial regression", "Odds ratio", "odds_ratio"],
+    ["ordinal", "ordinal logistic regression (proportional odds)", "Odds ratio", "odds_ratio"],
   ];
   for (const [k, test, est, field] of cases) {
     const r = FX[k].result;

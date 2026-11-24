@@ -5541,6 +5541,251 @@ from scipy's noncentral F: lambda = f^2 N m / (1 - rho) = 25.5157,
 critical F(2, 174) = 3.047906, power 0.996553; the nested design effect
 1 + (10 - 1) x 0.3 = 3.7 and 63.77 x 3.7 / 10 = 23.59 animals by hand.
 
+## Feature validation: ordinal (proportional-odds) regression (2026-11-24)
+
+### P-88 Ordinal (proportional-odds) regression
+
+`ordinal.ordinal_regression` (api `ordinal_regression`, Analyze ›
+Ordinal regression on a multiple-variables table) fits the cumulative
+logit model logit P(Y <= j) = theta_j - x'beta (McCullagh 1980) with the
+parameterisation of R's `ordinal::clm`, by Newton-Raphson on the analytic
+gradient and observed Hessian with step halving. SEs from the inverse
+observed Hessian, profile-likelihood CIs (Wald optional), likelihood
+ratio tests of each term (clm's drop1) and of the model against the
+thresholds-only model, and the proportional-odds check: each term against
+a separate effect at every cut point (partial proportional odds, Peterson
+& Harrell 1990; clm's nominal_test). Separation (a direction in which the
+likelihood rises without bound, found by a linear program), a declared
+level with no rows, text levels without an order, one level and more
+parameters than rows are refused with a sentence.
+
+R is not installed. References: statsmodels `OrderedModel(distr="logit")`
+(thresholds converted from its increments, their SEs by the delta method),
+profile CIs by refitting OrderedModel with the coefficient as an offset
+and brentq, and the partial proportional-odds model as its own
+log-likelihood maximised with scipy.optimize (BFGS then Nelder-Mead), all
+in `engine/tests/reference/ordinal_regression.py`; and the fit `clm`
+prints in the ordinal package's vignette (Christensen, "Cumulative link
+models for ordinal regression with the R package ordinal", sections 4.1
+and 4.2) on the wine data of Randall (1989; `engine/tests/fixtures/wine.csv`,
+the Rdatasets copy of `ordinal::wine`). `engine/tests/test_ordinal_regression.py`:
+
+| Input | Reference | Engine |
+|---|---|---|
+| wine, rating ~ temp + contact (the plan's acceptance test) | clm: tempwarm 2.5031 (SE 0.5287), contactyes 1.5278 (SE 0.4766); thresholds -1.3444, 1.2508, 3.4669, 5.0064 (SEs 0.5171, 0.4379, 0.5978, 0.7309); logLik -86.492, AIC 184.98 | the same to every printed digit; OrderedModel to 1e-7 (estimates) and 1e-5 (SEs) |
+| the same, profile CIs | clm confint: 1.5097627 to 3.595225, 0.6157925 to 2.492404 (spline-interpolated profile); OrderedModel refits: 1.5097483 to 3.5951882 | 1.5097483 to 3.5951882 (to 1e-7 of the refits; to 5e-5 of clm) |
+| the same, drop1 and nominal_test | LRT 26.928 and 11.043; nominal logLik -84.904 (temp, LRT 3.1750, P 0.3654) and -86.209 (contact, LRT 0.5667, P 0.9040) | 26.928, 11.043; -84.904 (3.1750, 0.3654), -86.209 (0.5667, 0.9040); the scipy partial-odds fit to 1e-6 |
+| wine with judge as a block (9 levels) | OrderedModel: tempwarm 3.3202 (SE 0.6133), logLik -70.921 | the same (estimates to 1e-6) |
+| histology example: scores 0 to 4, Vehicle and Drug, 3 experiments x 6 animals | OrderedModel: Drug -4.0036 (SE 0.9624), profile CI -6.1725 to -2.2970 | odds ratio 0.01825 (95% CI 0.002086 to 0.1006) |
+| two levels (wine rating >= 3) | statsmodels Logit: temp 2.1461 (SE 0.6071), intercept -1.0731 | the same; theta = -intercept; profile CIs equal the engine's logistic regression |
+
+Also tested: row order; a continuous predictor scaled by 1e-12, 1e3 and
+1e12 (the slope scales, the P value and log-likelihood do not move);
+scores relabelled (1 to 5 as 10 to 50) give the same fit and reversed
+scores flip every sign; text levels with their order equal the numeric
+fit; Wald intervals; missing values drop the row and are listed;
+skipped scores (no row scored 4) are named in a note; one level, an
+empty declared level, text levels without an order, n = 0, one group,
+too few rows, complete and quasi-complete separation are refusals with a
+sentence, never a NaN; a group spread to both ends of the scale is
+flagged by the proportional-odds check (P < 0.001).
+
+Web: `src/sheets/multivariable/__tests__/ordinal.test.ts` (defaults with
+the block last, the payload refusing text levels without an order, the
+proportional-odds chip, the answer headline, the meaning sentence, the
+statistics table rows), `guide/__tests__/recommend.test.ts` and
+`planning.test.ts` (the wizard's "Scores on an ordered scale" answer:
+ordinal regression for independent groups with the Mann-Whitney or
+Kruskal-Wallis test as the alternative, the rank tests for paired scores
+and one group). e2e-models reads the wine acceptance values (2.503,
+0.5287, 1.528, 0.4766, the four thresholds, drop1 26.93, the
+proportional-odds check P 0.3654 and 0.904), the histology odds ratio
+0.01825 (0.002086 to 0.1006) with the experiment block, and the wizard
+route; ui-stage scenes results-ordinal and results-ordinal-table.
+
+## Feature validation: uncertainty carried through Remove baseline and Normalize (2026-11-24)
+
+### P-98 Error propagation through baseline and normalize
+
+`propagate.remove_baseline` and `propagate.normalize` (api options
+`propagate`, plus `value_sd` and `value_n` for a typed baseline) carry the
+error of an estimated baseline or of the 0% and 100% references to every
+derived row by first-order propagation (the delta method; GUM, JCGM
+100:2008, section 5.1) over the individual replicate values, each with
+its own row's sample variance (the baseline pool's for a baseline from
+rows of the same column). Working on the replicates keeps the
+correlations exact: a reference row normalized against itself is exactly
+0% (or 100%) with SEM 0, a baseline row minus its own mean keeps only the
+scatter about that mean. Each derived row reports n, the derived row
+mean, the propagated SD of one derived value, the SEM of the derived
+mean, and the SEM from the baseline (or references) alone. The derived
+table itself is unchanged. The results, the Checks row ("Propagated SDs
+are not replicates"), the methods text and the derived table's note say
+the values share the baseline's error and point to analysing the raw
+values with the control (blank) as a block (Curtis et al. 2018, Br J
+Pharmacol 175:987).
+
+Not propagated, each with a note: a baseline matched replicate by
+replicate (the differences are already independent), a baseline smoothed
+by linear regression, Normalize of each subcolumn separately, a
+baseline or reference row with one value (unknown, never 0). A smallest
+or largest row picked as a reference gets a note that the selection
+biases it outward.
+
+R (propagate) is not installed. References in
+`engine/tests/reference/propagation.py`: Python `uncertainties` 3.2.3
+(installed for the reference script only, outside the project's .venv),
+one independent variable per replicate so the correlations are tracked;
+a Monte Carlo of 100000 draws; and the hand derivation of the acceptance
+test. `engine/tests/test_propagation.py`:
+
+| Input | Reference | Engine |
+|---|---|---|
+| Sample A 0.412, 0.398, 0.405 less a blank mean 0.0513 (SD 0.0035, n = 3) (the plan's acceptance test) | hand: SD sqrt(0.007^2 + 0.0035^2 / 3) = 0.007286, SEM sqrt(0.007^2 / 3 + 0.0035^2 / 3) = 0.004518; uncertainties the same; Monte Carlo 0.007290 and 0.004505 | 0.3537, SD 0.007286, SEM 0.004518, from the blank 0.002021 (to 1e-9) |
+| the same three samples over the blank (divide) and as percent difference | uncertainties: Sample A 7.895 (SD 0.3396, SEM 0.3208) and 689.5% (SD 33.96) | the same to 1e-9 |
+| the samples less a blank data set of three wells per row | uncertainties: Sample A SD 0.007288, SEM 0.004522 | the same to 1e-9 |
+| a dose series less its first row (same column) | uncertainties: row 1 0 (SEM 0, SD 0.2449), row 2 3.167 (SD 0.6272, SEM 0.3887) | the same; the first row's SEM exactly 0, also when divided |
+| the dose series normalized first row to last | uncertainties: row "1" 5.364% (SD 1.064, SEM 0.6607), the reference rows 0% and 100% with SEM 0; Monte Carlo within 3% | the same to 1e-9 |
+| normalized to 0 and the sum of the row means | uncertainties: row 1 1.523% (SD 0.2180, SEM 0.1263) | the same to 1e-9 |
+
+Also tested: units scaled by 1e-12 and 1e12 scale the SDs and SEMs, the
+order of the replicates does not matter, a typed baseline without SD and
+n is exact (only the samples' own SD), one value per row gives only the
+baseline's share, a one-well blank row gives no SD (never 0), a negative
+SD is refused with a sentence; propagate off leaves the output unchanged.
+
+Web: `src/sheets/manipulate/__tests__/propagation.test.ts` (the typed
+baseline's SD and n, the rows as shown, the banner, the derived table's
+note). e2e-results switches the propagation on for the acceptance data
+and reads "OD “Sample A” 3 0.3537 0.007286 0.004518 0.002021", the Checks
+row note pointing to the blocked analysis and the methods sentence, then
+the normalized dose series (row "1" 5.364, SD 1.064, SEM 0.6607; reference
+rows SEM 0); ui-stage scenes results-propagation and
+results-propagation-note.
+
+Independent check (2026-11-24, by the lead, by hand): Sample A
+(0.412, 0.398, 0.405; mean 0.405, SD 0.007) minus a blank of 0.0513
+(SD 0.0035, n 3) is 0.3537, SD of one value sqrt(0.007^2 + 0.0035^2/3)
+= 0.007286, SEM sqrt(0.007^2/3 + 0.0035^2/3) = 0.004518 of which the
+blank's 0.0035/sqrt(3) = 0.002021. The ordinal coefficients are pinned
+to the values clm prints in the ordinal package's article (above).
+
+## Feature validation: bootstrap CIs, covariance and joint regions of fitted parameters (2026-11-24)
+
+### P-101 Bootstrap CIs for fitted parameters
+
+Choosing "Bootstrap percentile" as a curve fit's CI method refits B
+resamples of each data set (case or residual resampling, 200 to 10,000,
+seeded) and reports the percentile CI of every free parameter and of the
+derived values (IC50, the model's transforms such as ECx, Span, the
+absolute IC50). Engine: `engine/opendose/fitboot.py` (Efron & Tibshirani
+1993, An Introduction to the Bootstrap, sections 9.4 and 9.5 and chapter
+13; Davison & Hinkley 1997, chapters 6 and 7). Each resample is refitted
+with the same model, weighting, constants and range constraints from the
+original estimates; residuals are mean-centred and inflated by
+sqrt(n/(n - p)) (nlstools::nlsBoot only centres them). The worker runs the
+refits 20 at a time, reports the progress after each chunk and stops
+between chunks when cancelled (`opendose.api.StepJob`,
+`web/src/lib/engine.worker.ts`). R's nlstools::nlsBoot and boot::boot
+are not installed: the oracle is a bootstrap written out in
+`engine/tests/reference/fit_bootstrap.py` with scipy curve_fit on a
+hand-written 4PL and the same documented seed stream
+(numpy default_rng(seed).integers(0, n, (B, n))), tested in
+`engine/tests/test_fit_bootstrap.py`.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| the example 4PL (9 doses x 3), case resampling, 2,000 resamples, seed 1 (acceptance) | the reference bootstrap on the same resamples: Top 98.39 to 101.4, Bottom -0.07282 to 2.140, LogIC50 -7.012 to -6.947, HillSlope -1.193 to -1.020, IC50 9.734e-8 to 1.129e-7 M, Span 96.77 to 101.1; 2,000 of 2,000 refitted | 2e-5 of each CI's width (the 4 digits shown); bootstrap SE 1e-4 |
+| the same, residual resampling | LogIC50 -7.011 to -6.954, HillSlope -1.186 to -1.034 | as above |
+| Monte Carlo error | the reference with seeds 2 to 21: SD of each CI limit over seeds (LogIC50: 0.0006 and 0.0017 for case resampling) | the seed-1 limits within 4 SD of the mean over seeds |
+| coverage: 200 data sets simulated by simulate_xy (4PL Top 100, Bottom 0, LogIC50 -7, HillSlope -1, Gaussian SD 5, the example's design), B = 400 | share of 95% CIs holding the true value: case LogIC50 91.0%, HillSlope 93.5%; residual 92.0%, 94.5% (binomial SE 1.5%); asymptotic CIs 93.5%, 96.0% | within 3 binomial SE of 95%; a 40-data-set rerun in the test holds the true LogIC50 in at least 33 |
+
+Percentile intervals run a little narrow at n = 27 with 4 parameters (the
+coverage above), as known for percentile intervals in small samples
+(Efron & Tibshirani 1993, chapters 13 and 14); BCa is not implemented.
+
+Also tested: the same seed gives identical CIs and another seed different
+ones; the stepped run (progress after every 20 refits, over every data
+set) returns exactly the plain run's result; parameters held constant
+get no bootstrap CI and Span with Top and Bottom held has none; a range
+constraint (Bottom >= 0.5) holds in every resample; 1/Y^2 and 1/X^2
+weighting with both methods; the absolute IC50 and the ECanything
+model's ECF are bootstrapped; Y x 1000 scales the Top CI by 1000 and
+leaves LogIC50's unchanged; doses in nM shift the LogIC50 CI by exactly
+9 and scale the IC50 CI by 1e9; out-of-range settings are refused with
+what to enter (200 to 10,000 resamples, a whole-number seed); mean / SD
+/ n data, ROUT and robust fits keep their asymptotic CIs and say why; an
+ambiguous fit is not bootstrapped; 5 points for 4 parameters withholds
+the CIs or counts the refits that failed; a user-defined equation
+reproduces the built-in model's CIs. Web: options, notes, the details
+fold, CI method words (`bootstrap.test.ts`); progress and a stop between
+steps without retiring the worker (`engineWorker.test.ts`). e2e
+(`e2e-results.mjs`): the acceptance test (a progress bar, then the CIs
+above in the table and "(bootstrap)" in the headline), the asymptotic
+CI kept in the details fold, Cancel during 10,000 resamples, the same
+CIs again after it, and no worker restart.
+
+### P-102 Parameter covariance and joint confidence region
+
+Every least-squares curve fit now returns the covariance its standard
+errors come from, s^2 (J'J)^-1 of the free parameters, and its
+correlations (cov2cor); the results show both in a fold under the
+parameters. "Plot the region" traces the joint 95% confidence region of
+two parameters by profile likelihood (Bates & Watts 1988, chapters 2 and
+6; the others refitted at every point, S~(a, b) <= S_min [1 + 2/(n - p)
+F(2, n - p)]) on its own graph, next to the linear approximation's
+ellipse. Engine: `engine/opendose/fitregion.py` (72 rays from the
+estimate through the ellipse, the crossing bracketed and found by
+Brent's method; a ray that does not cross within 12 ellipse radii leaves
+the region open). R (vcov, cov2cor, nlstools::nlsContourRSS) is not
+installed: the oracles are in `engine/tests/reference/fit_region.py`,
+tested in `engine/tests/test_fit_region.py`. nlsContourRSS, the plan's
+reference, draws Beale's region with the other parameters fixed at their
+estimates (a slice of the 4-dimensional region), not this profile region.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| the example 4PL: covariance and correlation (acceptance: the folded table) | scipy curve_fit pcov with the 4PL's analytic Jacobian; cov2cor by hand: corr(HillSlope, Top) 0.6008, (HillSlope, Bottom) -0.6060, (HillSlope, LogIC50) 0.009504, (Bottom, Top) -0.2684; var(LogIC50) 2.165e-4 | 2e-6 relative (matrix), 1e-7 (correlation); each SE equals the square root of the diagonal bit for bit |
+| the joint region of LogIC50 and HillSlope (acceptance: the region plot) | the exact profile sum of squares (Top and Bottom by linear least squares, no optimiser) along the same 72 rays by brentq: LogIC50 -7.021 to -6.944, HillSlope -1.212 to -1.005; F(0.95; 2, 23) = 3.4221 (printed tables); threshold 77.3117 | 1e-4 of the region's width per point |
+| the same region on a 600 x 600 grid of exact profile sums of squares | the area inside the threshold, 0.012470 | the engine polygon's area within 1% |
+| Michaelis-Menten on R's Puromycin (treated), Vmax and Km (no other parameter: Beale's region) | the region on a 700 x 700 grid of direct sums of squares: area 1.0256, Vmax 193.16 to 234.27, Km 0.04279 to 0.09352; F(0.95; 2, 10) = 4.1028 | area within 1%, extremes within 2 grid cells |
+
+Also tested: parameters held constant are left out of the matrix (3PL,
+Bottom = 0); a robust fit has none; a singular matrix gives n/a
+correlations; the region reaches past each parameter's own 95% CI; the
+bootstrap and the region in one stepped job report both kinds of
+progress; a pair with one parameter twice, an unknown parameter, a
+constant, one name only, ROUT and robust fits are refused with a
+sentence and cost the fit nothing; Michaelis-Menten measured only far
+below Km gives an open region, reported open with the line broken where
+rays do not close; a range constraint (Bottom >= 0.5) cuts the region at
+the limit; 1/Y^2 weighting works, and mean / SD / n gives exactly the
+region of the replicates; doses in nM shift the LogIC50 side of the
+region by exactly 9. Web: the option, the pair offered first, the
+matrices as table rows, the region view and its sentence
+(`fitRegion.test.ts`). e2e (`e2e-results.mjs`): the correlation matrix
+and the covariance row of LogIC50 in the fold, "Plot the region" making
+a graph with the region (73 points, the extremes above), the ellipse and
+the best fit on axes titled LogIC50 and HillSlope, the card's F(2, 23) =
+3.422, and one undo removing graph and option.
+
+Independent check values (for the lead): the example ("Dose response",
+`/?example=1`), curve fit with Confidence intervals "Bootstrap
+percentile" (Advanced fold), case resampling, 2,000 resamples, seed 1:
+LogIC50 95% CI -7.012 to -6.947, IC50 9.734e-8 to 1.129e-7 M (results
+table, CI column headed "bootstrap percentile"); "Parameter correlation
+and covariance" fold under the same table: corr(HillSlope, Top) 0.6008;
+"Joint confidence region" card, Plot the region (LogIC50, HillSlope):
+the graph's solid line spans LogIC50 -7.021 to -6.944, HillSlope -1.212
+to -1.005.
+
+Independent check (2026-11-24, by the lead): an own scipy curve_fit of the
+example's 27 points (4PL in log10 dose) gives the parameter correlations
+corr(HillSlope, Top) 0.600758, corr(HillSlope, Bottom) -0.605989,
+corr(HillSlope, LogIC50) 0.009506, the engine's 0.6008, -0.6060, 0.009504.
+The coverage caveat of the percentile intervals (91% to 94.5% in the
+simulation above) is shown next to the bootstrap CIs in the app.
+
 ## Feature validation: zero-dose plateaus, stars at each time point, log-rank brackets (2026-11-24)
 
 ### P-104 X-axis break and per-curve zero-dose plateaus

@@ -37,9 +37,17 @@
 }
 
 /* Initial values and the fit report under a fit (FitStarts.tsx). */
-.fit-starts { margin-block: var(--space-12); }
-.fit-starts > table, .fit-starts > p { margin-top: var(--space-8); }
+.fit-starts, .fit-fold { margin-block: var(--space-12); }
+:is(.fit-starts, .fit-fold) > table, :is(.fit-starts, .fit-fold) > p { margin-top: var(--space-8); }
 .fit-report-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-8); }
+
+/* The parameter correlation (Covariance.tsx) and the joint region card
+   (RegionCard.tsx). */
+.fit-matrix-scroll { overflow-x: auto; max-width: 100%; margin-top: var(--space-8); }
+.fit-matrix td, .fit-matrix th[scope="col"] { text-align: right; font-variant-numeric: tabular-nums; }
+.fit-matrix th[scope="row"] { white-space: nowrap; }
+.region-pick { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); align-items: flex-end; }
+.region-pick .ui-field { min-width: 12ch; }
 
 /* Schild plot results (SchildCard.tsx): the linked table and graph actions. */
 .schild-actions { display: flex; flex-wrap: wrap; gap: var(--space-8); align-items: center; margin-top: var(--space-8); }

@@ -1,7 +1,7 @@
 import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import LearnMore from "../guide/LearnMore";
 import type {
-  CIMethod, ConstraintState, ErrorBarKind, OptionsState,
+  BootstrapState, ConstraintState, ErrorBarKind, FitCIMethod, OptionsState,
   WeightingKind,
 } from "../types";
 import { DEFAULT_WEIGHT_K, ERROR_BAR_LABELS, WEIGHTING_LABELS, weightK } from "../types";
@@ -17,6 +17,9 @@ import {
   constraintKind, constraintState, numberInTitle, rangeProblems, routeFor, startParams,
   withConstraint, type ConstraintKind,
 } from "../sheets/xy/fitOptions";
+import {
+  bootstrapState, MAX_RESAMPLES, MAX_SEED, MIN_RESAMPLES, RESAMPLING_LABELS,
+} from "../sheets/xy/bootstrap";
 import EquationEditor from "./EquationEditor";
 import ModelPicker from "./ModelPicker";
 import { Field, Input, NumberField } from "./ui";
@@ -111,6 +114,45 @@ function ConstraintRow({ label, state, onChange, ranges }: {
 
 /** Parameters of a user equation, from its rules (every parameter gets a
  *  rule when the editor applies it). */
+/** Bootstrap settings (P-101): how to resample, how many times, and the
+ *  seed that makes the intervals reproducible. */
+function BootstrapFields({ state, onChange, summaryData }: {
+  state: BootstrapState;
+  onChange: (s: BootstrapState) => void;
+  summaryData?: boolean;
+}) {
+  const name = useId();
+  const set = (patch: Partial<BootstrapState>) => onChange({ ...state, ...patch });
+  return (
+    <div className="bootstrap-fields">
+      <fieldset className="field-radios">
+        <legend>Resampling</legend>
+        {(Object.keys(RESAMPLING_LABELS) as BootstrapState["method"][]).map((m) => (
+          <label key={m}>
+            <input type="radio" name={name} checked={state.method === m}
+              onChange={() => set({ method: m })} />
+            <span>{RESAMPLING_LABELS[m]}</span>
+          </label>
+        ))}
+      </fieldset>
+      <div className="field-row">
+        <NumberField label="Resamples" fieldClassName="field-num" integer min={MIN_RESAMPLES}
+          max={MAX_RESAMPLES} value={state.resamples} onValueChange={(resamples) => set({ resamples })} />
+        <NumberField label="Random seed" fieldClassName="field-num" integer min={0} max={MAX_SEED}
+          value={state.seed} onValueChange={(seed) => set({ seed })} />
+      </div>
+      <p className="hint-block">
+        Each resample is refitted with the same model, weighting and constraints; the CI is the
+        middle 95% of the refitted values (Efron &amp; Tibshirani 1993, ch. 13). Resampling the
+        points suits replicates at each X; resampling the residuals keeps the X values and assumes
+        the same scatter everywhere (after weighting). The same seed gives the same CIs.
+        {summaryData ? " Bootstrap CIs need the individual values, not means with errors." : ""}
+        {" "}Curves fitted one at a time only.
+      </p>
+    </div>
+  );
+}
+
 function userParams(def: UserEquationDef | null | undefined): string[] {
   return def ? Object.keys(def.rules) : [];
 }
@@ -390,11 +432,16 @@ export default function ControlsPanel({
         <label className="check-row">
           <span>Confidence intervals</span>
           <select value={options.ciMethod}
-            onChange={(e) => set({ ciMethod: e.target.value as CIMethod })}>
+            onChange={(e) => set({ ciMethod: e.target.value as FitCIMethod })}>
             <option value="asymptotic">Asymptotic (approximate)</option>
             <option value="profile">Profile likelihood (asymmetrical, slower)</option>
+            <option value="bootstrap">Bootstrap percentile (seconds of refits)</option>
           </select>
         </label>
+        {options.ciMethod === "bootstrap" && (
+          <BootstrapFields state={bootstrapState(options)} summaryData={summaryData}
+            onChange={(bootstrap) => set({ bootstrap })} />
+        )}
         <label className="check-row">
           <input type="checkbox" checked={options.routEnabled}
             onChange={(e) => set({ routEnabled: e.target.checked })} />

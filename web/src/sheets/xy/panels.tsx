@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useProject } from "../../app/context";
+import { RegionCard } from "./RegionCard";
 import ControlsPanel from "../../components/ControlsPanel";
 import MethodsText from "../../components/MethodsText";
 import PlateImportPanel from "../../components/PlateImportPanel";
@@ -160,6 +161,7 @@ export function NonlinResults({ sheet, table, result, options }:
       <FitSummaryCard sheet={sheet} result={result} xUnit={concentrationUnit(table) || "M"} />
       <InterpolationCard result={result} table={table} xUnit={concentrationUnit(table) || "M"} />
       <ResultsPanel result={result} xUnit={concentrationUnit(table) || "M"} options={options} />
+      <RegionCard sheet={sheet} result={result} options={options} />
       <ExperimentsResults sheet={sheet} result={result} xUnit={concentrationUnit(table) || "M"} />
       <SchildResults sheet={sheet} result={result} />
       {result && !(result as { error?: unknown }).error && (

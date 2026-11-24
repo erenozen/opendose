@@ -30,6 +30,17 @@ export const WEIGHTING_LABELS: Record<WeightingKind, string> = {
 };
 
 export type CIMethod = "asymptotic" | "profile";
+/** A fit's CI method: the preference's two, or bootstrap percentile
+ *  intervals (P-101; a fit's own choice, never the default). */
+export type FitCIMethod = CIMethod | "bootstrap";
+
+/** Bootstrap settings of a fit (P-101), as typed. Absent (files saved
+ *  before) = case resampling, 2,000 resamples, seed 1. */
+export interface BootstrapState {
+  method: "case" | "residual";
+  resamples: string;
+  seed: string;
+}
 
 export type ErrorBarKind = "sd" | "sem" | "ci95" | "range" | "none";
 
@@ -74,7 +85,12 @@ export interface OptionsState {
   hillSlope: ConstraintState;
   normalize: NormalizeState;
   weighting: WeightingKind;
-  ciMethod: CIMethod;
+  ciMethod: FitCIMethod;
+  /** ciMethod "bootstrap": its settings (sheets/xy/bootstrap.ts). */
+  bootstrap?: BootstrapState;
+  /** The two parameters whose joint confidence region the fit traces
+   *  (P-102, sheets/xy/fitRegion.ts); absent = none. */
+  jointRegion?: [string, string];
   /** "robust": robust nonlinear regression, best-fit values only (no SE,
    *  CI or bands). Absent = least squares. */
   fitMethod?: "least_squares" | "robust";
@@ -196,7 +212,19 @@ export interface FitResult {
   } | null;
   /** As the engine reports it: a WeightingKind or "1/Y^K" ("1/Y^1.5"). */
   weighting?: string;
-  ci_method?: CIMethod;
+  ci_method?: FitCIMethod;
+  /** Bootstrap CIs (P-101, engine fitboot): how they were made, each
+   *  value's bootstrap SE, bias and asymptotic CI, or why there are none. */
+  bootstrap?: BootstrapResult;
+  /** The asymptotic covariance of the free parameters and its
+   *  correlations (P-102, engine fitregion.covariance_block). */
+  covariance?: {
+    params: string[];
+    matrix: (number | null)[][];
+    correlation: (number | null)[][];
+  } | null;
+  /** The joint confidence region of two parameters (P-102). */
+  joint_region?: JointRegionResult;
   /** "robust": best-fit values only (engine nlfit.robust_model_fit). */
   fit_method?: "least_squares" | "robust";
   note?: string;
@@ -228,6 +256,47 @@ export interface FitResult {
   /** With a curve range set (P-52): the X range of the points fitted
    *  (beyond it the curve is drawn dashed) and the range drawn. */
   curve: { x: number[]; y: (number | null)[]; data_range?: [number, number]; x_range?: [number, number] };
+}
+
+export interface BootstrapResult {
+  error?: string;
+  method?: "case" | "residual";
+  resamples?: number;
+  seed?: number;
+  ci_level?: number;
+  interval?: "percentile";
+  converged?: number;
+  failed?: number;
+  params?: Record<string, {
+    value: number;
+    ci95: [number, number] | null;
+    se: number | null;
+    bias: number | null;
+    median?: number;
+    asymptotic_ci95?: [number, number] | null;
+    /** Resamples in which the value is not defined (no CI then). */
+    undefined?: number;
+  }>;
+  warnings?: string[];
+}
+
+/** Engine fitregion.JointRegion: the profile-likelihood region's
+ *  boundary (null where a ray leaves it open) and the linear
+ *  approximation's ellipse, or why there is none. */
+export interface JointRegionResult {
+  params: string[];
+  error?: string;
+  level?: number;
+  df?: [number, number];
+  f_crit?: number;
+  ss_min?: number;
+  threshold?: number;
+  estimate?: [number, number];
+  contour?: { x: (number | null)[]; y: (number | null)[] };
+  ellipse?: { x: number[]; y: number[] };
+  open?: boolean;
+  rays?: number;
+  refits?: number;
 }
 
 export interface ErrorBar {

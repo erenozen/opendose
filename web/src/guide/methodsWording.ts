@@ -106,6 +106,9 @@ export const METHODS: Record<string, (p?: MethodsParams) => string> = {
   ancova: () => "Analysis of covariance (ANCOVA) was chosen because each subject was measured before "
     + "treatment and after it in two or more groups; the follow-up was compared between groups with the "
     + "baseline as a covariate (Vickers & Altman 2001).",
+  ordinal_regression: () => "Ordinal (proportional-odds) logistic regression was chosen because the outcome "
+    + "was a score on an ordered scale, whose categories are ordered but not equally spaced; the experiment "
+    + "entered as a block and the proportional-odds assumption was checked (McCullagh 1980).",
   binomial_glm: () => "Binomial regression (a logistic GLM) of the number positive out of the number "
     + "counted in each dish was chosen because the counts came from several dishes or animals per group; "
     + "the experiment entered as a block and overdispersion was checked (Warton & Hui 2011).",
@@ -180,6 +183,10 @@ export const ALTERNATIVE_METHODS: Record<string, string> = {
     + "adjusted for covariates, or for a continuous predictor instead of groups.",
   "Two-way ANOVA": "Ordinary two-way ANOVA was chosen; the values were taken to be roughly "
     + "Gaussian (or Gaussian after a log transform).",
+  // the rank tests offered for ordinal scores (P-88)
+  "Mann-Whitney test": "The Mann-Whitney test was chosen to compare the two groups by ranks.",
+  "Kruskal-Wallis test": "The Kruskal-Wallis test, followed by Dunn's multiple comparisons, was chosen to "
+    + "compare the groups by ranks.",
 };
 
 /** The methods wording of an alternative the chooser opens. */
@@ -236,6 +243,7 @@ const LEGACY: Legacy[] = [
   [/^Three or more independent groups with roughly Gaussian values: /, m0("one_way_anova")],
   [/^The counts were pooled from several animals, cultures or experiments\. /, m0("proportion_per_unit")],
   [/^The counts come from several dishes, wells or animals per group /, m0("binomial_glm")],
+  [/^Scores such as a histology grade or a clinical EAE score are ordered categories/, m0("ordinal_regression")],
   [/^One group with two outcomes compared with an expected proportion: /, m0("binomial")],
   [/^Counts in three or more categories compared with expected proportions /, m0("chisq_gof")],
   [/^Each subject was classified twice /, m0("mcnemar")],

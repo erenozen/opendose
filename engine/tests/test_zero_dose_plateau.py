@@ -177,6 +177,21 @@ def test_order_of_data_sets_does_not_matter():
             b[name]["fit"]["params"]["LogIC50"]["value"], rel=1e-12)
 
 
+def test_bootstrap_refits_hold_each_curves_own_plateau():
+    """The bootstrap refits (P-101) keep the curve's held Top: no CI for it,
+    and the other parameters' CIs bracket the held fit's values."""
+    r = _by_name(_run(zero_dose_plateau={"param": "Top"}, ci_method="bootstrap",
+                      bootstrap={"method": "case", "resamples": 200, "seed": 1}))
+    for name, ref in REF["fits"].items():
+        fit = r[name]["fit"]
+        assert fit["params"]["Top"]["value"] == pytest.approx(ref["Top"]["value"], rel=1e-12)
+        boot = fit["bootstrap"]
+        assert not boot.get("error"), boot
+        assert "Top" not in boot["params"] or boot["params"]["Top"].get("ci95") is None
+        lo, hi = boot["params"]["LogIC50"]["ci95"]
+        assert lo < ref["LogIC50"]["value"] < hi
+
+
 def test_bad_parameter_is_a_clear_error():
     r = _run(zero_dose_plateau={"param": "LogIC50"})
     assert "Top or Bottom" in r["error"]

@@ -60,6 +60,9 @@ test("the planned table reuses Describe the experiment's table choice", () => {
   assert.equal(recommendTable(tableAnswers(d({ replicates: "cells" }))).type, "nested");
   assert.equal(recommendTable(tableAnswers(d({ differential: true }))).type, "grouped");
   assert.equal(recommendTable(tableAnswers(d({ outcome: "survival" }))).type, "survival");
+  // P-88: scores in independent groups go to a multiple-variables table (ordinal regression)
+  assert.equal(recommendTable(tableAnswers(d({ outcome: "scores" }))).type, "multivariable");
+  assert.equal(recommendTable(tableAnswers(d({ outcome: "scores", paired: true }))).type, "column");
   assert.deepEqual(defaultGroupNames(d({ differential: true })), { rows: ["Vehicle", "Drug"], datasets: ["WT", "KO"] });
   assert.deepEqual(defaultGroupNames(d({ groups: "three_plus" })).datasets, ["Control", "Drug A", "Drug B"]);
   const col = plannedLayout("column", d({}), "Control, Treated", "", 8);
