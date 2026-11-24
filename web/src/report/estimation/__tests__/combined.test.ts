@@ -10,6 +10,7 @@ import {
 import { combinedLegend, combinedMethods, combinedRow } from "../combined.ts";
 import { estimationFigure } from "../figure.ts";
 import { whatIsPlotted } from "../../legend.ts";
+import { legendFor } from "../../legendFor.ts";
 import { tableP } from "../../pformat.ts";
 import { CHROME_LIGHT } from "../../../lib/palette.ts";
 import type { DataTableModel } from "../../../project/types.ts";
@@ -31,7 +32,7 @@ test("normalize keeps the combined effect, defaulting to none", () => {
 
 test("payloads: grouped tables send the combined effect; column tables only for independent pairs", () => {
   const g = groupedEstimationPayload(repeats, { ...DEFAULT_ESTIMATION, combine: "mini_meta" });
-  assert.equal(g.options.combine, "mini_meta");
+  assert.equal((g.options as Record<string, unknown>).combine, "mini_meta");
   assert.deepEqual(g.options.pairs, [[0, 1], [2, 3], [4, 5]]);
   assert.equal(g.data.datasets[0].name, "Repeat 1: Control");
   const col = { ...repeats, type: "column", rowTitles: [""], x: [""] } as unknown as DataTableModel;
@@ -39,7 +40,7 @@ test("payloads: grouped tables send the combined effect; column tables only for 
   assert.equal("combine" in shared.options, false);
   const multi = columnEstimationPayload(col, { ...DEFAULT_ESTIMATION, design: "multi_two_group",
     combine: "delta_delta" });
-  assert.equal(multi.options.combine, "delta_delta");
+  assert.equal((multi.options as Record<string, unknown>).combine, "delta_delta");
   assert.equal(canCombine("grouped", DEFAULT_ESTIMATION), true);
   assert.equal(canCombine("column", DEFAULT_ESTIMATION), false);
 });
@@ -89,4 +90,12 @@ test("the plot adds the weighted delta column with its CI on the difference axis
 test("the legend names the rightmost column", () => {
   const text = whatIsPlotted("estimation", { estimation: MM });
   assert.match(text ?? "", /The rightmost column is the weighted mean difference of the independent repeats/);
+});
+
+test("the grouped estimation graph's legend is the estimation clause, not a bar legend", () => {
+  const text = legendFor({ data: PROJECT.sheets[0], table: repeats, graph: PROJECT.sheets[2], result: MM,
+    options: { combine: "mini_meta" }, prefs: { pStyle: "gp", hideNs: false } as never, software: "OpenDose" });
+  assert.match(text, /^Upper panel: individual values/);
+  assert.match(text, /The rightmost column is the weighted mean difference/);
+  assert.doesNotMatch(text, /Mean ± SD \(bars\)/);
 });

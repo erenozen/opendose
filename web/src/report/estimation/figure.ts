@@ -276,7 +276,8 @@ export function estimationFigure(inp: FigureInput): Figure {
         range: [lo, hi], domain: [0.44, 1] },
       yaxis2: { ...axisBase, range: [eLo - ePad, eHi + ePad], domain: [0, 0.36], anchor: "x",
         title: { text: effLabel, font: { color: chrome.inkSecondary } } },
-      margin: { l: 70, r: 16, t: 14, b: 86 },
+      // room for the combined column's rotated tick label
+      margin: { l: 70, r: comb ? 64 : 16, t: 14, b: 86 },
     };
   }
   const eqLine = { color: chrome.inkSecondary, width: 1.25, dash: "dash" };

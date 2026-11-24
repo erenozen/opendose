@@ -42,8 +42,8 @@ export const DEFAULT_ESTIMATION: EstimationOptions = {
 
 export const COMBINE_LABELS: Record<EstimationCombine, string> = {
   none: "None",
-  mini_meta: "Mini-meta: weighted mean difference of independent repeats",
-  delta_delta: "Delta-delta: the second difference minus the first (2 × 2)",
+  mini_meta: "Mini-meta (weighted mean difference)",
+  delta_delta: "Delta-delta (2 × 2 design)",
 };
 
 export const DESIGN_LABELS: Record<EstimationDesign, string> = {
