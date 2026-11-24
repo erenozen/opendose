@@ -1003,7 +1003,7 @@ await priv.getByRole("button", { name: "Close" }).last().click();
 
   let v = await openValidation();
   await v.getByRole("button", { name: "NIST StRD (11)" }).click();
-  const onChecks = v.locator(".validation-open", { hasText: "Open this dataset" });
+  const onChecks = v.locator(".validation-group:not(.validation-datasets) .validation-open");
   expect("P-127 each NIST StRD check offers its dataset", await onChecks.count() === 11, String(await onChecks.count()));
   const listed = (await v.locator(".validation-table tbody tr", { hasText: "Intercept estimate" }).first().innerText())
     .replace(/\s+/g, " ");
