@@ -3543,3 +3543,114 @@ e2e (`e2e-share.mjs`), every shown value equal to the certified value at
 238.9421292, b2 5.501564318e-4, SS 0.1245513889, Sy.x 0.1018787633);
 SmLs01 (F 21, R² 0.4827586207, residual SD 0.1); Lew (mean -177.435, SD
 277.332168, n 200).
+
+## Feature validation: zero-dose plateaus, stars at each time point, log-rank brackets (2026-11-24)
+
+### P-104 X-axis break and per-curve zero-dose plateaus
+
+With `options.zero_dose_plateau {"param": "Top" | "Bottom"}` each data
+set's plateau is held at the mean of its own zero-dose wells (X entered
+but with no logarithm under a log(X) model); the entry reports
+`zero_dose_constraint {param, value, n_values, x_values}`. The vehicle
+wells are never given a dose: they stay in `log_x_dropped`, which now
+names their table rows (`rows`, `row_x`) so the graph can draw them left
+of an X axis break. R `drc` (LL.4 with a fixed d) is not installed; the
+reference is `engine/tests/reference/zero_dose_plateau.py`, the 4PL
+written out with Top fixed per curve and Bottom, LogIC50 and HillSlope
+fitted by scipy `least_squares` (Levenberg-Marquardt), SEs from
+s^2 (J'J)^-1 on n - 3 df.
+
+| Data set (vehicle wells) | Reference (scipy) | Engine |
+|---|---|---|
+| Drug A (98, 101, 103) | Top 100.666667; Bottom 3.99998 (SE 1.2635); LogIC50 -6.554481 (SE 0.034306); HillSlope -0.692762 (SE 0.030292); SS 64.9853 on 15 df | the same values (rel 1e-6, SEs rel 2e-3); display Top = 100.7, LogIC50 -6.554 |
+| Drug B (84, 88.5, 86.1) | Top 86.2; Bottom 5.73973 (SE 2.8856); LogIC50 -5.574977 (SE 0.079423); HillSlope -0.588491 (SE 0.039702); SS 65.8603 on 15 df | the same values; display Top = 86.2, LogIC50 -5.575 |
+
+Also tested (`engine/tests/test_zero_dose_plateau.py`): an agonist's
+Bottom from its vehicle; a typed constant, range or start of that
+plateau replaced for the curves with vehicle wells while other held
+parameters stay; a data set without vehicle wells fitted as before with
+a warning; one vehicle well and missing values; all vehicle values
+equal; X already in logs (X = 0 is 1 M, nothing held); mean / SD / N
+rows (two vehicle rows, 100 with N 2 and 94 with N 4: 96 accounting for
+N, 97 for the means only); Y scaled by 1e6 scales Top and keeps the
+IC50; the order of the data sets does not matter; a parameter other than
+Top or Bottom is an error.
+
+Web: `src/sheets/xy/__tests__/zeroBreak.test.ts` (the rows drawn left of
+the break, the segment's layout, the break marks, a split Y axis, a
+hidden data set, the legend and methods sentences, when the per-curve
+hold is offered). The zero-dose note offers "Hold each curve's Top at
+its own zero-dose wells" with a reason, which the methods text records
+with each curve's value. e2e-figures: the acceptance test (the vehicle
+point of each curve in its own segment left of the break, the break
+marks drawn, every point at its value, the curve never across the
+break), then the hold, reading Top = 100.7 and = 86.2 and LogIC50
+-6.554 and -5.575 against the reference. e2e-export: the SVG export
+draws the 0 M tick and both vehicle points left of the two break marks
+and the twelve dose points right of them; the PDF keeps the tick order.
+
+### P-105 Significance stars per time point on lines and time-course graphs
+
+No new computation: the stars draw the P values of the analysis the user
+chose (two-way ANOVA within rows, multiple t tests, the time-course
+model's groups at each time). `engine/tests/test_time_stars.py` pins
+those P values for the tumour-growth table of the e2e step against
+`engine/tests/reference/time_stars.py` (statsmodels OLS with
+C(day) * C(group), the full model's pooled residual, a t test at each day,
+Sidak over the 4 comparisons; GraphPad Statistics Guide, "How Prism
+computes multiple comparisons after two-way ANOVA").
+
+| Day | Reference P (unadjusted) | Reference P (Sidak, 4) | Engine | Star (GraphPad) |
+|---|---|---|---|---|
+| Day 0 | 0.92944 | 0.99998 | equal (rel 1e-8) | ns |
+| Day 7 | 0.0047556 | 0.018887 | equal | * |
+| Day 14 | 0.00024422 | 0.00097654 | equal | *** |
+| Day 21 | 2.1433e-21 | 8.5733e-21 | below 1e-12 (the engine's 1 - (1 - p)^4 rounds to 0) | **** |
+
+MS residual (200.8625) and its 32 df agree to 1e-10. Web:
+`src/graph/__tests__/timeStars.test.ts` (which comparisons can be read
+as one star per group at a time point: two groups, or every pair against
+one control; Tukey's all pairs are refused with the reason; P style,
+threshold, hide ns and unticked days; stacking per group; the
+time-course model's families and their X; the legend clause; applyFormat
+places each star above the highest mark of its day). e2e-figures: the
+acceptance test (each day's star equals the Sidak P of that day, ns, *,
+***, ****; above every mark; the legend states the scale, where exact P
+are, and that the curves are tested by the two-way ANOVA's interaction).
+e2e-assays: on the GTT time-course example the six stars equal the
+Summary column of the model's comparisons at each time.
+
+### P-111 Log-rank brackets on Kaplan-Meier graphs and panel brackets
+
+No new computation: the brackets draw the survival analysis' pairwise
+log-rank P values, adjusted as its correction says (Holm added to the
+choices; the engine had it). `engine/tests/test_logrank_brackets.py`
+pins them for the 3-group table of the e2e step against
+`engine/tests/reference/logrank_brackets.py` (the Peto log-rank,
+sum (O - E)^2 / E on 1 df, written out with numpy and scipy, and the
+variance form cross-checked by statsmodels' survdiff; Holm 1979; R's
+survival::survdiff is not installed).
+
+| Pair | Peto chi2 | P | P (Holm, 3) | Variance chi2 (survdiff) | Bracket |
+|---|---|---|---|---|---|
+| Control vs. Low dose | 1.83719 | 0.17528 | 0.17528 | 1.97339 | ns, P = 0.1753 |
+| Control vs. High dose | 7.28307 | 0.0069608 | 0.020882 | 8.64844 | *, P = 0.0209 |
+| Low dose vs. High dose | 4.4783 | 0.034328 | 0.068656 | 5.46088 | ns, P = 0.0687 |
+
+The engine equals each value to rel 1e-9. Web:
+`src/graph/__tests__/timeStars.test.ts` (the family and its label from
+the survival result, the two-group log-rank, lanes that keep touching
+brackets apart, the brackets' place in the right margin and the wider
+margin). e2e-figures: the acceptance test (one bracket per pair in the
+right margin, between the ends of its two curves, labelled ns, *, ns and,
+as exact P, 0.1753, 0.0209, 0.0687; the legend names the family and
+Holm). e2e-check: on the 2 x 2 x 2 three-way graph (Tukey, one factor at
+a time) the pairs whose cells sit in different panels are drawn above
+both panels, with the labels of their rows in the results.
+
+Independent check (2026-11-24, by the lead): an own pairwise log-rank on
+the P-111 survival data gives, in the Peto form sum((O-E)^2/E) the
+engine reports (as Prism and the GraphPad guide do), raw P 0.175281,
+0.006961, 0.034328 and Holm 0.175281, 0.020882, 0.068656: the bracket
+values. (The Mantel-Haenszel variance form would give 0.1601, 0.0098,
+0.0389 after Holm; the engine also reports that form as chi2_variance.)

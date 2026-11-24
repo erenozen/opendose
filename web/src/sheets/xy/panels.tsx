@@ -209,8 +209,10 @@ export function XYPlot({ graph, table, result, options, titles, scheme, format, 
   // "In the figure": the legend sentence drawn into the figure (exports
   // carry it); "Under the graph" opens the legend card instead.
   const yGap = format?.y?.gap ?? null;
+  const xZero = !!format?.x?.zeroBreak;
   const caption = useMemo(() => (xs.caption === "figure"
-    ? fitCaption(table, shown, options, xs, yGap) || undefined : undefined), [xs, table, shown, options, yGap]);
+    ? fitCaption(table, shown, options, xs, yGap, xZero) || undefined : undefined),
+  [xs, table, shown, options, yGap, xZero]);
   // A clicked point: the result's data set i is the table's data set of
   // the same index when every one was analysed, else the one of its name.
   const pick = useMemo(() => {
@@ -226,7 +228,8 @@ export function XYPlot({ graph, table, result, options, titles, scheme, format, 
   return (
     <PlotPanel result={shown} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
       xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
-      rowTitles={table.rowTitles} drop={drop} caption={caption} onPointClick={pick} />
+      rowTitles={table.rowTitles} drop={drop} caption={caption} onPointClick={pick}
+      xUnit={table.xUnit || ""} />
   );
 }
 

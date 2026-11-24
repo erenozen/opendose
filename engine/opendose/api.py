@@ -165,6 +165,22 @@ def _dose_response_steps(data, options):
     interval is left out (pi None, "prediction": false) for weighted and
     summary-data fits.
 
+    options.zero_dose_plateau {"param": "Top" | "Bottom"} (P-104): each
+    data set's plateau `param` is held at the mean of that data set's own
+    zero-dose wells (X entered but with no logarithm, X <= 0, under a
+    log(X) model), so each curve uses its own vehicle wells; a global
+    constraint, range or typed start of that parameter is replaced for
+    those data sets. The mean is of the values the fit would use: the
+    replicates, the N-weighted mean of the row means of mean / SD / N
+    data (accounting for N), else the mean of the row means. The entry
+    gets "zero_dose_constraint" {"param", "value", "n_values", "x_values"};
+    a data set without zero-dose wells keeps its plateau as the other
+    options set it, with a warning. Never a dose for the vehicle: those
+    wells stay out of the curve's points (log_x_dropped {"n_values",
+    "x_values", "mean_y", "rows": table rows holding them, "row_x": the X
+    entered in each of those rows}, which the graph draws left of an X
+    axis break).
+
     options.curve_range [start, end] (the fit's X units: log10 of the
     concentration for log-X models; either None for the default) and
     options.curve_points (10 to 5000, default 200): the drawn curve
@@ -253,11 +269,25 @@ def _dose_response_steps(data, options):
     # experiment is also fitted on its own and its potencies summarised
     # (potency.py), next to the fit of all the values.
     exp_opt = options.get("experiments")
+    zero_param = _zero_dose_param(options.get("zero_dose_plateau"), spec)
     results = []
     n_sets = len(data["datasets"])
     for i_set, ds in enumerate(data["datasets"]):
         entry = {"name": ds.get("name", "")}
         curve_problem = curve_bad
+        ds_constraints, ds_bounds, ds_starts = constraints, bounds, starts
+        if zero_param:
+            zero = _zero_dose_mean(data["x"], x_col, ds, summary_fmt,
+                                   options.get("replicates", "account"))
+            if zero is not None:
+                ds_constraints = {**constraints, zero_param: zero["value"]}
+                ds_bounds = {k: v for k, v in (bounds or {}).items()
+                             if k != zero_param} or None
+                ds_starts = {k: v for k, v in (starts or {}).items()
+                             if k != zero_param} or None
+                entry["zero_dose_constraint"] = {"param": zero_param, **zero}
+            else:
+                entry["zero_dose_missing"] = zero_param
         try:
             s_kw = {}
             if summary_fmt:
@@ -268,24 +298,24 @@ def _dose_response_steps(data, options):
                 xs, ys = _expand(x_col, ds["ys"])
             if robust:
                 fit = nlfit.robust_model_fit(xs, ys, model,
-                                             constraints=constraints,
-                                             bounds=bounds,
-                                             initial_values=starts)
+                                             constraints=ds_constraints,
+                                             bounds=ds_bounds,
+                                             initial_values=ds_starts)
             elif rout_q:
                 rout = nlfit.rout_outliers(
-                    xs, ys, model, q=float(rout_q), constraints=constraints,
+                    xs, ys, model, q=float(rout_q), constraints=ds_constraints,
                     weighting=weighting, ci_method=ci_method,
                     weight_source=options.get("weight_source", "predicted"),
-                    bounds=bounds, initial_values=starts, **s_kw)
+                    bounds=ds_bounds, initial_values=ds_starts, **s_kw)
                 fit = rout["fit"]
                 entry["rout"] = {k: rout[k] for k in
                                  ("q", "rsdr", "outliers", "n_outliers")}
             else:
-                fit = nlfit.fit_model(xs, ys, model, constraints=constraints,
+                fit = nlfit.fit_model(xs, ys, model, constraints=ds_constraints,
                                       weighting=weighting, ci_method=ci_method,
                                       weight_source=options.get(
                                           "weight_source", "predicted"),
-                                      bounds=bounds, initial_values=starts,
+                                      bounds=ds_bounds, initial_values=ds_starts,
                                       **s_kw)
             fit["curve"] = doseresponse.curve_points(
                 fit, min(finite_x), max(finite_x))
@@ -352,10 +382,12 @@ def _dose_response_steps(data, options):
                 fit["params"]["AbsoluteIC50"] = _abs_ic50_entry(
                     fit, float(abs_level), x_lo, x_hi)
             per_set = n_boot + n_rays
-            fit_kw = dict(constraints=constraints, weighting=weighting,
+            # the refits hold what this data set's fit held (P-104: its
+            # own zero-dose plateau)
+            fit_kw = dict(constraints=ds_constraints, weighting=weighting,
                           weight_source=options.get("weight_source",
                                                     "predicted"),
-                          bounds=bounds)
+                          bounds=ds_bounds)
             if boot_opt is not None:
                 yield from _bootstrap_steps(
                     fit, xs, ys, spec, boot_opt, offset=i_set * per_set,
@@ -398,9 +430,9 @@ def _dose_response_steps(data, options):
             entry["error"] = str(exc)
         if exp_opt and not summary_fmt:
             entry["experiments"] = _experiments(
-                x_col, ds, exp_opt, model, spec, constraints=constraints,
+                x_col, ds, exp_opt, model, spec, constraints=ds_constraints,
                 weighting=weighting, ci_method=ci_method, robust=robust,
-                rout_q=rout_q, bounds=bounds, initial_values=starts,
+                rout_q=rout_q, bounds=ds_bounds, initial_values=ds_starts,
                 weight_source=options.get("weight_source", "predicted"))
         results.append(entry)
 
@@ -410,8 +442,8 @@ def _dose_response_steps(data, options):
         # Y values in rows with no X at all, and in rows whose X was entered
         # but has no logarithm (X <= 0, e.g. the vehicle / zero dose) when
         # the model takes log(X): two different things, said apart.
-        lost, nolog = 0, []
-        for xr, xv, row in zip(raw_x, x_col, rows):
+        lost, nolog, nolog_rows = 0, [], []
+        for r, (xr, xv, row) in enumerate(zip(raw_x, x_col, rows)):
             vals = [v for v in (row or []) if not _is_missing(v)]
             if summary_fmt:              # rows of mean / SD / n: the mean
                 vals = vals[:1]
@@ -419,6 +451,8 @@ def _dose_response_steps(data, options):
                 lost += len(vals)
             elif _is_missing(xv):
                 nolog += [(float(xr), float(v)) for v in vals]
+                if vals:
+                    nolog_rows.append(r)
         warn = _nan_warnings({"datasets": [ds]})
         if entry.get("curve_warning"):
             warn.append(entry.pop("curve_warning"))
@@ -436,7 +470,9 @@ def _dose_response_steps(data, options):
             xs0 = sorted({x for x, _ in nolog})
             mean0 = sum(y for _, y in nolog) / len(nolog)
             entry["log_x_dropped"] = {"n_values": len(nolog), "x_values": xs0,
-                                      "mean_y": mean0}
+                                      "mean_y": mean0, "rows": nolog_rows,
+                                      "row_x": [float(raw_x[r])
+                                                for r in nolog_rows]}
             at = ("X = 0" if xs0 == [0.0] else
                   "X = " + ", ".join(f"{x:g}" for x in xs0))
             warn.append(
@@ -445,6 +481,12 @@ def _dose_response_steps(data, options):
                 "log(X), and zero or negative X has no logarithm. To use the "
                 "zero-dose wells, constrain the plateau they represent to "
                 "their mean, or normalise to them.")
+        missing = entry.pop("zero_dose_missing", None)
+        if missing:
+            warn.append(
+                f"No values at a zero dose in this data set: its {missing} "
+                "could not be held at its own zero-dose wells and is fitted "
+                "as the other settings say")
         if warn:
             entry["warnings"] = warn
     error_bar_kind = options.get("error_bars", "sd")
@@ -458,6 +500,51 @@ def _dose_response_steps(data, options):
         }
     return {"analysis": "dose_response", "x_is_log_output": True,
             "datasets": results}
+
+
+def _zero_dose_param(opt, spec):
+    """The plateau options.zero_dose_plateau holds at each data set's
+    zero-dose wells (P-104), or None."""
+    if not opt:
+        return None
+    param = opt.get("param") if isinstance(opt, dict) else opt
+    if param not in ("Top", "Bottom"):
+        raise ValueError("zero_dose_plateau: param must be Top or Bottom")
+    if param not in spec.params:
+        raise ValueError(f"this model has no {param} to hold at the "
+                         "zero-dose wells")
+    return param
+
+
+def _zero_dose_mean(raw_x, x_col, ds, summary_fmt, replicates):
+    """{"value", "n_values", "x_values"} of one data set's zero-dose wells
+    (rows whose X was entered but has no logarithm), or None without any.
+    The value is the mean of what the fit would use from those rows: the
+    replicates; mean / SD / N rows accounting for N give the N-weighted
+    mean (the mean of the original wells); otherwise the mean of the row
+    means."""
+    zero = [None if _is_missing(xr) or not _is_missing(xv) else float(xr)
+            for xr, xv in zip(raw_x, x_col)]
+    if not any(v is not None for v in zero):
+        return None
+    if not summary_fmt:
+        xs, ys = _expand(zero, ds.get("ys") or [])
+        if not ys:
+            return None
+        return {"value": sum(ys) / len(ys), "n_values": len(ys),
+                "x_values": sorted(set(xs))}
+    means, _, ns = summary.dataset_summary(ds, summary_fmt)
+    rows = [(z, m, n) for z, m, n in zip(zero, means, ns)
+            if z is not None and m is not None]
+    if not rows:
+        return None
+    xs0 = sorted({z for z, _, _ in rows})
+    if replicates != "means_only" and all(n for _, _, n in rows):
+        tot = sum(float(n) for _, _, n in rows)
+        return {"value": sum(float(m) * float(n) for _, m, n in rows) / tot,
+                "n_values": int(round(tot)), "x_values": xs0}
+    return {"value": sum(float(m) for _, m, _ in rows) / len(rows),
+            "n_values": len(rows), "x_values": xs0}
 
 
 def _bootstrap_steps(fit, xs, ys, spec, boot_opt, *, offset, total,

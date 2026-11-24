@@ -14,6 +14,7 @@ import type { GraphOptionsProps, PlotProps } from "../../types";
 import { axis, chromeOf, layoutBase, messageLayout, useDark, useGraphSettings } from "../plotkit";
 import { subjectSeries } from "../tumourModel";
 import { meanSeries, prepare, type TcMixedOptions } from "./model";
+import { tcComparisons, tcFamilyX } from "./timeStars";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -83,7 +84,19 @@ export function TcMeansPlot({ graph, table, options, result, titles, scheme, for
     });
     return { traces, layout, names };
   }, [result, table, options, s, dark, scheme, titles.x, titles.y, level]);
-  const ctx = useMemo(() => ({ dark, scheme, datasets: fig.names }), [dark, scheme, fig.names]);
+  // stars at each time point from the model's comparisons (P-105)
+  const ctx = useMemo(() => {
+    const at = tcFamilyX(result);
+    return {
+      dark, scheme, datasets: fig.names,
+      comparisons: tcComparisons(result)?.comparisons,
+      groupX: (_name: string, family?: string) => {
+        const x = family ? at.get(family) : undefined;
+        return x === undefined ? null : { x, xref: "x" };
+      },
+      groupHalf: 0,
+    };
+  }, [dark, scheme, fig.names, result]);
   return (
     <FormattedPlot traces={fig.traces} layout={fig.layout} format={format}
       onFormatChange={onFormatChange} ctx={ctx} filename="time-course" label="Group means over time" />

@@ -180,7 +180,10 @@ function pdfGeometry(buf) {
       const tok = t[0];
       if (/^-?\d*\.?\d+/.test(tok)) { nums.push(Number(tok)); continue; }
       if (tok[0] === "/" || tok[0] === "[" || tok[0] === "<" || tok[0] === "(") {
-        if (tok[0] === "<" || tok[0] === "(") out.texts.push({ size: tf * scale(mul(tm, ctm)), raw: tok });
+        if (tok[0] === "<" || tok[0] === "(") {
+          // x: where the run starts on the page, in pt (P-104 reads the order of tick labels)
+          out.texts.push({ size: tf * scale(mul(tm, ctm)), raw: tok, x: mul(tm, ctm)[4] });
+        }
         if (tok[0] !== "/") nums.length = 0;
         continue;
       }
@@ -191,6 +194,7 @@ function pdfGeometry(buf) {
         case "cm": ctm = mul(a.slice(-6), ctm); break;
         case "BT": tm = [1, 0, 0, 1, 0, 0]; break;
         case "Tm": tm = a.slice(-6); break;
+        case "Td": case "TD": tm = mul([1, 0, 0, 1, a[a.length - 2], a[a.length - 1]], tm); break;
         case "Tf": tf = a[a.length - 1]; break;
         case "w": w = a[a.length - 1]; break;
         case "S": case "s": case "B": case "b": case "B*": case "b*":
@@ -809,6 +813,68 @@ const svgTexts = (buf) => page.evaluate((s) => [...new DOMParser().parseFromStri
       pdfDashes(pdf) >= (split ? 3 : 2) && runs.includes("IC50 = 1.040e-7 M") && CAPTION.every((c) => pdfAll.includes(c)),
       `${pdfDashes(pdf)} dashed strokes`);
   }
+}
+
+// the zero dose left of an X axis break (P-104): in the SVG export the
+// vehicle points of both curves and the "0 M" tick sit left of the two
+// break marks, the log-dose ticks right of them; the PDF keeps the same
+// order of tick labels. Data: engine/tests/reference/zero_dose_plateau.py.
+{
+  const ZX = ["0", "1e-9", "1e-8", "1e-7", "1e-6", "1e-5", "1e-4"];
+  const rows = (r) => r.map((x) => x.map(String));
+  const zTable = { type: "xy", x: ZX, xTitle: "[Conc.]", xFormat: "numbers", xUnit: "M", yTitle: "Response",
+    rowTitles: ZX.map(() => ""), subcolumnFormat: "replicates", replicateLayout: "side_by_side",
+    datasets: [
+      { name: "Drug A", subTitles: ["", "", ""], rows: rows([[98.0, 101.0, 103.0], [97.5, 99.0, 100.2],
+        [90.1, 92.4, 88.7], [70.2, 66.8, 72.5], [31.0, 35.2, 29.4], [10.4, 12.9, 9.8], [6.1, 4.9, 7.3]]) },
+      { name: "Drug B", subTitles: ["", "", ""], rows: rows([[84.0, 88.5, 86.1], [85.2, 82.7, 84.9],
+        [83.0, 80.6, 84.4], [76.1, 73.9, 78.0], [58.2, 55.0, 60.3], [30.1, 27.7, 33.6], [14.2, 12.8, 16.5]]) }] };
+  await openProject("zero-break-exports.json", [
+    { id: "zd", kind: "data", name: "Vehicle export", table: zTable },
+    { id: "zr", kind: "results", parentId: "zd", name: "Nonlin fit of Vehicle export", analysis: "nonlin",
+      options: { model: "log_inhibitor_vs_response_4pl", errorBars: "sd", autoFit: "requested" } },
+    { id: "zg", kind: "graph", parentId: "zd", resultsId: "zr", graphType: "xy", name: "Graph of Vehicle export",
+      settings: { titles: { x: "", y: "" }, scheme: "default", format: { x: { zeroBreak: true } } } },
+  ]);
+  await page.getByRole("treeitem", { name: "Graph of Vehicle export", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .filter((t) => t.xaxis === "x3").length === 2, null, { timeout: 120000 }).catch(() => {});
+  const svg = (await graphExport("svg")).buf.toString("utf8");
+  // lay the exported SVG out in the page to read where things are drawn
+  const geo = await page.evaluate((s) => {
+    const host = document.createElement("div");
+    host.style.cssText = "position:absolute;left:0;top:0";
+    host.innerHTML = s;
+    document.body.appendChild(host);
+    const box = (el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, w: r.width, h: r.height }; };
+    const tick = (t) => [...host.querySelectorAll("text")].filter((e) => e.textContent.trim() === t).map(box)[0] ?? null;
+    const marks = [...host.querySelectorAll(".shapelayer path")].map(box)
+      .filter((b) => Math.abs(b.w - 8) < 2.5 && Math.abs(b.h - 14) < 2.5);
+    const points = [...host.querySelectorAll(".scatterlayer .point")].map(box);
+    // the log-dose ticks: negative numbers (a hyphen or U+2212 minus)
+    const doseTicks = [...host.querySelectorAll("text")]
+      .filter((e) => /^[-−]\d+(\.\d+)?$/.test(e.textContent.trim())).map(box);
+    const first = doseTicks.length ? doseTicks.reduce((a, b) => (b.x < a.x ? b : a)) : null;
+    const out = { zero: tick("0 M"), first, nDose: doseTicks.length, marks, points };
+    host.remove();
+    return out;
+  }, svg);
+  const leftOf = geo.marks.length === 2 ? Math.min(...geo.marks.map((m) => m.x)) : NaN;
+  const rightOf = geo.marks.length === 2 ? Math.max(...geo.marks.map((m) => m.x)) : NaN;
+  expect("P-104 SVG export: two break marks; the 0 M tick and both vehicle points left of them, the log-dose ticks right",
+    !!geo.zero && !!geo.first && geo.marks.length === 2 && geo.zero.x < leftOf && geo.first.x > rightOf
+      && geo.points.filter((p) => p.x < leftOf).length === 2 && geo.points.filter((p) => p.x > rightOf).length === 12,
+    JSON.stringify({ zero: geo.zero, first: geo.first, marks: geo.marks, n: geo.points.length }));
+  const pdf = (await graphExport("pdf")).buf;
+  const runs = readPdf(pdf).runs.map((r) => r.text);
+  const pg = pdfGeometry(pdf).texts;
+  const at = (t) => pg[runs.indexOf(t)]?.x;
+  const doseX = runs.map((t, i) => (/^[-−]\d+(\.\d+)?$/.test(t.trim()) ? pg[i]?.x : null))
+    .filter((x) => typeof x === "number");
+  expect("P-104 PDF export: the 0 M tick is drawn left of the log-dose ticks",
+    runs.includes("0 M") && doseX.length > 0 && doseX.every((x) => at("0 M") < x),
+    `${at("0 M")} / ${JSON.stringify(doseX)} / ${JSON.stringify(runs.slice(0, 40))}`);
 }
 
 // interpolated unknowns (P-22) and a curve drawn beyond the data (P-52):

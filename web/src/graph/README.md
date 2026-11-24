@@ -137,9 +137,29 @@ bars stacked by `barmode` count up to the sum of their segments
 and a `ComparisonSet` with `letters: false` (no compact letters for
 rows). `groupX` may return `{ x, xref }` for a bar
 on another X axis (the second panel of the three-way graph, `"x2"`):
-each axis stacks its own brackets, and a pair across two axes is not
-drawn. `groupHalf` (default 0.45) is how far either side of a group the
+each axis stacks its own brackets, and a pair across two axes (P-111)
+is drawn above both, in paper units from each axis's domain and fixed
+range (`drawPanelBrackets`; an axis without a fixed range gets none).
+`groupHalf` (default 0.45) is how far either side of a group the
 data a bracket must clear reaches (half a bar on grouped graphs).
+
+Two other placements (P-105, P-111):
+
+- `comparisons.placement: "time"` (`timeStars.ts`): on a graph with time
+  points on X (the grouped lines graph with rows on X, the time-course
+  model's means) each comparison's `family` is a time point and the
+  label goes above the highest mark there (`name: "time-star"`), one per
+  group compared with the shared reference, in that group's colour. The
+  `ComparisonSet` says `timePoints: true` and gives `curveTest`, what
+  compares the curves, which the dialog and the legend name.
+  `timeReference` refuses sets with several pairs per time point and no
+  common group (Tukey's all pairs).
+- `FormatContext.marginBrackets` (`marginBrackets.ts`, the Kaplan-Meier
+  graph): each pair is a vertical bracket in the right margin from one
+  curve's last value to the other's (role "line"), in lanes so that
+  brackets sharing an end never touch; the right margin widens to hold
+  them. The set comes from `sheets/survival/brackets.ts` (pairwise
+  log-rank, adjusted as the analysis says, or the two-group log-rank).
 
 Colours are replaced in per-point colour arrays too (grouped bars).
 
@@ -158,7 +178,17 @@ converted on the way in and out.
   probability (normal-quantile axis for percentages).
 - Discontinuous axis: left Y axis only, drawn as two stacked subplots
   sharing X, with break marks and one rotated title. Not combined with
-  the right Y axis or offset frames.
+  the right Y axis or offset frames. `AxisFormat.segment` (0.1 to 0.9)
+  sets the lower segment's share of the axis; absent, it follows the
+  spans.
+- X axis break of the curve-fit graph (P-104, `sheets/xy/zeroBreak.ts`):
+  `x.zeroBreak` draws the X values a log(X) fit left out (no logarithm:
+  a zero dose) on their own axis `xaxis3` left of a break, at the X
+  entered (`x.zeroLabel` renames the tick; `x.segment` is its share,
+  default 0.12), with two slanted marks (`xbreak:left`, `xbreak:right`)
+  on the X axis line. The copies of each data set's formatted point
+  trace carry `meta.zeroDose`; the curve never crosses the break. A
+  general X gap (from / to) is not offered.
 - Date numbering sets Plotly's date axis and format. Tables with dates as
   X are read as numbers (days since the earliest date, project/xformat.ts)
   and the XY graph labels its own ticks with the dates, so this numbering

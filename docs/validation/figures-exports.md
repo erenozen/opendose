@@ -458,3 +458,70 @@ Independent check of P-64/P-65 (2026-11-24, by the lead): scipy
 `ttest_ind([1, 2, 3, 4], [2, 4, 6])` gives |t| = 1.21800, P = 0.277561,
 and numpy's SD (ddof 1) of 1, 2, 3, 4 is 1.2909944487358056: the values
 the source-data stage fixture's sheet a and its t test show.
+
+## The zero dose left of an X axis break (P-104, 2026-11-24)
+
+A log(X) curve fit leaves out the wells whose X has no logarithm (the
+vehicle at X = 0). Format axes, X axis, "Draw the zero dose left of a
+break" draws them on their own axis (`xaxis3`) in a left segment, at the
+X entered ("0 M"), with two slanted break marks on the X axis line; the
+log-dose axis, its title and every curve stay right of the break, and no
+dose is made up for the vehicle (FEATURE-PLAN do-not-build 9). The
+segment's share (default 12%) and its tick label can be set; the lower
+segment of a Y axis break gets the same share setting. The legend adds
+"Points left of the break in the X axis are at X = 0, which has no
+logarithm: they are not points on the curve", then how the fit used
+them. Graphs without the setting are unchanged.
+
+`sheets/xy/__tests__/zeroBreak.test.ts` checks the layout (domains, the
+marks' positions at the segment ends, the Y axis anchored at the far
+left, a split Y axis) and the copies of the formatted point traces.
+`scripts/e2e-figures.mjs` opens two curves with vehicle wells (98, 101,
+103 and 84, 88.5, 86.1; `engine/tests/reference/zero_dose_plateau.py`):
+both vehicle points on `xaxis3` at 100.667 and 86.2, left of the dose
+axis, the two marks at the segment ends, every dose point at its
+log10(dose) and mean, no curve on `xaxis3`. `scripts/e2e-export.mjs`
+exports the graph as SVG and lays it out in the page: the 0 M tick and
+both vehicle points left of the two marks, the −9 tick and the twelve
+dose points right of them; in the PDF the 0 M tick label is drawn left
+of the −9 label.
+
+## Stars at each time point (P-105, 2026-11-24)
+
+On the grouped lines graph (rows on X) and the time-course model's graph
+of group means, Pairwise comparisons offers "Show stars at each time
+point": the comparisons the analysis made within each time point (two-way
+ANOVA within rows, multiple t tests, the model's groups at each time) are
+drawn as one label above the highest mark of that time, in the graph's P
+style (asterisks, exact P or mixed; threshold, hide ns and unticked times
+as for brackets). With more than two groups every pair must share one
+control (each star in the colour of the group compared); otherwise the
+dialog says why no star can be drawn. The legend states what the stars
+compare, from which analysis, that exact P values are in the results,
+that they are not a test of the curves and which test is, then the star
+scale. Graphs without the setting are unchanged (brackets between two
+lines at one X are never drawn).
+
+`src/graph/__tests__/timeStars.test.ts`; `scripts/e2e-figures.mjs`
+(tumour volume, Sidak within each day: ns, *, ***, **** at the four days,
+`engine/tests/reference/time_stars.py`); `scripts/e2e-assays.mjs` (the
+time-course example: each star equals the results' Summary of its time).
+
+
+## Log-rank brackets on Kaplan-Meier graphs and between panels (P-111, 2026-11-24)
+
+Pairwise comparisons on a Kaplan-Meier graph offers "Show log-rank
+brackets at the right of the graph": each pair of the survival analysis'
+pairwise log-rank tests (or the log-rank test with two groups) is a
+vertical bracket in the right margin from one curve's end to the other's,
+labelled with its adjusted P (stars or exact P), the brackets that share
+an end in separate lanes, the margin widened to hold them. The dialog
+and the legend name the family and its correction. On the three-way
+graph, a pair whose cells sit in different panels is now drawn above
+both panels (before: left out). Graphs without brackets are unchanged.
+
+`src/graph/__tests__/timeStars.test.ts`; `scripts/e2e-figures.mjs` (3
+groups, Holm: ns, *, ns and P = 0.1753, 0.0209, 0.0687,
+`engine/tests/reference/logrank_brackets.py`); `scripts/e2e-check.mjs`
+(the 2 x 2 x 2 three-way graph: its cross-panel pairs carry the labels
+of their rows in the results).

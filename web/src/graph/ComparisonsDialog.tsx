@@ -15,6 +15,7 @@ import { lettersFor } from "./apply";
 import {
   CheckField, ColorField, DialogActions, NumField, SelectField, Tabs,
 } from "./controls";
+import { timeReference } from "./timeStars";
 import { useDiscardGuard } from "./useDiscardGuard";
 
 type EngineState = "idle" | "asking" | "engine" | "client";
@@ -50,6 +51,11 @@ export default function ComparisonsDialog({
   const hideNs = graphHideNs(c);
   const plain = set.comparisons.filter((x) => !x.family);
   const alpha = l.alpha ?? 0.05;
+  // stars at each time point (P-105) and brackets in the right margin of a
+  // Kaplan-Meier graph (P-111) replace the bracket placement
+  const perTime = !!set.timePoints;
+  const margin = !!set.margin;
+  const timeRef = perTime ? timeReference(set.comparisons) : null;
 
   // Ask the engine for the letters; fall back to the in-browser algorithm
   // when this build's engine has no compact_letters handler.
@@ -96,8 +102,28 @@ export default function ComparisonsDialog({
       )}
       {tab === "brackets" ? (
         <div role={lettersOk ? "tabpanel" : undefined} className="fmt-panel">
-          <CheckField label="Show comparison brackets on the graph" checked={c.show}
+          {perTime ? (
+            <>
+              {/* no star can name its pair: say why instead of offering a dead switch */}
+              {timeRef?.ok && (
+                <CheckField label="Show stars at each time point" checked={c.show && c.placement === "time"}
+                  onChange={(v) => setC({ show: v, placement: "time" })} />
+              )}
+              {timeRef && !timeRef.ok ? (
+                <p className="field-note" role="status">{timeRef.why}</p>
+              ) : (
+                <p className="field-note">Each star is the test at one time point from this
+                  analysis{timeRef?.ok && timeRef.reference ? `, against ${timeRef.reference}, in the
+                  colour of the group compared` : ""}. It is not a test of the curves:{" "}
+                  {set.curveTest ?? "compare the curves with one model of every time point"}.
+                  The figure legend says so and gives the star scale.</p>
+              )}
+            </>
+          ) : (
+            <CheckField label={margin ? "Show log-rank brackets at the right of the graph"
+              : "Show comparison brackets on the graph"} checked={c.show}
             onChange={(v) => setC({ show: v })} />
+          )}
           <fieldset className="fmt-section wide">
             <legend>Comparisons on the graph</legend>
             <div className="fmt-pairs">
@@ -124,7 +150,7 @@ export default function ComparisonsDialog({
                 setC({ hidden: set.comparisons.filter((x) => x.p > 0.05).map(pairKey) })}>
                 Only significant</Button>
             </span>
-            {set.comparisons.some((x) => x.family) && (
+            {!perTime && set.comparisons.some((x) => x.family) && (
               <p className="field-note">Comparisons within one row of a two-way design are
                 drawn on grouped graphs only.</p>
             )}
@@ -150,11 +176,15 @@ export default function ComparisonsDialog({
             <CheckField label={`Hide non-significant (ns) pairs${c.hideNs === undefined
               ? " (as in Preferences)" : ""}`} checked={hideNs}
               onChange={(v) => setC({ hideNs: v === projectHideNs ? undefined : v })} />
-            <SelectField label="Bracket style" value={c.style ?? "bracket"}
-              options={[["bracket", "Bracket with short ends"], ["tall", "Bracket with long ends"],
-                ["line", "Line only"]]}
-              onChange={(v) => setC({ style: v === "bracket" ? undefined : v })} />
-            <NumField label="Line width" value={c.lineWidth} onChange={(v) => setC({ lineWidth: v })} />
+            {!perTime && (
+              <SelectField label="Bracket style" value={c.style ?? "bracket"}
+                options={[["bracket", "Bracket with short ends"], ["tall", "Bracket with long ends"],
+                  ["line", "Line only"]]}
+                onChange={(v) => setC({ style: v === "bracket" ? undefined : v })} />
+            )}
+            {!perTime && (
+              <NumField label="Line width" value={c.lineWidth} onChange={(v) => setC({ lineWidth: v })} />
+            )}
             <NumField label="Label size" value={c.textSize} onChange={(v) => setC({ textSize: v })} />
             <ColorField label="Colour" value={c.color} auto={chrome.ink} surface={chrome.surface}
               onChange={(v) => setC({ color: v })} />

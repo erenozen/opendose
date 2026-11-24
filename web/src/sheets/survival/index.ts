@@ -20,6 +20,8 @@ import {
   type CompetingOptions,
 } from "./competing";
 
+import { survivalComparisons } from "./brackets";
+
 // Cox regression panels load on first use (sheets/lazy.ts).
 const coxModule = () => import("./coxPanels");
 const CoxControls = lazyPart(coxModule, "CoxControls");
@@ -69,6 +71,8 @@ export const survivalGraph = defineGraph({
   PlotPanel: SurvivalGraph,
   OptionsPanel: SurvivalOptions,
   formatFeatures: { lines: true, color: true, survival: true },
+  // pairwise log-rank brackets beside the curves' ends (P-111)
+  comparisons: (result) => survivalComparisons(result),
 });
 
 // Ids are stored in project files: never rename them.

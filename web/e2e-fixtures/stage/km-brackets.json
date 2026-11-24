@@ -1,0 +1,385 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Log-rank and panel brackets",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g003",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Mouse survival",
+   "table": {
+    "type": "survival",
+    "x": [],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "days",
+    "yTitle": "",
+    "rowTitles": [],
+    "datasets": [
+     {
+      "name": "Control",
+      "subTitles": [
+       "Time",
+       "Event"
+      ],
+      "rows": [
+       [
+        "5",
+        "1"
+       ],
+       [
+        "8",
+        "1"
+       ],
+       [
+        "12",
+        "1"
+       ],
+       [
+        "15",
+        "0"
+       ],
+       [
+        "20",
+        "1"
+       ],
+       [
+        "24",
+        "1"
+       ],
+       [
+        "30",
+        "0"
+       ],
+       [
+        "35",
+        "1"
+       ],
+       [
+        "40",
+        "0"
+       ],
+       [
+        "45",
+        "0"
+       ]
+      ]
+     },
+     {
+      "name": "Low dose",
+      "subTitles": [
+       "Time",
+       "Event"
+      ],
+      "rows": [
+       [
+        "3",
+        "1"
+       ],
+       [
+        "6",
+        "1"
+       ],
+       [
+        "9",
+        "1"
+       ],
+       [
+        "11",
+        "1"
+       ],
+       [
+        "14",
+        "0"
+       ],
+       [
+        "17",
+        "1"
+       ],
+       [
+        "19",
+        "1"
+       ],
+       [
+        "22",
+        "1"
+       ],
+       [
+        "26",
+        "1"
+       ],
+       [
+        "28",
+        "0"
+       ]
+      ]
+     },
+     {
+      "name": "High dose",
+      "subTitles": [
+       "Time",
+       "Event"
+      ],
+      "rows": [
+       [
+        "2",
+        "1"
+       ],
+       [
+        "3",
+        "1"
+       ],
+       [
+        "4",
+        "1"
+       ],
+       [
+        "6",
+        "1"
+       ],
+       [
+        "7",
+        "1"
+       ],
+       [
+        "8",
+        "1"
+       ],
+       [
+        "10",
+        "1"
+       ],
+       [
+        "11",
+        "0"
+       ],
+       [
+        "13",
+        "1"
+       ],
+       [
+        "16",
+        "1"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "survival",
+   "options": {
+    "pairwiseCorrection": "holm"
+   },
+   "name": "Survival of Mouse survival"
+  },
+  {
+   "id": "g003",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r002",
+   "graphType": "survival",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "format": {
+     "comparisons": {
+      "show": true
+     }
+    }
+   },
+   "name": "Survival curves"
+  },
+  {
+   "id": "d004",
+   "kind": "data",
+   "name": "Three factors",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Signal",
+    "rowTitles": [
+     "A1",
+     "A2"
+    ],
+    "datasets": [
+     {
+      "name": "A",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "10",
+        "12",
+        "11"
+       ],
+       [
+        "9",
+        "11",
+        "10"
+       ]
+      ]
+     },
+     {
+      "name": "B",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "14",
+        "15",
+        "13"
+       ],
+       [
+        "12",
+        "14",
+        "13"
+       ]
+      ]
+     },
+     {
+      "name": "C",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "20",
+        "22",
+        "21"
+       ],
+       [
+        "18",
+        "19",
+        "20"
+       ]
+      ]
+     },
+     {
+      "name": "D",
+      "subTitles": [
+       "",
+       "",
+       ""
+      ],
+      "rows": [
+       [
+        "30",
+        "33",
+        "31"
+       ],
+       [
+        "22",
+        "24",
+        "23"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r005",
+   "kind": "results",
+   "parentId": "d004",
+   "analysis": "grouped_three_way",
+   "options": {
+    "factorNames": [
+     "Factor A",
+     "Factor B",
+     "Factor C"
+    ],
+    "bLevels": [
+     "B1",
+     "B2"
+    ],
+    "cLevels": [
+     "C1",
+     "C2"
+    ],
+    "assign": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      1
+     ]
+    ],
+    "method": "tukey",
+    "goal": "one_factor",
+    "oneFactor": "c",
+    "control": [
+     0,
+     0,
+     0
+    ],
+    "controlRow": 0,
+    "alpha": "0.05",
+    "q": "5"
+   },
+   "name": "Three-way ANOVA of Three factors"
+  },
+  {
+   "id": "g006",
+   "kind": "graph",
+   "parentId": "d004",
+   "resultsId": "r005",
+   "graphType": "grouped_three_way",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "format": {
+     "comparisons": {
+      "show": true
+     }
+    }
+   },
+   "name": "Three-way graph"
+  }
+ ]
+}

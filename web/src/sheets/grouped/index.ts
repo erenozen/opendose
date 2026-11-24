@@ -11,7 +11,7 @@ import DataGrid from "../common/DataGrid";
 import type { FormatFeatures } from "../../graph/format";
 import { lazyPart } from "../lazy";
 import { defineAnalysis, defineGraph, type TableTypeDef } from "../types";
-import { groupedComparisons } from "./comparisons";
+import { groupedComparisons, timePointComparisons } from "./comparisons";
 import { groupedFormatDatasets, xyGroupedFormatDatasets } from "./graphData";
 import {
   A_COLUMN_STATS, A_MULTI_T, A_REPLICATE_MEANS, A_ROW_MEANS, A_THREE_WAY, A_TWO_WAY,
@@ -220,7 +220,9 @@ const rawGraph = (id: string, label: string, exportName: string) => defineGraph(
   formatFeatures: groupedFeatures(id),
   ...(id === G_HEATMAP ? {} : {
     // Comparisons within rows / data sets / three-way cells land on bars.
-    comparisons: groupedComparisons,
+    // Lines across rows: comparisons within each row, as stars at each
+    // time point (P-105).
+    comparisons: id === G_LINES ? timePointComparisons : groupedComparisons,
     formatDatasets: groupedFormatDatasets,
   }),
 });

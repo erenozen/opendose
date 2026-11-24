@@ -21,6 +21,8 @@ import {
   compactLetters, formatPStyle, graphHideNs, graphPStyle, isNs, lettersInputKey, pairKey,
   stackBrackets, starsFor, type Comparison,
 } from "./significance.ts";
+import { stackTimeStars, timeStars } from "./timeStars.ts";
+import { laneMarginBrackets, laneWidth } from "./marginBrackets.ts";
 import { applyClassic } from "./theme.ts";
 import { maxOf } from "../lib/extent.ts";
 
@@ -89,6 +91,9 @@ export interface FormatContext {
   /** A caption line drawn under the plot inside the figure (exports carry
    *  it), e.g. the legend sentence (legend.ts). Empty = none. */
   caption?: string;
+  /** Kaplan-Meier graphs (P-111): `comparisons` are drawn as brackets in
+   *  the right margin joining the ends of the curves (role "line"). */
+  marginBrackets?: boolean;
 }
 
 /** Where a group sits: an X value on the main X axis, or on another one. */
@@ -299,12 +304,21 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
     const half = ctx.groupHalf ?? 0.45;
     const top = (lo: number, hi: number, xref = "x") =>
       topBetween(measured, lo - half, hi + half, yr, maps.y, xref);
-    if (format.comparisons?.show) {
+    if (format.comparisons?.show && format.comparisons.placement === "time") {
+      drawTimeStars(layout, traces, format, ctx, groupX, top, span, ordered, chrome);
+    } else if (format.comparisons?.show) {
       drawBrackets(layout, format, ctx.comparisons, groupX, top, span, chrome);
     }
     if (format.letters?.show) {
       drawLetters(layout, format, ctx, groupX, top, span, ordered, chrome);
     }
+  }
+
+  // ---- brackets beside a Kaplan-Meier graph (P-111)
+  if (ctx.marginBrackets && ctx.comparisons?.length && format.comparisons?.show) {
+    const yr = axisRanges.y;
+    const span = (yr ? yr[1] - yr[0] : 0) || spanOf(traces, maps.y) || 1;
+    drawMarginBrackets(layout, traces, format, ctx, span, maps.y, chrome);
   }
 
   // ---- number at risk table
@@ -944,12 +958,15 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
   const style = graphPStyle(format);
   const hideNs = graphHideNs(c);
   const hidden = new Set(c.hidden ?? []);
-  const items = comparisons
+  const items0 = comparisons
     .filter((cmp) => !hidden.has(pairKey(cmp)))
     .filter((cmp) => !isNum(c.threshold) || cmp.p < c.threshold)
     .filter((cmp) => !hideNs || !isNs(cmp.p, style))
     .map((cmp) => ({ cmp, p0: toPos(groupX(cmp.a, cmp.family)),
-      p1: toPos(groupX(cmp.b, cmp.family)) }))
+      p1: toPos(groupX(cmp.b, cmp.family)) }));
+  // pairs between two panels (two X axes) are drawn above both (P-111)
+  const across = items0.filter((e) => e.p0 && e.p1 && e.p0.xref !== e.p1.xref);
+  const items = items0
     .filter((e) => e.p0 && e.p1 && e.p0.xref === e.p1.xref && e.p0.x !== e.p1.x)
     .map((e) => ({
       key: pairKey(e.cmp), x0: e.p0!.x, x1: e.p1!.x, xref: e.p0!.xref,
@@ -958,7 +975,7 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
         : starsFor(e.cmp.p, style),
       isP: c.display === "p" || (c.display === "mixed" && isNs(e.cmp.p, style)),
     }));
-  if (!items.length) return;
+  if (!items.length && !across.length) return;
   // exact-P labels (smaller, raised a little) by pair key
   const pLabels = new Set(items.filter((i) => i.isP).map((i) => i.key));
   // One tier must clear a label (~16 px) on a plot a few hundred px tall.
@@ -984,6 +1001,143 @@ function drawBrackets(layout: Layout, format: GraphFormat, comparisons: Comparis
       text: b.label, name: "bracket-label",
       font: { size: c.textSize ?? (pLabels.has(b.key) ? 11 : 14), color } });
   }
+  if (across.length) {
+    drawPanelBrackets(layout, across.map((e) => ({ key: pairKey(e.cmp), p: e.cmp.p,
+      a: e.p0!, b: e.p1! })), placed, top, step, tick, line, color, c, style);
+  }
+}
+
+/** Brackets between two panels of a figure (the three-way graph's two
+ *  X axes, P-111): placed in paper units from each axis's domain and fixed
+ *  range, above every bracket and mark of both panels, the shortest
+ *  lowest. A panel without a fixed range gets no such bracket. */
+function drawPanelBrackets(layout: Layout,
+  pairs: { key: string; p: number; a: { x: number; xref: string }; b: { x: number; xref: string } }[],
+  placed: { y: number; xref: string }[], top: (lo: number, hi: number, xref?: string) => number,
+  step: number, tick: number, line: { color: string; width: number }, color: string,
+  c: NonNullable<GraphFormat["comparisons"]>, style: ReturnType<typeof graphPStyle>) {
+  const paperX = (p: { x: number; xref: string }): number | null => {
+    const ax = layout[p.xref === "x" ? "xaxis" : `xaxis${p.xref.slice(1)}`];
+    const r = ax?.range, d = ax?.domain ?? [0, 1];
+    if (!Array.isArray(r) || !isNum(r[0]) || !isNum(r[1]) || r[1] === r[0]) return null;
+    return d[0] + (p.x - r[0]) / (r[1] - r[0]) * (d[1] - d[0]);
+  };
+  const rows = pairs.map((q) => ({ ...q, pa: paperX(q.a), pb: paperX(q.b) }))
+    .filter((q): q is typeof q & { pa: number; pb: number } => q.pa !== null && q.pb !== null)
+    .sort((p, q) => Math.abs(p.pa - p.pb) - Math.abs(q.pa - q.pb));
+  if (!rows.length) return;
+  const refs = new Set(rows.flatMap((q) => [q.a.xref, q.b.xref]));
+  let base = -Infinity;
+  for (const xref of refs) base = Math.max(base, top(-Infinity, Infinity, xref));
+  for (const b of placed) if (refs.has(b.xref)) base = Math.max(base, b.y);
+  rows.forEach((q, k) => {
+    const y = base + step * (k + 1);
+    const isP = c.display === "p" || (c.display === "mixed" && isNs(q.p, style));
+    const lo = Math.min(q.pa, q.pb), hi = Math.max(q.pa, q.pb);
+    layout.shapes.push({ type: "line", xref: "paper", yref: "y", x0: lo, x1: hi, y0: y, y1: y, line,
+      name: "bracket" });
+    if (c.style !== "line") {
+      for (const x of [lo, hi]) {
+        layout.shapes.push({ type: "line", xref: "paper", yref: "y", x0: x, x1: x, y0: y, y1: y - tick,
+          line, name: "bracket" });
+      }
+    }
+    layout.annotations.push({ xref: "paper", yref: "y", x: (lo + hi) / 2, y, yanchor: "bottom",
+      yshift: isP ? 2 : -1, showarrow: false, name: "bracket-label",
+      text: isP ? formatPStyle(q.p, style, c.prefix ?? (style === "apa" ? "p = " : "P = "))
+        : starsFor(q.p, style),
+      font: { size: c.textSize ?? (isP ? 11 : 14), color } });
+  });
+}
+
+/** Stars at each time point (P-105, timeStars.ts): one label per group
+ *  compared with the reference, stacked above the highest mark at that
+ *  time, in that group's colour when there are more than two groups. */
+function drawTimeStars(layout: Layout, traces: Trace[], format: GraphFormat, ctx: FormatContext,
+  groupX: (name: string, family?: string) => GroupPos,
+  top: (lo: number, hi: number, xref?: string) => number, span: number, ordered: number[],
+  chrome: Chrome) {
+  const c = format.comparisons!;
+  const style = graphPStyle(format);
+  const stars = timeStars(ctx.comparisons ?? [], c, style, graphHideNs(c));
+  const order = ordered.map((i) => ctx.datasets[i]);
+  const colorOf = (name: string | null): string | null => {
+    if (name === null) return null;
+    const i = ctx.datasets.indexOf(name);
+    const t = traces.find((u) => traceTag(u)?.ds === i && traceTag(u)?.role === "points");
+    const col = t?.marker?.color ?? t?.line?.color;
+    return typeof col === "string" ? col : null;
+  };
+  const step = span * 0.065;
+  for (const s of stackTimeStars(stars, order)) {
+    const cmp = (ctx.comparisons ?? []).find((x) => pairKey(x) === s.key)!;
+    const p = toPos(groupX(cmp.a, cmp.family)) ?? toPos(groupX(cmp.b, cmp.family));
+    if (!p) continue;
+    const y = top(p.x, p.x, p.xref) + span * 0.04 + s.level * step;
+    layout.annotations.push({ xref: p.xref, yref: "y", x: p.x, y, yanchor: "bottom",
+      showarrow: false, text: s.text, name: "time-star",
+      font: { size: c.textSize ?? (s.isP ? 11 : 14), color: c.color ?? colorOf(s.group) ?? chrome.ink } });
+  }
+}
+
+/** Log-rank brackets in the right margin (P-111, marginBrackets.ts): a
+ *  vertical line from where one curve ends to where the other ends, short
+ *  ticks pointing back at the curves, the label to its right; the margin
+ *  widens to hold the lanes. */
+function drawMarginBrackets(layout: Layout, traces: Trace[], format: GraphFormat, ctx: FormatContext,
+  span: number, m: AxisMap, chrome: Chrome) {
+  const c = format.comparisons!;
+  const style = graphPStyle(format);
+  const hideNs = graphHideNs(c);
+  const hidden = new Set(c.hidden ?? []);
+  const endOf = (name: string): number | null => {
+    const i = ctx.datasets.indexOf(name);
+    const t = traces.find((u) => traceTag(u)?.ds === i && traceTag(u)?.role === "line"
+      && u.visible !== false);
+    const ys = arr(t?.y).filter(isNum);
+    if (!ys.length) return null;
+    const y = ys[ys.length - 1];
+    const w = m.native ? m.to(y) : y;
+    return isNum(w) ? w : null;
+  };
+  const items = (ctx.comparisons ?? [])
+    .filter((cmp) => !hidden.has(pairKey(cmp)))
+    .filter((cmp) => !isNum(c.threshold) || cmp.p < c.threshold)
+    .filter((cmp) => !hideNs || !isNs(cmp.p, style))
+    .map((cmp) => {
+      const isP = c.display === "p" || (c.display === "mixed" && isNs(cmp.p, style));
+      return { key: pairKey(cmp), ya: endOf(cmp.a), yb: endOf(cmp.b), isP,
+        label: isP ? formatPStyle(cmp.p, style, c.prefix ?? (style === "apa" ? "p = " : "P = "))
+          : starsFor(cmp.p, style) };
+    })
+    .filter((e): e is typeof e & { ya: number; yb: number } => e.ya !== null && e.yb !== null);
+  if (!items.length) return;
+  const placed = laneMarginBrackets(items, span * 0.03);
+  const W = laneWidth(items.some((i) => i.isP));
+  const color = c.color ?? chrome.ink;
+  const line = { color, width: c.lineWidth ?? 1.2 };
+  const pad = 10;
+  const tick = c.style === "tall" ? 10 : 5;
+  const byKey = new Map(items.map((i) => [i.key, i]));
+  for (const b of placed) {
+    const at = pad + b.lane * W;
+    const px = (x0: number, x1: number) => ({ xref: "paper", xsizemode: "pixel", xanchor: 1, x0, x1 });
+    layout.shapes.push({ type: "line", ...px(at, at), yref: "y", y0: b.lo, y1: b.hi, line,
+      name: "bracket" });
+    if (c.style !== "line") {
+      for (const y of [b.lo, b.hi]) {
+        layout.shapes.push({ type: "line", ...px(at - tick, at), yref: "y", y0: y, y1: y, line,
+          name: "bracket" });
+      }
+    }
+    const it = byKey.get(b.key)!;
+    layout.annotations.push({ xref: "paper", x: 1, xshift: at + 3, xanchor: "left", yref: "y",
+      y: (b.lo + b.hi) / 2, yanchor: "middle", showarrow: false, text: it.label, name: "bracket-label",
+      font: { size: c.textSize ?? (it.isP ? 11 : 14), color } });
+  }
+  const lanes = Math.max(...placed.map((b) => b.lane)) + 1;
+  layout.margin = { ...(layout.margin ?? {}),
+    r: Math.max(layout.margin?.r ?? 0, pad + lanes * W + 8) };
 }
 
 function drawLetters(layout: Layout, format: GraphFormat, ctx: FormatContext,
@@ -1173,7 +1327,9 @@ function splitAxis(layout: Layout, traces: Trace[], gap: { from: number; to: num
   if (!(g0 > lo && g1 < hi)) return;
   const lowSpan = g0 - lo, highSpan = hi - g1;
   const room = 0.95, sep = 0.05;
-  const f = Math.min(0.8, Math.max(0.2, room * lowSpan / (lowSpan + highSpan)));
+  // Format axes › the lower segment's share of the axis, else by the spans
+  const f = isNum(a.segment) ? room * a.segment
+    : Math.min(0.8, Math.max(0.2, room * lowSpan / (lowSpan + highSpan)));
   const y = layout.yaxis ?? {};
   const title = y.title;
   layout.yaxis = { ...y, range: [lo, g0], autorange: false, domain: [0, f], title: undefined };

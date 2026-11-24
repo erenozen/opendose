@@ -19,6 +19,7 @@ import {
   type SurvivalCi, type SurvivalScale, type SurvivalShow,
 } from "../sheets/survival/graphSettings";
 import { kmRowsFromEngine, kmTable, survivalGroups, type KmRow } from "../sheets/survival/kmTable";
+import { survivalComparisons } from "../sheets/survival/brackets";
 import TableCopy from "../sheets/common/TableCopy";
 import type { DataTableModel } from "../project/types";
 
@@ -178,6 +179,8 @@ export function SurvivalPlot({
     };
     const out = applyFormat(traces as never, layout, format, {
       dark, scheme, datasets: Object.keys(result.curves),
+      // pairwise log-rank brackets beside the curves' ends (P-111)
+      comparisons: survivalComparisons(result)?.comparisons, marginBrackets: true,
       riskSets: riskSets ?? riskSetsFromResult(result),
       results: resultBlocks(result, graphPStyle(format)), editRevision: rev,
     });

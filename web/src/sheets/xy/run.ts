@@ -4,6 +4,7 @@
 import type { EngineBridge } from "../../lib/engine";
 import { numericData, parseCell } from "../../project/table";
 import { curveOptions } from "./curveRange";
+import { zeroDoseOption } from "./zeroDose";
 import { bootstrapOption } from "./bootstrap";
 import { regionOption } from "./fitRegion";
 import { SUBCOLUMN_FORMAT_ENGINE, type DataTableModel } from "../../project/types";
@@ -102,6 +103,14 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
     return { analysis: "dose_response", datasets: [],
       error: "Typed initial values apply to curves fitted one at a time, not to global fits with "
         + "shared parameters or the Gaddum/Schild model; clear them under Initial values" };
+  }
+  // each curve's plateau held at its own zero-dose wells (P-104): the
+  // engine does it for curves fitted one at a time
+  if (options.zeroDosePlateau && route !== "dose_response") {
+    return { analysis: "dose_response", datasets: [],
+      error: "Holding each curve's plateau at its own zero-dose wells applies to curves fitted one "
+        + "at a time, not to global fits with shared parameters or the Gaddum/Schild model; stop it "
+        + "in the zero-dose note, or hold the plateau constant" };
   }
   // the shared-parameter fits (engine globalfit / fit_global_model) weight
   // only by 1/Y, 1/Y² or 1/X: say so rather than pass an unknown weighting
@@ -245,6 +254,7 @@ export function runNonlin(engine: EngineBridge, table: DataTableModel,
       constraints,
       ...(Object.keys(bounds).length ? { bounds } : {}),
       ...(Object.keys(starts).length ? { initial_values: starts } : {}),
+      ...zeroDoseOption(options),
       weighting: engineWeighting(options),
       ...weightSourceOption(options, summary),
       ci_method: options.ciMethod,

@@ -103,6 +103,15 @@ export interface AxisFormat {
   extraTicks?: ExtraTick[];
   /** Discontinuous axis: leave out the range between `from` and `to`. */
   gap?: { from: number; to: number } | null;
+  /** Share of the axis length (0.1 to 0.9) given to the first segment of
+   *  a broken axis: the lower segment of a Y gap, the zero-dose segment
+   *  of the X axis. Absent = automatic. */
+  segment?: number;
+  /** X axis of a log(X) curve fit (P-104): draw the X values that have no
+   *  logarithm (a zero dose) in their own segment left of a break. */
+  zeroBreak?: boolean;
+  /** Tick label of that segment; absent = the X value with its unit. */
+  zeroLabel?: string;
   /** Elapsed-time numbering: the unit the values are in. */
   elapsedUnit?: "s" | "min" | "h";
   /** Date numbering (d3 time format, e.g. "%b %d"). */
@@ -196,6 +205,9 @@ export interface ComparisonsFormat {
   /** Only draw pairs with P below this (null/absent = all, ns included). */
   threshold?: number | null;
   style?: "bracket" | "line" | "tall";
+  /** "time": a star label above each time point of a lines or time-course
+   *  graph (P-105, timeStars.ts); absent = brackets between groups. */
+  placement?: "time";
   /** Leave out pairs that are not significant ("ns"); absent = the
    *  project's "hide ns" (Preferences → Reporting). */
   hideNs?: boolean;
@@ -335,6 +347,9 @@ function axisFormat(r: Raw): AxisFormat {
           grid: bool(t.grid) }))
       : undefined,
     gap,
+    segment: num(r.segment, 0.1, 0.9),
+    zeroBreak: bool(r.zeroBreak),
+    zeroLabel: str(r.zeroLabel, 40),
     elapsedUnit: oneOf(r.elapsedUnit, ["s", "min", "h"] as const),
     dateFormat: str(r.dateFormat, 40),
     title: str(r.title, 300),
@@ -399,6 +414,7 @@ export function normalizeFormat(raw: unknown): GraphFormat {
     prefix: oneOf(c.prefix, ["P = ", "p = ", ""] as const),
     threshold: c.threshold === null ? null : num(c.threshold, 0, 1),
     style: oneOf(c.style, ["bracket", "line", "tall"] as const),
+    placement: oneOf(c.placement, ["time"] as const),
     hideNs: bool(c.hideNs),
     lineWidth: num(c.lineWidth, 0.25, 8),
     color: color(c.color),
@@ -544,6 +560,9 @@ export interface FormatFeatures {
   /** X is a category axis although data sets do not sit at x = i
    *  (grouped graphs): Format axes hides the numeric X settings. */
   categoryX?: boolean;
+  /** A curve-fit graph whose log(X) model leaves out X values with no
+   *  logarithm: Format axes offers them their own segment (P-104). */
+  zeroBreak?: boolean;
 }
 
 export const DEFAULT_FEATURES: FormatFeatures = {

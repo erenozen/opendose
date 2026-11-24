@@ -34,7 +34,7 @@ import { groupedFormatDatasets, isThreeWayOptions, rowsFromX } from "./graphData
 import { buildHeat, heatMatrix } from "./buildHeat";
 import { HEAT_CLUSTER_SETTINGS, clusterAvailable, clusterOrder, type ClusterOrder } from "./heatCluster";
 import {
-  groupedComparisons, groupedDatasetLabels, groupedRowLabels, threeWayCells,
+  groupedComparisons, groupedDatasetLabels, groupedRowLabels, threeWayCells, timePointComparisons,
 } from "./comparisons";
 import {
   G_BOX, G_INTERLEAVED, G_LINES, G_SCATTER, G_SEPARATED, G_STACKED, G_THREE_WAY,
@@ -109,7 +109,9 @@ export function GroupedPlot({ graph, table, options, result, titles, scheme, for
   // (report/GraphLegend.tsx); only "In the figure" draws the sentence here.
   const sentence = useMemo(() => (settings.caption !== "figure" ? ""
     : legendSentence(graph, table, result)), [settings.caption, graph, table, result]);
-  const cmp = useMemo(() => groupedComparisons(result, table), [result, table]);
+  // lines across rows: the comparisons within each row (stars at each time point)
+  const cmp = useMemo(() => (kind === G_LINES ? timePointComparisons : groupedComparisons)(result, table),
+    [result, table, kind]);
   const names = useMemo(() => groupedFormatDatasets(table, graph, options),
     [table, graph, options]);
 

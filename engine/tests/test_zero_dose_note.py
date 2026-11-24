@@ -24,7 +24,8 @@ def _fit(x=X, ys=Y, **opt):
 
 def test_zero_dose_is_counted_with_its_mean_and_said_plainly():
     d = _fit()
-    assert d["log_x_dropped"] == {"n_values": 2, "x_values": [0.0], "mean_y": 98.5}
+    assert d["log_x_dropped"] == {"n_values": 2, "x_values": [0.0], "mean_y": 98.5,
+                                  "rows": [0], "row_x": [0.0]}
     w = " ".join(d["warnings"])
     assert "2 Y values at X = 0 (mean 98.5) left out of the fit" in w
     assert "no logarithm" in w
@@ -59,7 +60,8 @@ def test_mean_sd_n_rows_use_the_row_mean():
     ys = [[98.5, 2.1, 2], [98.5, 0.7, 2], [89, 1.4, 2], [71, 1.4, 2],
           [46, 1.4, 2], [24.5, 0.7, 2], [15.5, 0.7, 2]]
     d = _fit(ys=ys, summary_format="mean_sd_n")
-    assert d["log_x_dropped"] == {"n_values": 1, "x_values": [0.0], "mean_y": 98.5}
+    assert d["log_x_dropped"] == {"n_values": 1, "x_values": [0.0], "mean_y": 98.5,
+                                  "rows": [0], "row_x": [0.0]}
 
 
 def test_constraining_top_to_the_zero_dose_mean_is_honoured():

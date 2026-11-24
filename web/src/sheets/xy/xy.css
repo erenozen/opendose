@@ -17,6 +17,9 @@
 .range-flags { border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
 .zero-dose { border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
 .zero-dose-actions { display: flex; flex-direction: column; gap: var(--space-6); align-items: flex-start; }
+/* the stated reason of the per-curve hold (P-104): a sentence, so the full width */
+.zero-dose-reason { align-self: stretch; }
+.zero-dose-reason input { width: 100%; }
 .range-chip { margin: 0 0 var(--space-6); color: var(--ink); font-size: var(--text-body-s); }
 .range-chip strong { color: var(--warn-ink); }
 .range-mode select { max-width: 100%; }

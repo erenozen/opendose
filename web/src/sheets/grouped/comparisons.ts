@@ -85,3 +85,32 @@ export function groupedComparisons(result: unknown, table: DataTableModel): Comp
     ...table.datasets.map((d) => d.name)])];
   return extractComparisons(r, names);
 }
+
+/** What compares the curves themselves, for the legend of stars at each
+ *  time point (P-105): the per-time tests are not that analysis. */
+function curveTestOf(r: R): string {
+  if (typeof r.n_tests === "number") {
+    return "comparing whole curves needs one model of every time point, such as two-way ANOVA "
+      + "or a mixed model over time";
+  }
+  return "the two-way ANOVA's interaction tests whether the curves differ in shape, and its "
+    + "column factor whether they differ overall";
+}
+
+/**
+ * The comparisons of a lines graph whose X axis holds the rows (time
+ * points): those made within each row between data sets, which can be
+ * drawn as stars at each time point (P-105). Other results keep the full
+ * set, as before.
+ */
+export function timePointComparisons(result: unknown, table: DataTableModel): ComparisonSet | null {
+  const set = groupedComparisons(result, table);
+  if (!set) return null;
+  const rows = new Set(groupedRowLabels(table));
+  const dss = new Set([...groupedDatasetLabels(table), ...table.datasets.map((d) => d.name)]);
+  const within = set.comparisons.filter((c) => !!c.family && rows.has(c.family)
+    && dss.has(c.a) && dss.has(c.b));
+  if (!within.length) return set;
+  return { ...set, comparisons: within, unmatched: set.unmatched, letters: false, timePoints: true,
+    curveTest: curveTestOf(result as R) };
+}

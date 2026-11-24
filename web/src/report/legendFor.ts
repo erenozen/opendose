@@ -28,6 +28,10 @@ import { estimationMargins, marginsLegend, type EquivalenceLink } from "./estima
 import { GRAPH_ESTIMATION } from "./estimation/run.ts";
 import { FOREST_DEFAULTS, forestPlotted, type ForestSettings } from "./metaAnalysis/forest.ts";
 import { GRAPH_FOREST } from "./metaAnalysis/run.ts";
+import { GRAPH_SURVIVAL } from "../project/builtin.ts";
+import { survivalBracketClause } from "../sheets/survival/brackets.ts";
+import { perTimeClause } from "../graph/timeStars.ts";
+import { tcComparisons } from "../sheets/assays/timecourse/timeStars.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -106,7 +110,11 @@ function ownPlotted(g: GraphSheet, result: unknown, options: unknown): string | 
   }
   if (g.graphType === G_TC_MEANS) {
     const s = (g.settings.timecourse ?? {}) as any;
-    return timecoursePlotted(ci, s.subjects === true, s.ci === "band" || s.ci === "none" ? s.ci : "bars");
+    const plotted = timecoursePlotted(ci, s.subjects === true, s.ci === "band" || s.ci === "none" ? s.ci : "bars");
+    // stars at each time point (P-105): what they compare, and what tests the curves
+    const c = readFormat(g.settings).comparisons;
+    const stars = c?.show && c.placement === "time" ? perTimeClause(tcComparisons(result)) : "";
+    return stars ? `${plotted} ${stars}.` : plotted;
   }
   return SUBJECT_DOTS_PLOTTED;
 }
@@ -171,12 +179,16 @@ export function legendFor(c: LegendContext): string {
   const estPlotted = eqClause ? `${whatIsPlotted(GRAPH_ESTIMATION, {
     estimation: ra === "estimation" ? c.result as any : null })} ${eqClause}` : undefined;
   // the forest plot of combined experiments: the plot says what it pools
+  // Kaplan-Meier: the log-rank brackets at the right (P-111)
+  const kmClause = c.graph?.graphType === GRAPH_SURVIVAL && fmt?.comparisons?.show
+    ? survivalBracketClause(c.result) : "";
+  const kmPlotted = kmClause ? `${kmClause}.` : undefined;
   const forest = c.graph?.graphType === GRAPH_FOREST && ra === "meta_analysis"
     ? forestPlotted(c.result as any, { ...FOREST_DEFAULTS,
       ...(c.graph.settings.forest as Partial<ForestSettings> | undefined) }) : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: forest ?? xyFit ?? ctPlotted ?? estPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+    plotted: forest ?? xyFit ?? ctPlotted ?? estPlotted ?? kmPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
     valuesAre: c.valuesAre ?? undefined,
     result: c.result,
@@ -202,8 +214,9 @@ export function legendFor(c: LegendContext): string {
 function xyFitPlotted(g: GraphSheet, table: DataTableModel, result: unknown, options: unknown,
   errorBars: ErrorBars | null): string | undefined {
   const s = normalizeXYGraph(g.settings.xy);
-  const yGap = readFormat(g.settings).y?.gap ?? null;
-  const fit = fitLegendClause(table, result, options, s, yGap);
+  const fmt = readFormat(g.settings);
+  const yGap = fmt.y?.gap ?? null;
+  const fit = fitLegendClause(table, result, options, s, yGap, !!fmt.x?.zeroBreak);
   if (fit) return fit;
   const drop = dropLegend(result, s, yGap);
   return drop ? `${whatIsPlotted("xy", { errorBars })} ${drop}` : undefined;

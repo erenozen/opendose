@@ -1,0 +1,146 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Stars at each time point",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "g003",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Tumour volume",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Volume (mm³)",
+    "rowTitles": [
+     "Day 0",
+     "Day 7",
+     "Day 14",
+     "Day 21"
+    ],
+    "datasets": [
+     {
+      "name": "Vehicle",
+      "rows": [
+       [
+        "102",
+        "98",
+        "105",
+        "95",
+        "100"
+       ],
+       [
+        "180",
+        "165",
+        "172",
+        "190",
+        "176"
+       ],
+       [
+        "310",
+        "290",
+        "335",
+        "300",
+        "322"
+       ],
+       [
+        "520",
+        "480",
+        "545",
+        "505",
+        "530"
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "101",
+        "97",
+        "99",
+        "103",
+        "96"
+       ],
+       [
+        "150",
+        "141",
+        "156",
+        "148",
+        "152"
+       ],
+       [
+        "268",
+        "276",
+        "262",
+        "289",
+        "277"
+       ],
+       [
+        "300",
+        "340",
+        "285",
+        "320",
+        "310"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "grouped_two_way",
+   "options": {
+    "rowFactor": "Day",
+    "colFactor": "Treatment",
+    "comparisons": "sidak",
+    "direction": "columns_within_rows"
+   },
+   "name": "Two-way ANOVA of Tumour volume"
+  },
+  {
+   "id": "g003",
+   "kind": "graph",
+   "parentId": "d001",
+   "resultsId": "r002",
+   "graphType": "grouped_lines",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default",
+    "grouped": {
+     "caption": "below"
+    },
+    "format": {
+     "comparisons": {
+      "show": true,
+      "placement": "time"
+     }
+    }
+   },
+   "name": "Growth curves"
+  }
+ ]
+}

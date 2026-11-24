@@ -26,7 +26,7 @@ const NUMBERS = [["auto", "Automatic"], ["decimal", "Decimal (1,000)"],
   ["date", "Date"]] as const;
 
 export default function FormatAxesDialog({
-  format, titles, autoTitles, categoricalX, hasY2, onApply, onClose,
+  format, titles, autoTitles, categoricalX, hasY2, zeroBreak = false, onApply, onClose,
 }: {
   format: GraphFormat;
   titles: Titles;
@@ -34,6 +34,8 @@ export default function FormatAxesDialog({
   /** X is a category axis (column graphs): no numeric settings for X. */
   categoricalX: boolean;
   hasY2: boolean;
+  /** A log(X) curve-fit graph: offer the zero dose left of an X break. */
+  zeroBreak?: boolean;
   onApply: (f: GraphFormat, titles: Titles) => void;
   onClose: () => void;
 }) {
@@ -72,6 +74,7 @@ export default function FormatAxesDialog({
         ) : (
           <AxisEditor key={tab} which={tab} value={draft[tab] ?? {}} unit={unit}
             categorical={tab === "x" && categoricalX}
+            zeroBreak={tab === "x" && zeroBreak}
             title={tab === "y2" ? draft.y2?.title ?? "" : tTitles[tab]}
             titlePlaceholder={tab === "y2" ? "None" : autoTitles[tab] || "None"}
             onTitle={(t) => {
@@ -85,8 +88,10 @@ export default function FormatAxesDialog({
   );
 }
 
-function AxisEditor({ which, value: a, unit, onChange, categorical, title, titlePlaceholder, onTitle }: {
+function AxisEditor({ which, value: a, unit, onChange, categorical, zeroBreak, title, titlePlaceholder,
+  onTitle }: {
   which: AxisKey;
+  zeroBreak: boolean;
   value: AxisFormat;
   unit: SizeUnit;
   onChange: (a: AxisFormat) => void;
@@ -188,6 +193,23 @@ function AxisEditor({ which, value: a, unit, onChange, categorical, title, title
                 onChange={(v) => set({ gap: { from: v ?? 0, to: a.gap!.to } })} />
               <NumField label="Gap ends at" value={a.gap.to}
                 onChange={(v) => set({ gap: { from: a.gap!.from, to: v ?? 0 } })} />
+              <SegmentField label="Lower segment (% of the axis)" value={a.segment}
+                onChange={(segment) => set({ segment })} />
+            </>
+          )}
+        </Section>
+      )}
+      {which === "x" && zeroBreak && (
+        <Section title="Zero dose">
+          <CheckField label="Draw the zero dose left of a break" checked={!!a.zeroBreak}
+            note="X = 0 has no logarithm, so a log(X) fit leaves those wells out. They get their own segment at the X entered; the curve stays right of the break."
+            onChange={(v) => set({ zeroBreak: v || undefined })} />
+          {a.zeroBreak && (
+            <>
+              <SegmentField label="Zero-dose segment (% of the axis)" value={a.segment}
+                placeholder="12" onChange={(segment) => set({ segment })} />
+              <TextField label="Segment label" value={a.zeroLabel} placeholder="The X entered"
+                onChange={(v) => set({ zeroLabel: v?.trim() ? v : undefined })} />
             </>
           )}
         </Section>
@@ -215,6 +237,19 @@ function AxisEditor({ which, value: a, unit, onChange, categorical, title, title
         </fieldset>
       )}
     </>
+  );
+}
+
+/** A segment's share of a broken axis, typed in percent (10 to 90). */
+function SegmentField({ label, value, onChange, placeholder = "Auto" }: {
+  label: string; value: number | undefined; placeholder?: string;
+  onChange: (v: number | undefined) => void;
+}) {
+  return (
+    <NumField label={label} placeholder={placeholder}
+      value={value === undefined ? undefined : Math.round(value * 1000) / 10}
+      note="10 to 90"
+      onChange={(v) => onChange(v == null ? undefined : Math.min(0.9, Math.max(0.1, v / 100)))} />
   );
 }
 

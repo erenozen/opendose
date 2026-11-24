@@ -1894,6 +1894,71 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1200);
   } },
+  // the vehicle left of an X axis break, each Top held at its own wells (P-104)
+  { name: "graphs-zero-break", setup: async (s) => {
+    await fixture(s, "zero-break.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .filter((t) => t.xaxis === "x3").length === 2, null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-format-axes-zero", setup: async (s) => {
+    await fixture(s, "zero-break.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    // a formatted graph's button reads "Settings Formatted"
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: /^Settings/ }));
+    await click(s, dialog(s, "Graph settings").getByRole("button", { name: "Format axes…" }));
+    const d = s.page.locator("dialog.fmt-dialog");
+    await click(s, d.getByRole("tab", { name: "X axis" }));
+    await d.getByRole("checkbox", { name: "Draw the zero dose left of a break" })
+      .evaluate((e) => e.scrollIntoView({ block: "center" }));
+    await settle(s, 500);
+  } },
+  { name: "results-zero-dose-hold", setup: async (s) => {
+    await fixture(s, "zero-break.json", { live: true });
+    await click(s, s.page.getByRole("treeitem", { name: "Nonlin fit of Vehicle wells, not held", exact: true })
+      .first().locator(":scope > .nav-row"));
+    const note = s.page.getByRole("note", { name: "Zero dose left out" });
+    await note.getByRole("button", { name: "Hold each curve's Top at its own zero-dose wells" })
+      .waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .zero-dose", "center");
+  } },
+  // a star at each day from the two-way ANOVA's Sidak comparisons (P-105)
+  { name: "graphs-time-stars", setup: async (s) => {
+    await fixture(s, "time-stars.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .filter((a) => a.name === "time-star").length === 4, null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  { name: "graphs-comparisons-time", setup: async (s) => {
+    await fixture(s, "time-stars.json", { live: true });
+    await s.page.locator(".js-plotly-plot").first().waitFor();
+    await into(s, ".plot-card", "center");
+    await click(s, s.page.locator(".plot-card").getByRole("button", { name: /^Settings/ }));
+    await click(s, dialog(s, "Graph settings").getByRole("button", { name: "Pairwise comparisons…" }));
+    await s.page.locator("dialog.fmt-dialog").getByRole("checkbox", { name: "Show stars at each time point" })
+      .waitFor();
+    await settle(s, 500);
+  } },
+  // pairwise log-rank brackets beside Kaplan-Meier curves (P-111)
+  { name: "graphs-km-brackets", setup: async (s) => {
+    await fixture(s, "km-brackets.json", { live: true });
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .filter((a) => a.name === "bracket-label").length === 3, null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
+  // brackets between the two panels of the three-way graph (P-111)
+  { name: "graphs-panel-brackets", setup: async (s) => {
+    await fixture(s, "km-brackets.json", { live: true });
+    await selectSheet(s, "Three-way graph");
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.layout?.annotations ?? [])
+      .some((a) => a.name === "bracket-label" && a.xref === "paper"), null, { timeout: 120000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1200);
+  } },
   { name: "graphs-fit-drop-lines", setup: async (s) => {
     await fixture(s, "fit-graph.json", { live: true });
     await s.page.locator(".js-plotly-plot").first().waitFor();
