@@ -2692,3 +2692,11 @@ comparing global and user-defined fits (`compare_global_fits`, P-99) and
 assay precision (`precision_study`, P-94) have neither yet: the
 statistics table lists each of them with a "Not tabulated" note, and
 their results sheets carry no "What this means" line.
+
+Independent check (2026-11-24, by the lead, scipy and numpy): on the
+stats-table column data, ttest_ind Control vs Treated A gives t
+-5.595749, P 2.290368e-4 (10 df); f_oneway F(2, 15) 84.7535; Tukey
+q = 8.288185, P 8.778765e-5 from scipy.stats.studentized_range; an own
+Poisson IRLS with log(area) offset gives the rate ratio 2.5 (Wald 1.983
+to 3.153; the engine reports the profile interval 1.99 to 3.166); an own
+probit maximum-likelihood fit on log10 dose gives ED50 4.28195.
