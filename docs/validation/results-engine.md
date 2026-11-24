@@ -3543,3 +3543,24 @@ e2e (`e2e-share.mjs`), every shown value equal to the certified value at
 238.9421292, b2 5.501564318e-4, SS 0.1245513889, Sy.x 0.1018787633);
 SmLs01 (F 21, R² 0.4827586207, residual SD 0.1); Lew (mean -177.435, SD
 277.332168, n 200).
+
+## Feature validation: import provenance (2026-11-24)
+
+### P-76 Import provenance and replayed imports
+
+No new computation. A table made or refilled by an import records the
+file's name, size and SHA-256 (Web Crypto, `crypto.subtle.digest`), the
+recipe or Import dialog settings, and a copy of the values as imported.
+Unit tests (`project/__tests__/importRecord.test.ts`): the SHA-256 of
+`e2e-fixtures/plate-reader.csv` from Web Crypto equals node's
+`crypto.createHash("sha256")` of the same bytes (and of pasted text, as
+UTF-8); the plate-reader recipe re-run on its own file gives the table
+back byte for byte (`JSON.stringify` equal), directly and through Apply
+to new data's matching and write-back; one cell edited by hand is
+counted as 1 and named; next week's file goes through the same recipe
+and the earlier import is kept with its 1 hand edit; a file the recipe
+cannot read is refused with the recipe's reason; the plain Import
+dialog's settings re-run to the same table; an append is recorded and
+not replayable; a project saved before records existed opens and saves
+unchanged. e2e (`e2e-share.mjs`): the plan's acceptance test, with the
+hash History shows equal to node's SHA-256 of the fixture.

@@ -146,6 +146,10 @@
         "report": {
           "$ref": "#/definitions/ReportMeta",
           "description": "Reporting details (unit of n, independent experiments, exclusions, sample-size reasoning) for legends, methods and journal checklists (src/report)."
+        },
+        "imported": {
+          "$ref": "#/definitions/ImportRecord",
+          "description": "Where the values came from: the file (name, SHA-256), the recipe or import settings, and the values as imported, so hand edits since can be counted (project/importRecord.ts, P-76). Absent in files saved before it existed, and on tables typed or pasted in."
         }
       },
       "required": [
@@ -557,6 +561,213 @@
         "cell",
         "dismissed"
       ]
+    },
+    "ImportRecord": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "string",
+          "description": "ISO date-time of the import."
+        },
+        "how": {
+          "$ref": "#/definitions/ImportHow"
+        },
+        "mode": {
+          "$ref": "#/definitions/ImportMode"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportSource"
+          }
+        },
+        "basis": {
+          "type": "string",
+          "description": "\"Plain import\", or the recipe's name (\"Plate reader grid …\")."
+        },
+        "recipeName": {
+          "type": "string",
+          "description": "The saved recipe applied, if one was."
+        },
+        "spec": {
+          "type": "object",
+          "additionalProperties": {},
+          "description": "The settings: share/recipes/saved.ts SavedSpec (normalizeSpec reads it)."
+        },
+        "read": {
+          "type": "object",
+          "properties": {
+            "encoding": {
+              "type": "string"
+            },
+            "keepFiltered": {
+              "type": "boolean"
+            },
+            "skipHidden": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false,
+          "description": "How the file was read: text encoding, rows hidden in a workbook."
+        },
+        "replayable": {
+          "type": "boolean",
+          "description": "Re-running the settings on the same file gave this table exactly (checked when the record was made); otherwise `why` says why not."
+        },
+        "why": {
+          "type": "string"
+        },
+        "cells": {
+          "type": "string",
+          "description": "Fingerprint of the values as imported (cellsFingerprint)."
+        },
+        "snapshot": {
+          "$ref": "#/definitions/CellSnapshot",
+          "description": "The values as imported, kept up to SNAPSHOT_CELLS cells."
+        },
+        "earlier": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EarlierImport"
+          }
+        }
+      },
+      "required": [
+        "at",
+        "how",
+        "mode",
+        "sources",
+        "basis",
+        "replayable",
+        "cells"
+      ],
+      "additionalProperties": false
+    },
+    "ImportHow": {
+      "type": "string",
+      "enum": [
+        "import",
+        "recipe",
+        "apply"
+      ],
+      "description": "How the values got in: the Import dialog, a recipe, or Apply to new data putting a file into the table in its own layout."
+    },
+    "ImportMode": {
+      "type": "string",
+      "enum": [
+        "new",
+        "replace",
+        "append",
+        "insert"
+      ],
+      "description": "A new table, the table's values replaced, or rows added."
+    },
+    "ImportSource": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The file name as chosen, or \"pasted text\"."
+        },
+        "sha256": {
+          "type": "string",
+          "description": "SHA-256 of the file's bytes (of the text's UTF-8 bytes when pasted)."
+        },
+        "bytes": {
+          "type": "number"
+        },
+        "worksheet": {
+          "type": "string",
+          "description": "The worksheet read, for a workbook."
+        },
+        "pasted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "sha256",
+        "bytes"
+      ],
+      "additionalProperties": false
+    },
+    "CellSnapshot": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rowTitles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "y": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "x",
+        "rowTitles",
+        "y"
+      ],
+      "additionalProperties": false,
+      "description": "The values as imported: X, row titles and every Y cell (y[d][r][s])."
+    },
+    "EarlierImport": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "type": "string"
+        },
+        "how": {
+          "$ref": "#/definitions/ImportHow"
+        },
+        "mode": {
+          "$ref": "#/definitions/ImportMode"
+        },
+        "basis": {
+          "type": "string"
+        },
+        "recipeName": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ImportSource"
+          }
+        },
+        "editedCells": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "at",
+        "how",
+        "mode",
+        "basis",
+        "sources",
+        "editedCells"
+      ],
+      "additionalProperties": false,
+      "description": "An import before the current one, with the cells edited by hand between it and the next (null: too large a table to count)."
     },
     "InfoSheet": {
       "type": "object",

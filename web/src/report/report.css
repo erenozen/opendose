@@ -96,6 +96,12 @@
   color: var(--accent); font-size: var(--text-caption); font-weight: var(--weight-semibold);
 }
 .history-step td { overflow-wrap: anywhere; }
+/* where the values came from (ImportHistory.tsx, P-76) */
+.history-step .hs-line { margin: var(--space-4) 0 0; font-size: var(--text-body-s); }
+.history-step .hs-list {
+  margin: var(--space-4) 0 0; padding-left: var(--space-20); font-size: var(--text-body-s);
+}
+.history-step .hs-hash { font-family: var(--font-mono); font-size: var(--text-caption); overflow-wrap: anywhere; }
 
 .details-form { display: flex; flex-direction: column; gap: 10px; min-width: min(520px, 90vw); }
 .details-form label {

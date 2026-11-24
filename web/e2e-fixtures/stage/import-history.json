@@ -1,0 +1,210 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Plates",
+ "prefs": {
+  "defaultTableType": "xy",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r002",
+ "sheets": [
+  {
+   "id": "d001",
+   "kind": "data",
+   "name": "Plate week 2",
+   "table": {
+    "type": "column",
+    "x": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Value",
+    "rowTitles": [
+     "",
+     "",
+     "",
+     ""
+    ],
+    "datasets": [
+     {
+      "name": "1",
+      "rows": [
+       [
+        "1.623"
+       ],
+       [
+        "1.627"
+       ],
+       [
+        "1.612"
+       ],
+       [
+        "1.64"
+       ]
+      ]
+     },
+     {
+      "name": "2",
+      "rows": [
+       [
+        "1.584"
+       ],
+       [
+        "1.579"
+       ],
+       [
+        "1.558"
+       ],
+       [
+        "1.585"
+       ]
+      ]
+     },
+     {
+      "name": "3",
+      "rows": [
+       [
+        "1.5"
+       ],
+       [
+        "1.486"
+       ],
+       [
+        "1.5"
+       ],
+       [
+        "1.512"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   },
+   "imported": {
+    "at": "2026-12-01T09:12:00.000Z",
+    "how": "recipe",
+    "mode": "replace",
+    "basis": "Plate reader grid (8 × 12 or 16 × 24)",
+    "recipeName": "SRB plate, 570 nm",
+    "sources": [
+     {
+      "name": "plate-week2.csv",
+      "bytes": 1066,
+      "sha256": "41bd4299380c5380110c7cec4111435b9d28f47a5e72f717a27505ff183f7188"
+     }
+    ],
+    "spec": {
+     "kind": "recipe",
+     "recipe": "plate",
+     "roles": {
+      "Well": "meta",
+      "Row": "subject",
+      "Column": "group",
+      "Value": "value"
+     },
+     "pattern": null,
+     "aggregate": false,
+     "steps": [],
+     "keepLower": false,
+     "output": "column",
+     "tableName": "Plate week 2",
+     "replicateMap": false
+    },
+    "replayable": true,
+    "cells": "fnv1a32x2:0000000000000000",
+    "snapshot": {
+     "x": [
+      "",
+      "",
+      "",
+      ""
+     ],
+     "rowTitles": [
+      "",
+      "",
+      "",
+      ""
+     ],
+     "y": [
+      [
+       [
+        "1.623"
+       ],
+       [
+        "1.627"
+       ],
+       [
+        "1.612"
+       ],
+       [
+        "1.64"
+       ]
+      ],
+      [
+       [
+        "1.584"
+       ],
+       [
+        "1.579"
+       ],
+       [
+        "1.558"
+       ],
+       [
+        "1.585"
+       ]
+      ],
+      [
+       [
+        "1.5"
+       ],
+       [
+        "1.486"
+       ],
+       [
+        "1.488"
+       ],
+       [
+        "1.512"
+       ]
+      ]
+     ]
+    },
+    "earlier": [
+     {
+      "at": "2026-11-24T10:00:00.000Z",
+      "how": "recipe",
+      "mode": "new",
+      "basis": "Plate reader grid (8 × 12 or 16 × 24)",
+      "recipeName": "SRB plate, 570 nm",
+      "sources": [
+       {
+        "name": "plate-reader.csv",
+        "bytes": 1062,
+        "sha256": "9a1c09fbe0d88277996a594921c0ab38c2a4e325bd6d0fb6cec9f3b6f0e63fb2"
+       }
+      ],
+      "editedCells": 1
+     }
+    ]
+   }
+  },
+  {
+   "id": "r002",
+   "kind": "results",
+   "parentId": "d001",
+   "analysis": "column",
+   "options": {},
+   "name": "Column stats of Plate week 2"
+  }
+ ]
+}

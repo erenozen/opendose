@@ -1286,6 +1286,14 @@ const scenes = [
     const d = dialog(s, "History");
     await d.locator(".history-reproduction").scrollIntoViewIfNeeded();
   } },
+  // P-76: where a table's values came from (file, SHA-256, recipe, the
+  // cell edited by hand, the import before), in History
+  { name: "shell-history-import", setup: async (s) => {
+    await fixture(s, "import-history.json", { live: true });
+    await click(s, button(s, "History").first());
+    const d = dialog(s, "History");
+    await d.locator(".history-import").scrollIntoViewIfNeeded();
+  } },
   // P-68: leave a value out of one analysis (the dialog, filled in), and
   // the Exclusions block of the sensitivity results with them put back
   { name: "results-leave-out-dialog", setup: async (s) => {

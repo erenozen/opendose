@@ -14,6 +14,7 @@ import "./report.css";
 import "./integrity.css";
 import { changedLines, headline, openedHow, type ReproductionReport } from "../project/reproduce";
 import { whyLines } from "../share/engineChanges";
+import ImportHistory from "./ImportHistory";
 
 const show = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v));
 
@@ -97,6 +98,7 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
     id ? [id] : undefined), [project, results, id]);
   const copied = useLabelSwap();
   const fam = doc.families[0];
+  const dataSheet = datas.find((d) => d.id === id);
   // Each time this project was opened (file, autosave or share link) in a
   // build other than the one that saved it: every saved result recomputed
   // and compared (app/reproduceCheck.ts), kept with the project.
@@ -148,6 +150,7 @@ export default function HistoryPanel({ dataId, onClose }: { dataId?: string; onC
               </ul>
             )}
           </div>
+          {dataSheet?.imported && <ImportHistory rec={dataSheet.imported} table={dataSheet.table} />}
           {fam.steps.map((s) => <Step key={s.sheet_id} s={s} />)}
         </>
       )}

@@ -26,6 +26,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { unzipSync, strFromU8, strToU8, zipSync } from "fflate";
 import { projectSchemaErrors } from "./validate-project.mjs";
 import { parseCsv, readXlsx } from "./xlsx-read.mjs";
@@ -730,6 +731,80 @@ await priv.getByRole("button", { name: "Close" }).last().click();
   await page.getByRole("treeitem", { name: "Confluence per well", exact: true }).first().waitFor({ timeout: 10000 });
   expect("saved recipe applied in one click: XY table named by the recipe, C2 at 2 h = 6",
     await val("C2, row 2") === "6" && await val("X, row 2") === "2", await val("C2, row 2"));
+}
+
+// --- P-76 import provenance. The plan's acceptance test: a plate-reader
+// file imported through a recipe, one cell edited; History shows the file
+// name, its SHA-256 (node's, of the same bytes), the recipe and "1 cell
+// edited by hand"; Apply to new data with next week's file re-runs the
+// recipe, and the table holds the new file's readings.
+{
+  const PLATE = join(here, "..", "e2e-fixtures", "plate-reader.csv");
+  const plateBytes = readFileSync(PLATE);
+  const plateSha = createHash("sha256").update(plateBytes).digest("hex");
+  const week2Text = plateBytes.toString("utf8").replace("1.612,1.558,1.488", "1.702,1.611,1.527");
+  const WEEK2 = join(tmp, "plate-week2.csv");
+  writeFileSync(WEEK2, week2Text);
+  const week2Sha = createHash("sha256").update(week2Text).digest("hex");
+  const cell = (label) => page.locator(`.data-table input[aria-label="${label}"]`);
+  await page.getByRole("button", { name: "Import…" }).click();
+  await page.getByRole("tab", { name: "Recipes" }).click();
+  const d = page.getByRole("dialog", { name: "Import with a recipe" });
+  await d.waitFor({ timeout: 10000 });
+  await d.getByLabel("Export file to import").setInputFiles(PLATE);
+  await d.locator(".recipe-option.checked", { hasText: "Recognise the file" }).waitFor();
+  expect("P-76: the plate-reader file is recognised as a plate grid",
+    await d.locator(".recipe-option", { hasText: "Plate reader grid" }).locator(".recipe-detected").count() === 1);
+  await d.getByRole("tab", { name: "Table" }).click();
+  await d.getByLabel("Table name").fill("Plate week 1");
+  await d.getByRole("button", { name: "Create table" }).click();
+  await page.getByRole("treeitem", { name: "Plate week 1", exact: true }).first().waitFor({ timeout: 10000 });
+  // well C3 of the file (plate column 3, row C) is 1.488
+  expect("P-76: the recipe's table holds well C3 = 1.488", await cell("3, row 3").inputValue() === "1.488",
+    await cell("3, row 3").inputValue());
+  await cell("3, row 3").fill("1.5");
+  await cell("3, row 3").press("Tab");
+  await page.waitForSelector('.pane-results[data-live="true"] .results-table', { timeout: 60000 });
+  await page.locator(".pane-results").getByRole("button", { name: "History", exact: true }).click();
+  const hist = page.getByRole("dialog", { name: "History" });
+  await hist.waitFor({ timeout: 15000 });
+  const imp = (await hist.locator(".history-import").innerText()).replace(/\s+/g, " ");
+  expect("P-76: History names the file, its SHA-256 and the recipe",
+    imp.includes("Imported from “plate-reader.csv”") && imp.includes(plateSha)
+    && imp.includes("Plate reader grid (8 × 12 or 16 × 24)") && imp.includes(`${plateBytes.length.toLocaleString("en")} bytes`),
+    imp.slice(0, 300));
+  expect("P-76: History says 1 cell edited by hand, which one and both values",
+    imp.includes("1 cell edited by hand since the import") && imp.includes("3, row 3: 1.488 → 1.5"), imp);
+  expect("P-76: History says Apply to new data re-runs the recipe",
+    imp.includes("Apply to new data re-runs these settings on the next file"), imp);
+  await hist.getByRole("button", { name: "Close" }).click();
+
+  await page.getByRole("treeitem", { name: "Plate week 1", exact: true }).first()
+    .locator(":scope > .nav-row").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Apply new data to this table…" }).click();
+  const rp = page.getByRole("dialog", { name: "Apply to new data" });
+  await rp.waitFor({ timeout: 10000 });
+  await rp.getByLabel("New data file").setInputFiles(WEEK2);
+  await rp.getByLabel("Table for plate-week2.csv").waitFor({ timeout: 10000 });
+  await rp.getByRole("button", { name: "Apply and re-run" }).click();
+  const rlog = page.getByRole("dialog", { name: "Replay log" });
+  await rlog.waitFor({ timeout: 180000 });
+  const logText = (await rlog.innerText()).replace(/\s+/g, " ");
+  expect("P-76: the replay log says the recipe was re-run on next week's file",
+    logText.includes("Plate week 1: new data from plate-week2.csv (8 rows, 12 data sets; “Plate reader grid (8 × 12 or 16 × 24)” re-run on it)"),
+    logText.slice(0, 300));
+  await rlog.getByRole("button", { name: "Done" }).click();
+  expect("P-76: the table holds next week's readings (C1..C3 = 1.702, 1.611, 1.527)",
+    await cell("1, row 3").inputValue() === "1.702" && await cell("3, row 3").inputValue() === "1.527",
+    `${await cell("1, row 3").inputValue()} ${await cell("3, row 3").inputValue()}`);
+  await page.locator(".pane-results").getByRole("button", { name: "History", exact: true }).click();
+  await hist.waitFor({ timeout: 15000 });
+  const imp2 = (await hist.locator(".history-import").innerText()).replace(/\s+/g, " ");
+  expect("P-76: History now names next week's file and keeps the first import with its hand edit",
+    imp2.includes("Imported from “plate-week2.csv”") && imp2.includes(week2Sha)
+    && imp2.includes("No cell edited by hand since the import")
+    && imp2.includes("plate-reader.csv") && imp2.includes("1 cell edited by hand after it"), imp2);
+  await hist.getByRole("button", { name: "Close" }).click();
 }
 
 // --- P-66 one statistics table, P-67 analysis.py and analysis.R: a t test,

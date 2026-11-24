@@ -10,6 +10,7 @@ import type { CIMethod, ErrorBarKind } from "../types.ts";
 import type { ReportMeta } from "../report/meta.ts";
 import type { ReportPrefs } from "../report/prefs.ts";
 import type { AnalysisPlan } from "./plan.ts";
+import type { ImportRecord } from "./importRecord.ts";
 import type { ProjectRecipe } from "./recipes.ts";
 import type { ReproductionReport } from "./reproduce.ts";
 import type { StudyDesign } from "./studyDesign.ts";
@@ -243,6 +244,11 @@ export interface DataSheet extends SheetBase {
    *  sample-size reasoning) for legends, methods and journal checklists
    *  (src/report). */
   report?: ReportMeta;
+  /** Where the values came from: the file (name, SHA-256), the recipe or
+   *  import settings, and the values as imported, so hand edits since can
+   *  be counted (project/importRecord.ts, P-76). Absent in files saved
+   *  before it existed, and on tables typed or pasted in. */
+  imported?: ImportRecord;
 }
 
 /** A derived table's provenance: the data sheet it is computed from and

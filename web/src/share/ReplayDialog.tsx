@@ -1,25 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { resolveOptions, resultKey, sheetRunner, type ResultsCache } from "../app/analysis";
 import { useProject } from "../app/context";
-import { prismTableToFamily, type PrismTable } from "../app/factory";
 import { useUi } from "../app/ui";
 import Modal from "../components/Modal";
 import { Button, FileButton, notify, SwapLabel, useLabelSwap } from "../components/ui";
 import { copyText } from "../export/download";
-import { analyzeAsync, readWorkbook, type XlsxSheet } from "../lib/engine";
-import { textOf, WORKBOOK_ACCEPT, workbookFormat } from "../lib/fileText";
+import { WORKBOOK_ACCEPT } from "../lib/fileText";
 import { newId } from "../project/ids";
-import { sheetTable } from "../project/leftOut";
-import { addSheets, findSheet, makeInfoSheet, makeProject, uniqueName } from "../project/ops";
+import type { ImportFacts } from "../project/importRecord";
+import { addSheets, findSheet, makeInfoSheet, uniqueName } from "../project/ops";
 import {
-  buildReplayLog, matchTables, planFromJson, planTables, replaceTables,
+  buildReplayLog, matchTables, planFromJson, planTables, replaceTablesRecorded, replayFacts,
   replayLogText, resultHeadline, type Fit, type IncomingTable, type LoadedPlan, type PlanTable,
   type ReplayLog,
 } from "../project/replay";
 import type { DataSheet, Project, TableType } from "../project/types";
-import { analysisDef } from "../sheets/registry";
 import WorkbookReport from "../sheets/common/WorkbookReport";
-import { sheetCells, type ReportedSheet } from "../sheets/common/workbookReportText";
+import { sheetCells } from "../sheets/common/workbookReportText";
+import { pastedIncoming, readIncoming, recordedReimport, settle, type Incoming } from "./replayRun";
 import "./replay.css";
 
 const TYPE_NAMES: Record<TableType, string> = {
@@ -27,98 +24,6 @@ const TYPE_NAMES: Record<TableType, string> = {
   survival: "Survival", partsofwhole: "Parts of whole", multivariable: "Multiple variables",
   nested: "Nested",
 };
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const stemOf = (file: string) => file.replace(/\.[^.]+$/, "");
-
-/**
- * Bring every results sheet of the project up to date (the same runs the
- * workbench and the background refresh make, at user priority) and wait
- * until nothing has changed for a moment (derived tables settle too).
- * Returns the current result of every results sheet that has one.
- */
-async function settle(get: () => Project, results: ResultsCache, timeoutMs = 120000,
-  onProgress?: (left: number) => void): Promise<Map<string, unknown>> {
-  const t0 = Date.now();
-  let quiet = 0;
-  let last = "";
-  while (Date.now() - t0 < timeoutMs) {
-    const p = get();
-    let left = 0;
-    const keys: string[] = [];
-    for (const s of p.sheets) {
-      if (s.kind !== "results" || s.frozen) continue;
-      const data = findSheet(p, s.parentId) as DataSheet | undefined;
-      if (!data || data.kind !== "data") continue;
-      const def = analysisDef(data.table.type, s.analysis);
-      if (!def) continue;
-      const table = sheetTable(s, data.table);
-      const options = resolveOptions(def, s.options, table, p.prefs);
-      const key = resultKey(s.analysis, options, table);
-      keys.push(key);
-      if (results.isCurrent(s.id, key)) continue;
-      left++;
-      if (results.isCancelled(s.id, key)) results.retry(s.id);
-      if (results.pending(s.id)?.key !== key) {
-        results.run(s.id, key, sheetRunner(def, table, options), "user");
-      }
-    }
-    onProgress?.(left);
-    // done when every result is current and no input has changed for a
-    // moment (a derived table rewritten from new results changes keys)
-    const sig = keys.join("|");
-    quiet = !left && sig === last ? quiet + 1 : 0;
-    last = sig;
-    if (quiet >= 4) break;
-    await sleep(250);
-  }
-  const out = new Map<string, unknown>();
-  const p = get();
-  for (const s of p.sheets) {
-    if (s.kind !== "results") continue;
-    const r = s.frozen ? s.cached : results.get(s.id)?.result;
-    if (r !== undefined && r !== null) out.set(s.id, r);
-  }
-  return out;
-}
-
-/** A table of the new data; a worksheet keeps its rows and flags, and
- *  its source is taken with the workbook report's choices (sheetCells). */
-type Incoming = IncomingTable & { sheet?: XlsxSheet & ReportedSheet };
-
-/** Tables in a file of new data. */
-async function readIncoming(file: File, prefs: Project["prefs"]): Promise<Incoming[]> {
-  const name = file.name;
-  const format = workbookFormat(name);
-  if (format) {
-    const sheets = (await readWorkbook(new Uint8Array(await file.arrayBuffer()), format))
-      .filter((s) => s.rows.some((r) => r.some((c) => c.trim())));
-    return sheets.map((s) => {
-      const origin = sheets.length === 1 ? name : `${name} › ${s.name}`;
-      return { name: sheets.length === 1 ? stemOf(name) : s.name, origin,
-        sheet: { ...s, name: origin, format } };
-    });
-  }
-  if (/\.(pzfx|prism)$/i.test(name)) {
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    let binary = "";
-    for (let i = 0; i < bytes.length; i += 0x8000) {
-      binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    }
-    const res = await analyzeAsync({ analysis: "pzfx_import", data: { pzfx_b64: btoa(binary) },
-      options: {} }, { priority: "user" }) as { error?: string; tables?: PrismTable[] };
-    if (res.error || !res.tables?.length) throw new Error(res.error ?? "no tables found");
-    return res.tables.map((t) => {
-      const r = prismTableToFamily(makeProject(prefs), t, newId);
-      const data = findSheet(r.project, r.dataId) as DataSheet;
-      return { name: t.title || stemOf(name), origin: `${name} › ${t.title || "table"}`, table: data.table };
-    });
-  }
-  if (/\.(numbers|xlsb)$/i.test(name)) {
-    throw new Error("only .xlsx, .xls and .ods workbooks can be read; save the sheet as .xlsx or CSV");
-  }
-  return [{ name: stemOf(name), origin: name, source: textOf(new Uint8Array(await file.arrayBuffer())) }];
-}
 
 type Stage = "setup" | "running" | "log";
 
@@ -165,7 +70,8 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
     ...(pasted.trim() ? [{ name: "Pasted data", origin: "pasted data", source: pasted }] : [])],
   [incoming, pasted, keepFiltered, skipHidden]);
   const readSheets = useMemo(() => incoming.flatMap((t) => (t.sheet ? [t.sheet] : [])), [incoming]);
-  const matching = useMemo(() => matchTables(tables, sources), [tables, sources]);
+  // a table whose import was recorded gets the file through that import (P-76)
+  const matching = useMemo(() => matchTables(tables, sources, recordedReimport), [tables, sources]);
 
   // the automatic pairing, until the user picks otherwise
   const pick = (i: number): string => {
@@ -229,14 +135,21 @@ export default function ReplayDialog({ dataId, onClose }: { dataId?: string; onC
       if (!live.current) return;
       const replaced: { planId: string; origin: string; fit: Fit }[] = [];
       const newTables = new Map<string, DataSheet["table"]>();
+      // each refilled table records its new file (P-76)
+      const facts = new Map<string, ImportFacts>();
+      const at = new Date().toISOString();
+      const pastedFile = pasted.trim() ? (await pastedIncoming(pasted)).file : undefined;
       chosen.forEach((planId, i) => {
         const fit = planId ? fitOf(planId, i) : null;
-        if (!planId || !fit) return;
+        const plan = tables.find((t) => t.id === planId);
+        if (!planId || !fit || !plan) return;
         replaced.push({ planId, origin: sources[i].origin, fit });
         newTables.set(planId, fit.table);
+        const src = sources[i].file || !pastedFile ? sources[i] : { ...sources[i], file: pastedFile };
+        facts.set(planId, replayFacts(plan, src, fit, at));
       });
-      if (!fromFile) api.apply((p) => replaceTables(p, newTables), null);
-      else api.replace(replaceTables(planProject, newTables), replaced[0]?.planId ?? null);
+      if (!fromFile) api.apply((p) => replaceTablesRecorded(p, newTables, facts), null);
+      else api.replace(replaceTablesRecorded(planProject, newTables, facts), replaced[0]?.planId ?? null);
       const total = api.store.project.sheets.filter((s) => s.kind === "results" && !s.frozen).length;
       const after = await settle(() => api.store.project, api.results, 120000, (left) => {
         if (live.current) {

@@ -58,6 +58,9 @@
 //                      collapsed), highlights, info sheets and layouts
 //   source-data.json   a layout of a column scatter (mean ± SD, t test) and
 //                      a 4PL fit, letters a and b: its source data (P-65)
+//   import-history.json a plate imported through a recipe, replaced by next
+//                      week's file, one cell edited by hand (P-76)
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1017,4 +1020,31 @@ const longData = (name, names, rows, categorical) => data(name, {
   const ro = results(higgins, "grouped_two_way", { design: "none", rowFactor: "Moisture",
     colFactor: "Fertilizer" }, "Two-way ANOVA of Higgins 1990 Table 5");
   write("art-anova.json", project("Aligned rank transform", [higgins, ra, ro], { selected: ra.id }));
+}
+
+// import-history.json (P-76): a plate read through the plate-reader recipe
+// (its import record: the file's name and SHA-256, the recipe and its
+// settings, the values as imported) after next week's file replaced it,
+// with one cell edited by hand since; History shows all of it
+{
+  n = 0;
+  const groups = ["1", "2", "3"];
+  const imported = [[1.623, 1.584, 1.5], [1.627, 1.579, 1.486], [1.612, 1.558, 1.488], [1.64, 1.585, 1.512]];
+  const t = table("column", { yTitle: "Value", datasets: groups.map((g, k) => col(g, imported.map((r) => r[k]))) });
+  const snapshot = { x: [...t.x], rowTitles: [...t.rowTitles], y: t.datasets.map((d) => d.rows.map((r) => [...r])) };
+  t.datasets[2].rows[2] = ["1.5"];
+  const sha = (s) => createHash("sha256").update(s).digest("hex");
+  const spec = { kind: "recipe", recipe: "plate", roles: { Well: "meta", Row: "subject", Column: "group", Value: "value" },
+    pattern: null, aggregate: false, steps: [], keepLower: false, output: "column", tableName: "Plate week 2", replicateMap: false };
+  const d = data("Plate week 2", t, { imported: {
+    at: "2026-12-01T09:12:00.000Z", how: "recipe", mode: "replace", basis: "Plate reader grid (8 × 12 or 16 × 24)",
+    recipeName: "SRB plate, 570 nm",
+    sources: [{ name: "plate-week2.csv", bytes: 1066, sha256: sha("plate-week2.csv") }], spec, replayable: true,
+    cells: "fnv1a32x2:0000000000000000", snapshot,
+    earlier: [{ at: "2026-11-24T10:00:00.000Z", how: "recipe", mode: "new", basis: "Plate reader grid (8 × 12 or 16 × 24)",
+      recipeName: "SRB plate, 570 nm", sources: [{ name: "plate-reader.csv", bytes: 1062, sha256: sha("plate-reader.csv") }],
+      editedCells: 1 }],
+  } });
+  const r = results(d, "column", {}, "Column stats of Plate week 2");
+  write("import-history.json", project("Plates", [d, r], { selected: r.id }));
 }

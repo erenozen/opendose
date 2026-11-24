@@ -11,6 +11,9 @@ import { emptyTable, flatColumns, hasAnyValue, tableShape } from "../../project/
 import type { DataTableModel, TableType } from "../../project/types";
 import { isTableDrop } from "../../share/recipes/dropKind";
 import type { PlainSpec } from "../../share/recipes/saved";
+import { runPlain, sameValues } from "../../share/recipes/reimport";
+import { sha256Hex } from "../../lib/sha256";
+import { SNAPSHOT_CELLS, type ImportFacts, type ImportSource } from "../../project/importRecord";
 import { pasteReport, placedCells, type PasteReport } from "../../project/pasteReport";
 import type { SheetApp } from "../../project/clipboardHtml";
 import { visibleRows } from "../../lib/xlsxFlags";
@@ -104,9 +107,10 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
   initial?: ImportRequest;
   /** The edit, and what it does to every cell it writes (the report the
    *  grid shows above the table). */
-  onImport?: (fn: (t: DataTableModel) => DataTableModel, report?: PasteReport) => void;
+  onImport?: (fn: (t: DataTableModel) => DataTableModel, report?: PasteReport,
+    facts?: ImportFacts) => void;
   /** No `table` given: the new table, with its report. */
-  onCreate?: (table: DataTableModel, report: PasteReport) => void;
+  onCreate?: (table: DataTableModel, report: PasteReport, facts?: ImportFacts) => void;
   onPasteAsIs?: () => void;
   onClose: () => void;
 }) {
@@ -124,6 +128,7 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
   }, [typeNext, largeLines]);
   const [file, setFile] = useState<{ name: string; bytes: Uint8Array; source: File } | null>(null);
   const [encoding, setEncoding] = useState("auto");
+  const [fileSha, setFileSha] = useState("");
   const [sheets, setSheets] = useState<XlsxSheet[] | null>(null);
   const [sheetIx, setSheetIx] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -218,10 +223,13 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
     setRoleOverride({});
     setKeepFiltered(false);
     setSkipHidden(false);
+    setFileSha("");
     const refused = f ? unreadableSheet(f.name) : null;
     if (!f || refused) { setFile(null); if (refused) setError(refused); return; }
     const bytes = new Uint8Array(await f.arrayBuffer());
     setFile({ name: f.name, bytes, source: f });
+    // for the table's import record (P-76)
+    setFileSha(await sha256Hex(bytes));
     const format = workbookFormat(f.name);
     if (format) {
       setBusy(true);
@@ -269,15 +277,52 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
     );
   }
 
-  const submit = () => {
+  const plainSpec = (): PlainSpec => ({ kind: "plain", source: effSrc, filter,
+    roles: Object.fromEntries(Object.entries(roleOverride).map(([k, v]) => [String(k), v])),
+    place: { mode: place.mode, perDataset: effPlace.perDataset, useTitles: place.useTitles } });
+
+  /** What the table records about this import (P-76): the file or the
+   *  pasted text with its SHA-256, the settings, and whether re-running
+   *  them on the same file gives the table back exactly. */
+  const importFacts = async (imported: DataTableModel): Promise<ImportFacts | undefined> => {
+    const sources: ImportSource[] = srcKind === "paste"
+      ? [{ name: "pasted text", pasted: true, bytes: new TextEncoder().encode(pasted).length,
+        sha256: await sha256Hex(pasted) }]
+      : file ? [{ name: file.name, bytes: file.bytes.length, sha256: fileSha || await sha256Hex(file.bytes),
+        ...(sheet ? { worksheet: sheet.name } : {}) }] : [];
+    if (!sources.length) return undefined;
+    const spec = plainSpec();
+    const mode = isNew ? "new" as const : place.mode;
+    // Apply to new data reads the next file in the encoding it detects
+    const chosenEncoding = srcKind === "file" && !sheet && encoding !== "auto";
+    let why = mode === "append" || mode === "insert" ? "rows were added to a table that was already there"
+      : chosenEncoding ? "the file was read in a text encoding chosen by hand" : "";
+    // A very large import is not built a second time just to check it:
+    // the same pure function runs on the same cells.
+    if (!why && preview.rows.length * Math.max(1, preview.columns.length) <= SNAPSHOT_CELLS) {
+      try {
+        if (!sameValues(runPlain(source, { ...spec, place: { ...spec.place, mode: "replace" } },
+          isNew ? blank : imported), imported)) why = "re-running these settings on the file gave a different table";
+      } catch { why = "re-running these settings on the file gave a different table"; }
+    }
+    return {
+      at: new Date().toISOString(), how: "import", mode, sources, basis: "Plain import",
+      spec: spec as unknown as Record<string, unknown>,
+      ...(sheet ? { read: { keepFiltered, skipHidden } } : chosenEncoding ? { read: { encoding } } : {}),
+      replayable: !why, ...(why ? { why } : {}),
+    };
+  };
+
+  const submit = async () => {
     if (empty) { setError("Nothing to import: these settings leave no rows or columns. Check the Source and Filter tabs."); return; }
     const f = { skipBlankX: filter.skipBlankX, asteriskExcluded: filter.asteriskExcluded };
     const res = applyImportWithCells(table, preview, roles, isNew ? { ...effPlace, mode: "replace" } : place, f);
     const report = pasteReport(placedCells(res.table, res.written));
-    if (isNew) { onCreate?.(res.table, report); return; }
+    const facts = await importFacts(res.table);
+    if (isNew) { onCreate?.(res.table, report, facts); return; }
     // the table built for the report is the edit's result whenever the
     // table has not changed since (a large import is built once, not twice)
-    onImport?.((t) => (t === table ? res.table : applyImport(t, preview, roles, place, f)), report);
+    onImport?.((t) => (t === table ? res.table : applyImport(t, preview, roles, place, f)), report, facts);
   };
 
   const num = (label: string, value: number | null, set: (v: number | null) => void,
@@ -305,7 +350,7 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
 
   return (
     <Modal title="Import data" className="modal-wide import-dialog" onClose={onClose}
-      onSubmit={submit}
+      onSubmit={() => { void submit(); }}
       actions={
         <>
           {onPasteAsIs && (
@@ -476,9 +521,7 @@ export default function ImportDialog({ table: given, file: givenFile, initial, o
           </p>
           <Suspense fallback={null}>
             <ImportRecipesBar
-              current={(): PlainSpec => ({ kind: "plain", source: effSrc, filter,
-                roles: Object.fromEntries(Object.entries(roleOverride).map(([k, v]) => [String(k), v])),
-                place: { mode: place.mode, perDataset: effPlace.perDataset, useTitles: place.useTitles } })}
+              current={plainSpec}
               onPlain={(spec) => {
                 setSrc(spec.source);
                 setTitlesTouched(true);

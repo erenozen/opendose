@@ -9,6 +9,7 @@ import { addFamily } from "../../app/factory";
 import { toDelimited } from "../../project/exportTable";
 import { newId } from "../../project/ids";
 import { pasteNeedsImport } from "../../project/importText";
+import { importIntoSheet } from "../../project/importRecord";
 import { pasteWithReport, withFixed, type PasteReport } from "../../project/pasteReport";
 import { fixCells, fixedText } from "../../project/unitCells";
 import {
@@ -1038,8 +1039,10 @@ export default function DataGrid({ sheet, table, readOnly, onChange }: EditorPro
             pasteAt(dialog.paste!);
             setDialog(null);
           } : undefined}
-          onImport={(fn, report) => {
-            onChange(fn);
+          onImport={(fn, report, facts) => {
+            // with the import's record (P-76) in the same undo step
+            if (facts) api.apply((p) => importIntoSheet(p, sheet.id, fn, facts));
+            else onChange(fn);
             setDialog(null);
             if (report) setPasteInfo({ id: sheet.id, verb: "Imported", report });
           }} />
