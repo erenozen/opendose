@@ -628,6 +628,40 @@ const scenes = [
       buffer: Buffer.from(JSON.stringify(kit)) });
     await dialog(s, "Import a lab kit").waitFor();
   } },
+  // P-127: the validation page's reference datasets, and one opened
+  { name: "shell-validation-datasets", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "View", "About OpenDose…");
+    await s.page.locator(".info-pop").getByRole("button", { name: "How OpenDose is validated" }).click();
+    const v = dialog(s, "How OpenDose is validated");
+    const sec = v.getByRole("region", { name: "Reference datasets you can open" });
+    await sec.waitFor({ timeout: 15000 });
+    await sec.locator("details").nth(0).evaluate((d) => { d.open = true; });
+    await sec.evaluate((el) => el.scrollIntoView({ block: "start" }));
+    await settle(s, 400);
+  } },
+  { name: "shell-reference-dataset", setup: async (s) => {
+    await example(s);
+    await headerMenu(s, "View", "About OpenDose…");
+    await s.page.locator(".info-pop").getByRole("button", { name: "How OpenDose is validated" }).click();
+    await dialog(s, "How OpenDose is validated").getByRole("button", { name: "Open this dataset: Misra1a" }).click();
+    await waitLive(s);
+    await s.page.locator(".pane-results .results-table").first().waitFor({ timeout: 120000 });
+    await settle(s, 1500);
+  } },
+  { name: "shell-reference-dataset-info", setup: async (s) => {
+    await example(s, { live: false });
+    await headerMenu(s, "View", "About OpenDose…");
+    await s.page.locator(".info-pop").getByRole("button", { name: "How OpenDose is validated" }).click();
+    await dialog(s, "How OpenDose is validated").getByRole("button", { name: "Open this dataset: Longley" }).first().click();
+    await s.page.locator(".toast", { hasText: "Opened the reference dataset" }).first().waitFor({ timeout: 30000 });
+    await s.page.keyboard.press("Control+k");
+    await dialog(s, "Find a command or sheet").waitFor();
+    await s.page.keyboard.type("Reference values");
+    await s.page.keyboard.press("Enter");
+    await s.page.locator(".info-main").first().waitFor({ timeout: 15000 });
+    await settle(s, 600);
+  } },
   { name: "shell-preferences-storage", setup: async (s) => {
     await example(s, { live: false });
     await headerMenu(s, "View", "Preferences…");

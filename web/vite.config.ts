@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, searchForWorkspaceRoot } from 'vite'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -169,6 +169,17 @@ export default defineConfig({
     // Plotly's prebuilt bundle is one module and cannot be split further;
     // warn about anything bigger than it.
     chunkSizeWarningLimit: 5000,
+  },
+  // The validation page opens the reference datasets of
+  // ../docs/validation/datasets (src/share/openReferenceDataset.ts): the
+  // dev server may serve that folder too (the build bundles them).
+  server: {
+    fs: {
+      allow: [
+        searchForWorkspaceRoot(process.cwd()),
+        fileURLToPath(new URL('../docs/validation/datasets/', import.meta.url)),
+      ],
+    },
   },
   // The engine worker imports pyodide's loader, which uses import.meta
   // and dynamic import(): ES module workers.

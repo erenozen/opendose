@@ -43,6 +43,14 @@
 .validation-table code { font-size: var(--text-caption); color: var(--muted); overflow-wrap: anywhere; }
 .validation-table tr:last-child td { border-bottom: none; }
 .validation-note { display: block; color: var(--muted); font-size: var(--text-caption); margin-top: var(--space-2); }
+/* Reference datasets that open as projects (ReferenceDatasets.tsx, P-127) */
+.validation-open { margin-top: var(--space-6); }
+.validation-table th.validation-dataset { font-weight: var(--weight-medium); color: var(--ink); white-space: normal; }
+.validation-values summary { cursor: pointer; color: var(--ink-2); }
+.validation-values ul { margin: var(--space-6) 0 0; padding-left: var(--space-16); }
+.validation-values li { overflow-wrap: anywhere; }
+.validation-values li > .num { color: var(--ink); }
+.validation-q { font-weight: var(--weight-medium); color: var(--ink); }
 
 /* ---- Recipe and reshape dialogs */
 .recipe-dialog { width: min(1040px, calc(100vw - 32px)); }

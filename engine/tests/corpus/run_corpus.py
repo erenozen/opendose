@@ -5785,6 +5785,45 @@ corr(HillSlope, Top) 0.600758, corr(HillSlope, Bottom) -0.605989,
 corr(HillSlope, LogIC50) 0.009506, the engine's 0.6008, -0.6060, 0.009504.
 The coverage caveat of the percentile intervals (91% to 94.5% in the
 simulation above) is shown next to the bootstrap CIs in the app.
+
+## Feature validation: open the reference datasets as projects (2026-11-24)
+
+### P-127 Open the validation datasets
+
+No new computation: the validation page now opens the published
+reference datasets that ship with the site as projects, and the engine
+computes them as it computes any table. Which datasets: the 34 NIST
+Statistical Reference Datasets of the corpus (public domain) whose
+reference maps onto one results sheet: univariate summary statistics (9),
+one-way ANOVA (11), nonlinear regression (10, NIST's equation from its
+Start 1 values), Norris and NoInt1 (linear regression, the second
+through the origin), Pontius (second order polynomial) and Longley
+(multiple regression). NIST Filip (a tenth-order polynomial) is not
+offered: no results sheet fits it. The R, textbook and package datasets
+stay checked by the engine corpus only (their licences are GPL or
+article copyright; see datasets/README.md "Licences").
+
+Each opens as a project: the CSV as the corpus holds it (values as NIST
+printed them), the analysis the reference was computed with, results at
+10 significant digits, and an info sheet "Reference values" listing every
+certified value with its source, its tolerance and the engine's value in
+the corpus run above. The index the page lists
+(`web/src/share/referenceDatasets.json`) is compiled from
+`datasets/manifest.json` and this file's JSON by
+`web/scripts/reference-datasets.mjs`; the unit suite fails when it is
+stale. Unit tests (`share/__tests__/referenceDatasets.test.ts`): each
+univariate table gives the certified n and mean; each ANOVA table the
+certified degrees of freedom; each XY table one Y per X and the
+certified residual df; Misra1a starts from Start 1 with NIST's equation;
+Longley is a multiple-variables table of x1 to x6 and y.
+
+e2e (`e2e-share.mjs`), every shown value equal to the certified value at
+10 significant digits: Longley opened from its NIST StRD check (B0
+-3482258.635, B1 15.06187227, B6 1829.151465, Sy.x 304.8540736, R²
+0.9954790046, F 330.2853392); Misra1a from the datasets list (b1
+238.9421292, b2 5.501564318e-4, SS 0.1245513889, Sy.x 0.1018787633);
+SmLs01 (F 21, R² 0.4827586207, residual SD 0.1); Lew (mean -177.435, SD
+277.332168, n 200).
 """
 
 

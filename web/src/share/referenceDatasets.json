@@ -1,0 +1,4864 @@
+{
+ "source": "docs/validation/datasets/manifest.json and docs/validation/results-engine.json (node scripts/reference-datasets.mjs)",
+ "engineRun": "opendose (engine/opendose)",
+ "datasets": [
+  {
+   "id": "nist-misra1a",
+   "title": "NIST StRD nonlinear regression: Misra1a",
+   "file": "nist-misra1a.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Misra1a. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Misra1a.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 14 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = b1*(1-exp(-b2*x))",
+    "start": {
+     "b1": 500,
+     "b2": 0.0001
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 238.94212918,
+     "printed": "2.3894212918E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 238.94212917876433,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 2.7070075241,
+     "printed": "2.7070075241E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 2.7070075241416847,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 0.00055015643181,
+     "printed": "5.5015643181E-04",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.0005501564318061752,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.0000072668688436,
+     "printed": "7.2668688436E-06",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.000007266868843632245,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 0.12455138894,
+     "printed": "1.2455138894E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.12455138894440484,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 0.1018787633,
+     "printed": "1.0187876330E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 0.10187876330243578,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 12,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 12,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-chwirut2",
+   "title": "NIST StRD nonlinear regression: Chwirut2",
+   "file": "nist-chwirut2.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Chwirut2. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Chwirut2.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 54 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = exp(-b1*x)/(b2+b3*x)",
+    "start": {
+     "b1": 0.1,
+     "b2": 0.01,
+     "b3": 0.02
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 0.16657666537,
+     "printed": "1.6657666537E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.16657666536781823,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 0.03830328681,
+     "printed": "3.8303286810E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.038303286810269246,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 0.0051653291286,
+     "printed": "5.1653291286E-03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.005165329128569275,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.00066621605126,
+     "printed": "6.6621605126E-04",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.0006662160512647011,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 0.012150007096,
+     "printed": "1.2150007096E-02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.012150007095838035,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 0.0015304234767,
+     "printed": "1.5304234767E-03",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.0015304234766842057,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 513.04802941,
+     "printed": "5.1304802941E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 513.0480294068655,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 3.171713304,
+     "printed": "3.1717133040E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 3.1717133039553804,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 51,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 51,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-thurber",
+   "title": "NIST StRD nonlinear regression: Thurber",
+   "file": "nist-thurber.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Thurber. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Thurber.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 37 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = (b1 + b2*x + b3*x^2 + b4*x^3) / (1 + b5*x + b6*x^2 + b7*x^3)",
+    "start": {
+     "b1": 1000,
+     "b2": 1000,
+     "b3": 400,
+     "b4": 40,
+     "b5": 0.7,
+     "b6": 0.3,
+     "b7": 0.03
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 1288.13968,
+     "printed": "1.2881396800E+03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 1288.1396799537913,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 4.6647963344,
+     "printed": "4.6647963344E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 4.6647963343572325,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 1491.0792535,
+     "printed": "1.4910792535E+03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 1491.0792535310475,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 39.571156086,
+     "printed": "3.9571156086E+01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 39.5711560924181,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 583.23836877,
+     "printed": "5.8323836877E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 583.2383687588209,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 28.698696102,
+     "printed": "2.8698696102E+01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 28.69869610627558,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b4",
+     "value": 75.416644291,
+     "printed": "7.5416644291E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 75.41664428947593,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b4",
+     "value": 5.567537027,
+     "printed": "5.5675370270E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 5.567537027964504,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b5",
+     "value": 0.96629502864,
+     "printed": "9.6629502864E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.966295028636993,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b5",
+     "value": 0.031333340687,
+     "printed": "3.1333340687E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.03133334069153619,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b6",
+     "value": 0.39797285797,
+     "printed": "3.9797285797E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.39797285797035414,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b6",
+     "value": 0.014984928198,
+     "printed": "1.4984928198E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.014984928199887075,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b7",
+     "value": 0.049727297349,
+     "printed": "4.9727297349E-02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.04972729734667824,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b7",
+     "value": 0.0065842344623,
+     "printed": "6.5842344623E-03",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.00658423446344986,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 5642.7082397,
+     "printed": "5.6427082397E+03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 5642.708239667119,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 13.714600784,
+     "printed": "1.3714600784E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 13.7146007836747,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 30,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 30,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-mgh09",
+   "title": "NIST StRD nonlinear regression: MGH09",
+   "file": "nist-mgh09.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, MGH09. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/MGH09.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 11 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = b1*(x^2+x*b2) / (x^2+x*b3+b4)",
+    "start": {
+     "b1": 25,
+     "b2": 39,
+     "b3": 41.5,
+     "b4": 39
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 0.19280693458,
+     "printed": "1.9280693458E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.1928069345172883,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 0.011435312227,
+     "printed": "1.1435312227E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.01143531224670347,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 0.19128232873,
+     "printed": "1.9128232873E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.19128233012122098,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.19633220911,
+     "printed": "1.9633220911E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.196332210211771,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 0.12305650693,
+     "printed": "1.2305650693E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.12305650718744437,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 0.080842031232,
+     "printed": "8.0842031232E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.08084203155993615,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b4",
+     "value": 0.13606233068,
+     "printed": "1.3606233068E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.13606233132592582,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b4",
+     "value": 0.090025542308,
+     "printed": "9.0025542308E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.09002554272576332,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 0.00030750560385,
+     "printed": "3.0750560385E-04",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.00030750560384923783,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 0.0066279236551,
+     "printed": "6.6279236551E-03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 0.006627923655147406,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 7,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 7,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-lanczos3",
+   "title": "NIST StRD nonlinear regression: Lanczos3",
+   "file": "nist-lanczos3.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Lanczos3. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Lanczos3.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 24 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = b1*exp(-b2*x) + b3*exp(-b4*x) + b5*exp(-b6*x)",
+    "start": {
+     "b1": 1.2,
+     "b2": 0.3,
+     "b3": 5.6,
+     "b4": 5.5,
+     "b5": 6.5,
+     "b6": 7.6
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 0.086816414977,
+     "printed": "8.6816414977E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.08681641491369707,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 0.017197908859,
+     "printed": "1.7197908859E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.01719790886186753,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 0.95498101505,
+     "printed": "9.5498101505E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.9549810146878056,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.097041624475,
+     "printed": "9.7041624475E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.09704162455998187,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 0.84400777463,
+     "printed": "8.4400777463E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.8440077744753677,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 0.041488663282,
+     "printed": "4.1488663282E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.04148866327326806,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b4",
+     "value": 2.9515951832,
+     "printed": "2.9515951832E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 2.951595182793582,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b4",
+     "value": 0.10766312506,
+     "printed": "1.0766312506E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.10766312508480155,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b5",
+     "value": 1.5825685901,
+     "printed": "1.5825685901E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 1.5825685903630327,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b5",
+     "value": 0.058371576281,
+     "printed": "5.8371576281E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.05837157627466351,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b6",
+     "value": 4.9863565084,
+     "printed": "4.9863565084E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 4.986356508274234,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b6",
+     "value": 0.034436403035,
+     "printed": "3.4436403035E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.034436403032410995,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 1.6117193594e-8,
+     "printed": "1.6117193594E-08",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.6117193593567725e-8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 0.000029923229172,
+     "printed": "2.9923229172E-05",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 0.000029923229172118034,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 18,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 18,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-boxbod",
+   "title": "NIST StRD nonlinear regression: BoxBOD",
+   "file": "nist-boxbod.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, BoxBOD. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/BoxBOD.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 6 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = b1*(1-exp(-b2*x))",
+    "start": {
+     "b1": 1,
+     "b2": 1
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 213.80940889,
+     "printed": "2.1380940889E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 213.80940889088794,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 12.354515176,
+     "printed": "1.2354515176E+01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 12.354515176553608,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 0.54723748542,
+     "printed": "5.4723748542E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.54723748541351,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.10455993237,
+     "printed": "1.0455993237E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.10455993236880698,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 1168.0088766,
+     "printed": "1.1680088766E+03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1168.008876555553,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 17.088072423,
+     "printed": "1.7088072423E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 17.08807242315201,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 4,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 4,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-rat42",
+   "title": "NIST StRD nonlinear regression: Rat42",
+   "file": "nist-rat42.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Rat42. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Rat42.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 9 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = b1 / (1+exp(b2-b3*x))",
+    "start": {
+     "b1": 100,
+     "b2": 1,
+     "b3": 0.1
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 72.462237576,
+     "printed": "7.2462237576E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 72.46223757560689,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 1.7340283401,
+     "printed": "1.7340283401E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 1.734028340055687,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 2.6180768402,
+     "printed": "2.6180768402E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 2.618076840207668,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.088295217536,
+     "printed": "8.8295217536E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.08829521753635208,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 0.067359200066,
+     "printed": "6.7359200066E-02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.0673592000660363,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 0.0034465663377,
+     "printed": "3.4465663377E-03",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.0034465663376743692,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 8.0565229338,
+     "printed": "8.0565229338E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8.056522933811298,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 1.1587725499,
+     "printed": "1.1587725499E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 1.158772549856909,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 6,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 6,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-rat43",
+   "title": "NIST StRD nonlinear regression: Rat43",
+   "file": "nist-rat43.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Rat43. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Rat43.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 15 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = b1 / ((1+exp(b2-b3*x))^(1/b4))",
+    "start": {
+     "b1": 100,
+     "b2": 10,
+     "b3": 1,
+     "b4": 1
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 699.6415127,
+     "printed": "6.9964151270E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 699.6415126967809,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 16.302297817,
+     "printed": "1.6302297817E+01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 16.302297816852768,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 5.2771253025,
+     "printed": "5.2771253025E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 5.277125302416694,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 2.0828735829,
+     "printed": "2.0828735829E+00",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 2.082873582961993,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 0.75962938329,
+     "printed": "7.5962938329E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.759629383290321,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 0.19566123451,
+     "printed": "1.9566123451E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.19566123451005915,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b4",
+     "value": 1.2792483859,
+     "printed": "1.2792483859E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 1.2792483859011858,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b4",
+     "value": 0.68761936385,
+     "printed": "6.8761936385E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.6876193638541119,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 8786.404908,
+     "printed": "8.7864049080E+03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8786.404907963133,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 28.262414662,
+     "printed": "2.8262414662E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 28.262414662270153,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 11,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 11,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-eckerle4",
+   "title": "NIST StRD nonlinear regression: Eckerle4",
+   "file": "nist-eckerle4.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Eckerle4. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Eckerle4.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 35 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = (b1/b2) * exp(-0.5*((x-b3)/b2)^2)",
+    "start": {
+     "b1": 1,
+     "b2": 10,
+     "b3": 500
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 1.5543827178,
+     "printed": "1.5543827178E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 1.5543827177530505,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 0.015408051163,
+     "printed": "1.5408051163E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.015408051163497026,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": 4.0888321754,
+     "printed": "4.0888321754E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 4.088832175425305,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.046803020753,
+     "printed": "4.6803020753E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.046803020753329004,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 451.54121844,
+     "printed": "4.5154121844E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 451.5412184361446,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 0.046800518816,
+     "printed": "4.6800518816E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.04680051881647639,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 0.0014635887487,
+     "printed": "1.4635887487E-03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.0014635887487274742,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 0.0067629245447,
+     "printed": "6.7629245447E-03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 0.006762924544731633,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 32,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 32,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-hahn1",
+   "title": "NIST StRD nonlinear regression: Hahn1",
+   "file": "nist-hahn1.csv",
+   "workflow": "nonlinear_regression",
+   "citation": "NIST Statistical Reference Datasets, Nonlinear Regression, Hahn1. National Institute of Standards and Technology, https://www.itl.nist.gov/div898/strd/nls/nls_main.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/nls/data/LINKS/DATA/Hahn1.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "one Y value per X, 236 observations; values copied verbatim from the NIST file"
+   },
+   "plan": {
+    "kind": "user_fit",
+    "equation": "Y = (b1+b2*x+b3*x^2+b4*x^3) / (1+b5*x+b6*x^2+b7*x^3)",
+    "start": {
+     "b1": 10,
+     "b2": -1,
+     "b3": 0.05,
+     "b4": -0.00001,
+     "b5": -0.05,
+     "b6": 0.001,
+     "b7": -0.000001
+    }
+   },
+   "references": [
+    {
+     "quantity": "b1",
+     "value": 1.0776351733,
+     "printed": "1.0776351733E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 1.077635173321422,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b1",
+     "value": 0.17070154742,
+     "printed": "1.7070154742E-01",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.17070154742103413,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b2",
+     "value": -0.12269296921,
+     "printed": "-1.2269296921E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": -0.12269296921105352,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b2",
+     "value": 0.012000289189,
+     "printed": "1.2000289189E-02",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.012000289189389751,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b3",
+     "value": 0.004086375061,
+     "printed": "4.0863750610E-03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.004086375061062748,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b3",
+     "value": 0.00022508314937,
+     "printed": "2.2508314937E-04",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.00022508314936645337,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b4",
+     "value": -0.0000014262662514,
+     "printed": "-1.4262662514E-06",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": -0.0000014262662514268835,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b4",
+     "value": 2.7578037666e-7,
+     "printed": "2.7578037666E-07",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 2.7578037665988953e-7,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b5",
+     "value": -0.0057609940901,
+     "printed": "-5.7609940901E-03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": -0.005760994090090702,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b5",
+     "value": 0.00024712888219,
+     "printed": "2.4712888219E-04",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.0002471288821897158,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b6",
+     "value": 0.00024053735503,
+     "printed": "2.4053735503E-04",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": 0.0002405373550324928,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b6",
+     "value": 0.000010449373768,
+     "printed": "1.0449373768E-05",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.00001044937376764843,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "b7",
+     "value": -1.2314450199e-7,
+     "printed": "-1.2314450199E-07",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified value (11 significant digits)",
+     "engine": {
+      "value": -1.2314450199288217e-7,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_b7",
+     "value": 1.3027335327e-8,
+     "printed": "1.3027335327E-08",
+     "tolerance": {
+      "rel": 0.00001
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 1.3027335327107394e-8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 1.5324382854,
+     "printed": "1.5324382854E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.5324382853606342,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 0.081803852243,
+     "printed": "8.1803852243E-02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 0.08180385224272445,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df",
+     "value": 229,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 229,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-norris",
+   "title": "NIST StRD linear regression: Norris",
+   "file": "nist-norris.csv",
+   "workflow": "linear_regression",
+   "citation": "NIST Statistical Reference Datasets, Linear Least Squares Regression, Norris. https://www.itl.nist.gov/div898/strd/lls/lls.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/lls/data/LINKS/DATA/Norris.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "36 rows, one Y per X"
+   },
+   "plan": {
+    "kind": "linreg",
+    "throughOrigin": false
+   },
+   "references": [
+    {
+     "quantity": "B0",
+     "value": -0.262323073774029,
+     "printed": "-0.262323073774029",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -0.2623230737740414,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B0",
+     "value": 0.232818234301152,
+     "printed": "0.232818234301152",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.23281823430115473,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B1",
+     "value": 1.00211681802045,
+     "printed": "1.00211681802045",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 1.0021168180204545,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B1",
+     "value": 0.000429796848199937,
+     "printed": "0.429796848199937E-03",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.00042979684819994103,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 0.884796396144373,
+     "printed": "0.884796396144373",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 0.884796396144381,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.999993745883712,
+     "printed": "0.999993745883712",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.9999937458837117,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_regression",
+     "value": 1,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_regression",
+     "value": 4255954.13232369,
+     "printed": "4255954.13232369",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 4255954.132323694,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_regression",
+     "value": 4255954.13232369,
+     "printed": "4255954.13232369",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 4255954.132323694,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 5436385.54079785,
+     "printed": "5436385.54079785",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 5436385.540797743,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_residual",
+     "value": 34,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 34,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 26.6173985294224,
+     "printed": "26.6173985294224",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 26.61739852942287,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_residual",
+     "value": 0.782864662630069,
+     "printed": "0.782864662630069",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.7828646626300845,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-pontius",
+   "title": "NIST StRD linear regression: Pontius",
+   "file": "nist-pontius.csv",
+   "workflow": "polynomial_regression",
+   "citation": "NIST Statistical Reference Datasets, Linear Least Squares Regression, Pontius. https://www.itl.nist.gov/div898/strd/lls/lls.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/lls/data/LINKS/DATA/Pontius.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "40 rows, one Y per X"
+   },
+   "plan": {
+    "kind": "polynomial2"
+   },
+   "references": [
+    {
+     "quantity": "B0",
+     "value": 0.000673565789473684,
+     "printed": "0.673565789473684E-03",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 0.0006735657894736632,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B0",
+     "value": 0.000107938612033077,
+     "printed": "0.107938612033077E-03",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.00010793861203307454,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B1",
+     "value": 7.32059160401003e-7,
+     "printed": "0.732059160401003E-06",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 7.320591604010025e-7,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B1",
+     "value": 1.57817399981659e-10,
+     "printed": "0.157817399981659E-09",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 1.5781739998165515e-10,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B2",
+     "value": -3.16081871345029e-15,
+     "printed": "-0.316081871345029E-14",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -3.1608187134503007e-15,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B2",
+     "value": 4.86652849992036e-17,
+     "printed": "0.486652849992036E-16",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 4.8665284999202507e-17,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 0.000205177424076185,
+     "printed": "0.205177424076185E-03",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 0.00020517742407617998,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.999999900178537,
+     "printed": "0.999999900178537",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.9999999001785371,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_regression",
+     "value": 2,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_regression",
+     "value": 15.6040343244198,
+     "printed": "15.6040343244198",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 15.604034324419812,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_regression",
+     "value": 7.80201716220991,
+     "printed": "7.80201716220991",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 7.802017162209906,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 185330865.995752,
+     "printed": "185330865.995752",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 185330865.99575996,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_residual",
+     "value": 37,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 37,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 0.00000155761768796992,
+     "printed": "0.155761768796992E-05",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.0000015576176879698542,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_residual",
+     "value": 4.20977753505385e-8,
+     "printed": "0.420977753505385E-07",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 4.20977753505366e-8,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-noint1",
+   "title": "NIST StRD linear regression: NoInt1",
+   "file": "nist-noint1.csv",
+   "workflow": "linear_regression",
+   "citation": "NIST Statistical Reference Datasets, Linear Least Squares Regression, NoInt1. https://www.itl.nist.gov/div898/strd/lls/lls.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/lls/data/LINKS/DATA/NoInt1.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "layout": {
+    "x": "x",
+    "y": [
+     "y"
+    ],
+    "notes": "11 rows, one Y per X"
+   },
+   "plan": {
+    "kind": "linreg",
+    "throughOrigin": true
+   },
+   "references": [
+    {
+     "quantity": "B1",
+     "value": 2.07438016528926,
+     "printed": "2.07438016528926",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 2.0743801652892544,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B1",
+     "value": 0.0165289256198347,
+     "printed": "0.165289256198347E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.01652892561983515,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 3.56753034006338,
+     "printed": "3.56753034006338",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 3.567530340063383,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.999365492298663,
+     "printed": "0.999365492298663",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.9993654922986628,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_regression",
+     "value": 1,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_regression",
+     "value": 200457.727272727,
+     "printed": "200457.727272727",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 200457.72727272726,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_regression",
+     "value": 200457.727272727,
+     "printed": "200457.727272727",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 200457.72727272726,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 15750.25,
+     "printed": "15750.2500000000",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 15750.24999999996,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_residual",
+     "value": 10,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 10,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 127.272727272727,
+     "printed": "127.272727272727",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 127.27272727272758,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_residual",
+     "value": 12.7272727272727,
+     "printed": "12.7272727272727",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 12.727272727272759,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-longley",
+   "title": "NIST StRD linear regression: Longley",
+   "file": "nist-longley.csv",
+   "workflow": "multiple_regression",
+   "citation": "NIST Statistical Reference Datasets, Linear Least Squares Regression, Longley. https://www.itl.nist.gov/div898/strd/lls/lls.shtml",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/lls/data/LINKS/DATA/Longley.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "layout": {
+    "x": [
+     "x1",
+     "x2",
+     "x3",
+     "x4",
+     "x5",
+     "x6"
+    ],
+    "y": [
+     "y"
+    ],
+    "notes": "multiple-variable table: six predictors and response y; 16 rows"
+   },
+   "plan": {
+    "kind": "mv_regression"
+   },
+   "references": [
+    {
+     "quantity": "B0",
+     "value": -3482258.63459582,
+     "printed": "-3482258.63459582",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -3482258.6345979227,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B0",
+     "value": 890420.383607373,
+     "printed": "890420.383607373",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 890420.3836073412,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B1",
+     "value": 15.0618722713733,
+     "printed": "15.0618722713733",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 15.061872271551783,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B1",
+     "value": 84.9149257747669,
+     "printed": "84.9149257747669",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 84.91492577477382,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B2",
+     "value": -0.035819179292591,
+     "printed": "-0.358191792925910E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -0.03581917929264704,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B2",
+     "value": 0.0334910077722432,
+     "printed": "0.334910077722432E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.03349100777224075,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B3",
+     "value": -2.02022980381683,
+     "printed": "-2.02022980381683",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -2.020229803817411,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B3",
+     "value": 0.488399681651699,
+     "printed": "0.488399681651699",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.4883996816516071,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B4",
+     "value": -1.03322686717359,
+     "printed": "-1.03322686717359",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -1.0332268671736546,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B4",
+     "value": 0.214274163161675,
+     "printed": "0.214274163161675",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.21427416316164227,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B5",
+     "value": -0.0511041056535807,
+     "printed": "-0.511041056535807E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -0.051104105653695026,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B5",
+     "value": 0.22607320006937,
+     "printed": "0.226073200069370",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 0.2260732000693336,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "B6",
+     "value": 1829.15146461355,
+     "printed": "1829.15146461355",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 1829.1514646146377,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "se_B6",
+     "value": 455.478499142212,
+     "printed": "455.478499142212",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified standard deviation of estimate",
+     "engine": {
+      "value": 455.47849914219825,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sy_x",
+     "value": 304.854073561965,
+     "printed": "304.854073561965",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified residual standard deviation",
+     "engine": {
+      "value": 304.8540735619632,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.995479004577296,
+     "printed": "0.995479004577296",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.9954790045772957,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_regression",
+     "value": 6,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 6,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_regression",
+     "value": 184172401.944494,
+     "printed": "184172401.944494",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 184172401.9444941,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_regression",
+     "value": 30695400.3240823,
+     "printed": "30695400.3240823",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 30695400.32408235,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 330.285339234588,
+     "printed": "330.285339234588",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 330.28533923459173,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_residual",
+     "value": 9,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 9,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_ss",
+     "value": 836424.055505915,
+     "printed": "836424.055505915",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 836424.055505906,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_residual",
+     "value": 92936.0061673238,
+     "printed": "92936.0061673238",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 92936.00616732289,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-sirstv",
+   "title": "NIST StRD one-way ANOVA: SiRstv",
+   "file": "nist-sirstv.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SiRstv. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SiRstv.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Instrument 1",
+     "Instrument 2",
+     "Instrument 3",
+     "Instrument 4",
+     "Instrument 5"
+    ],
+    "notes": "wide column table, one column per group (5 groups x 5 replicates, 25 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 4,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 4,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 0.0511462616,
+     "printed": "5.11462616000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.051146261599999514,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 0.0127865654,
+     "printed": "1.27865654000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.012786565399999878,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 1.18046237440255,
+     "printed": "1.18046237440255E+00",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.1804623744024467,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 20,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 20,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 0.21663656,
+     "printed": "2.16636560000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.2166365600000165,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.010831828,
+     "printed": "1.08318280000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010831828000000824,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.190999039051129,
+     "printed": "1.90999039051129E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.19099903905111612,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.104076068334656,
+     "printed": "1.04076068334656E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10407606833466003,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls01",
+   "title": "NIST StRD one-way ANOVA: SmLs01",
+   "file": "nist-smls01.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs01. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs01.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 21 replicates, 189 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 1.68,
+     "printed": "1.68000000000000E+00",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.680000000000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 0.21,
+     "printed": "2.10000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.21000000000000013,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 21,
+     "printed": "2.10000000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 20.999999999999996,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 180,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 180,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 1.8,
+     "printed": "1.80000000000000E+00",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.8000000000000012,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000000000000007,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.482758620689655,
+     "printed": "4.82758620689655E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.4827586206896552,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10000000000000003,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls02",
+   "title": "NIST StRD one-way ANOVA: SmLs02",
+   "file": "nist-smls02.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs02. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs02.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 201 replicates, 1809 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 16.08,
+     "printed": "1.60800000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 16.08000000000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 2.01,
+     "printed": "2.01000000000000E+00",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2.010000000000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 201,
+     "printed": "2.01000000000000E+02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 201,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 1800,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1800,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 18,
+     "printed": "1.80000000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 18.00000000000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000000000000005,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.471830985915493,
+     "printed": "4.71830985915493E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.47183098591549294,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10000000000000003,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls03",
+   "title": "NIST StRD one-way ANOVA: SmLs03",
+   "file": "nist-smls03.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs03. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs03.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 2001 replicates, 18009 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 160.08,
+     "printed": "1.60080000000000E+02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 160.08000000000018,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 20.01,
+     "printed": "2.00100000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 20.010000000000023,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 2001,
+     "printed": "2.00100000000000E+03",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2001.000000000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 18000,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 18000,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 180,
+     "printed": "1.80000000000000E+02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 180.0000000000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000000000000007,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.470712773465067,
+     "printed": "4.70712773465067E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.47071277346506724,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10000000000000003,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls04",
+   "title": "NIST StRD one-way ANOVA: SmLs04",
+   "file": "nist-smls04.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs04. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs04.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 21 replicates, 189 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 1.68,
+     "printed": "1.68000000000000E+00",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.6800000001490114,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 0.21,
+     "printed": "2.10000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.21000000001862643,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 21,
+     "printed": "2.10000000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 21.000000000776094,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 180,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 180,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 1.8,
+     "printed": "1.80000000000000E+00",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.8000000000931327,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000000000517404,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.482758620689655,
+     "printed": "4.82758620689655E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.4827586206988834,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10000000000258702,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls05",
+   "title": "NIST StRD one-way ANOVA: SmLs05",
+   "file": "nist-smls05.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs05. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs05.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 201 replicates, 1809 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 16.08,
+     "printed": "1.60800000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 16.080000001825393,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 2.01,
+     "printed": "2.01000000000000E+00",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2.010000000228174,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 201,
+     "printed": "2.01000000000000E+02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 201.00000001241767,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 1800,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1800,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 18,
+     "printed": "1.80000000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 18.000000000931323,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.0100000000005174,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.471830985915493,
+     "printed": "4.71830985915493E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.47183098593088874,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.100000000002587,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls06",
+   "title": "NIST StRD one-way ANOVA: SmLs06",
+   "file": "nist-smls06.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs06. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs06.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 2001 replicates, 18009 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 160.08,
+     "printed": "1.60080000000000E+02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 160.0800000185892,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 20.01,
+     "printed": "2.00100000000000E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 20.01000000232365,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 2001,
+     "printed": "2.00100000000000E+03",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2001.0000001288329,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 18000,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 18000,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 180,
+     "printed": "1.80000000000000E+02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 180.00000000931325,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000000000517402,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.470712773465067,
+     "printed": "4.70712773465067E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.4707127734811079,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.100000000002587,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls07",
+   "title": "NIST StRD one-way ANOVA: SmLs07",
+   "file": "nist-smls07.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs07. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs07.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "stress": true,
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 21 replicates, 189 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 1.68,
+     "printed": "1.68000000000000E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.6801562694014696,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 0.21,
+     "printed": "2.10000000000000E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.2100195336751837,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 21,
+     "printed": "2.10000000000000E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 21.000774329270687,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 180,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 180,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 1.8,
+     "printed": "1.80000000000000E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.8001010566949844,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000561426083247,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.482758620689655,
+     "printed": "4.82758620689655E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.4827678277703609,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10000280709101743,
+      "status": "fail"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls08",
+   "title": "NIST StRD one-way ANOVA: SmLs08",
+   "file": "nist-smls08.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs08. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs08.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "stress": true,
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 201 replicates, 1809 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 16.08,
+     "printed": "1.60800000000000E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 16.081914284204238,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 2.01,
+     "printed": "2.01000000000000E+00",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2.0102392855255298,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 201,
+     "printed": "2.01000000000000E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 201.0129375359338,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 1800,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1800,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 18,
+     "printed": "1.80000000000000E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 18.000984206795692,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000546781553163,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.471830985915493,
+     "printed": "4.71830985915493E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.471847025817094,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10000273387039559,
+      "status": "fail"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-smls09",
+   "title": "NIST StRD one-way ANOVA: SmLs09",
+   "file": "nist-smls09.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, SmLs09. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/SmLs09.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "stress": true,
+   "layout": {
+    "columns": [
+     "Treatment 1",
+     "Treatment 2",
+     "Treatment 3",
+     "Treatment 4",
+     "Treatment 5",
+     "Treatment 6",
+     "Treatment 7",
+     "Treatment 8",
+     "Treatment 9"
+    ],
+    "notes": "wide column table, one column per group (9 groups x 2001 replicates, 18009 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 8,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 160.08,
+     "printed": "1.60080000000000E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 160.09949443572512,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 20.01,
+     "printed": "2.00100000000000E+01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 20.01243680446564,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 2001,
+     "printed": "2.00100000000000E+03",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2001.134595079758,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 18000,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 18000,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 180,
+     "printed": "1.80000000000000E+02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 180.00981211662292,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 0.01,
+     "printed": "1.00000000000000E-02",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.010000545117590163,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.470712773465067,
+     "printed": "4.70712773465067E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.47072953121641015,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.1,
+     "printed": "1.00000000000000E-01",
+     "tolerance": {
+      "rel": 0.000001
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.10000272555080768,
+      "status": "fail"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-atmwtag",
+   "title": "NIST StRD one-way ANOVA: AtmWtAg",
+   "file": "nist-atmwtag.csv",
+   "workflow": "one_way_anova",
+   "citation": "NIST Statistical Reference Datasets, Analysis of Variance, AtmWtAg. https://www.itl.nist.gov/div898/strd/anova/anova.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/anova/AtmWtAg.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Instrument 1",
+     "Instrument 2"
+    ],
+    "notes": "wide column table, one column per group (2 groups x 24 replicates, 48 values); long NIST file pivoted with values kept verbatim"
+   },
+   "plan": {
+    "kind": "anova"
+   },
+   "references": [
+    {
+     "quantity": "df_between",
+     "value": 1,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_between",
+     "value": 3.638341875e-9,
+     "printed": "3.63834187500000E-09",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 3.6383418747907136e-9,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_between",
+     "value": 3.638341875e-9,
+     "printed": "3.63834187500000E-09",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 3.6383418747907136e-9,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "F",
+     "value": 15.946733567793,
+     "printed": "1.59467335677930E+01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 15.946733566676928,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "df_within",
+     "value": 46,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 46,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ss_within",
+     "value": 1.04951729166667e-8,
+     "printed": "1.04951729166667E-08",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 1.049517291679747e-8,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "ms_within",
+     "value": 2.28155932971014e-10,
+     "printed": "2.28155932971014E-10",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 2.2815593297385806e-10,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "r_squared",
+     "value": 0.257426544538321,
+     "printed": "2.57426544538321E-01",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.25742654452494285,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "residual_sd",
+     "value": 0.000015104831444641,
+     "printed": "1.51048314446410E-05",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.000015104831444735094,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-pidigits",
+   "title": "NIST StRD univariate summary statistics: PiDigits",
+   "file": "nist-pidigits.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, PiDigits. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/PiDigits.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 5000 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 4.5348,
+     "printed": "4.53480000000000",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 4.5348,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 2.86733906028871,
+     "printed": "2.86733906028871",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 2.867339060288708,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": -0.00355099287237972,
+     "printed": "-0.00355099287237972",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": -0.0035509928723797424,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 5000,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 5000,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-lottery",
+   "title": "NIST StRD univariate summary statistics: Lottery",
+   "file": "nist-lottery.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, Lottery. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/Lottery.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 218 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 518.95871559633,
+     "printed": "518.958715596330",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 518.9587155963303,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 291.699727470969,
+     "printed": "291.699727470969",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 291.6997274709691,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": -0.120948622967393,
+     "printed": "-0.120948622967393",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": -0.12094862296739281,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 218,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 218,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-lew",
+   "title": "NIST StRD univariate summary statistics: Lew",
+   "file": "nist-lew.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, Lew. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/Lew.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 200 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": -177.435,
+     "printed": "-177.435000000000",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": -177.435,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 277.332168044316,
+     "printed": "277.332168044316",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 277.3321680443161,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": -0.307304800605679,
+     "printed": "-0.307304800605679",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": -0.30730480060567944,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 200,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 200,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-mavro",
+   "title": "NIST StRD univariate summary statistics: Mavro",
+   "file": "nist-mavro.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, Mavro. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/Mavro.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 50 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 2.001856,
+     "printed": "2.00185600000000",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 2.0018559999999996,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 0.000429123454003053,
+     "printed": "0.000429123454003053",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 0.0004291234540030854,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": 0.937989183438248,
+     "printed": "0.937989183438248",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.9379891834382648,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 50,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 50,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-michelso",
+   "title": "NIST StRD univariate summary statistics: Michelso",
+   "file": "nist-michelso.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, Michelso. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/Michelso.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty (from the NIST univariate index page; not stated in the file)",
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 100 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 299.8524,
+     "printed": "299.852400000000",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 299.8524,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 0.0790105478190518,
+     "printed": "0.0790105478190518",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 0.07901054781905067,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": 0.535199668621283,
+     "printed": "0.535199668621283",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": 0.5351996686212634,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 100,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 100,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-numacc1",
+   "title": "NIST StRD univariate summary statistics: NumAcc1",
+   "file": "nist-numacc1.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, NumAcc1. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/NumAcc1.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Lower Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 3 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 10000002,
+     "printed": "10000002",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 10000002,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 1,
+     "printed": "1",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 1,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": -0.5,
+     "printed": "-0.5",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": -0.5,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 3,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 3,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-numacc2",
+   "title": "NIST StRD univariate summary statistics: NumAcc2",
+   "file": "nist-numacc2.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, NumAcc2. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/NumAcc2.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 1001 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 1.2,
+     "printed": "1.2",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 1.2,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 0.1,
+     "printed": "0.1",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 0.09999999999999999,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": -0.999,
+     "printed": "-0.999",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": -0.9990000000000011,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 1001,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 1001,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-numacc3",
+   "title": "NIST StRD univariate summary statistics: NumAcc3",
+   "file": "nist-numacc3.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, NumAcc3. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/NumAcc3.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Average Level of Difficulty",
+   "stress": true,
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 1001 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 1000000.2,
+     "printed": "1000000.2",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 1000000.2000000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 0.1,
+     "printed": "0.1",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 0.10000000003492461,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": -0.999,
+     "printed": "-0.999",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": -0.9989999999999991,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 1001,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 1001,
+      "status": "pass"
+     }
+    }
+   ]
+  },
+  {
+   "id": "nist-numacc4",
+   "title": "NIST StRD univariate summary statistics: NumAcc4",
+   "file": "nist-numacc4.csv",
+   "workflow": "descriptive_statistics",
+   "citation": "NIST Statistical Reference Datasets, Univariate Summary Statistics, NumAcc4. https://www.itl.nist.gov/div898/strd/univ/homepage.html",
+   "sourceUrl": "https://www.itl.nist.gov/div898/strd/univ/data/NumAcc4.dat",
+   "licence": "public domain (US government work, NIST Statistical Reference Datasets)",
+   "difficulty": "Higher Level of Difficulty",
+   "stress": true,
+   "layout": {
+    "columns": [
+     "Y"
+    ],
+    "notes": "single column, 1001 values in file order (order matters for the lag-1 autocorrelation)"
+   },
+   "plan": {
+    "kind": "column_stats"
+   },
+   "references": [
+    {
+     "quantity": "mean",
+     "value": 10000000.2,
+     "printed": "10000000.2",
+     "tolerance": {
+      "rel": 1e-12
+     },
+     "source": "NIST certified (15 significant digits)",
+     "engine": {
+      "value": 10000000.200000001,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "sd",
+     "value": 0.1,
+     "printed": "0.1",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified, denominator n-1",
+     "engine": {
+      "value": 0.10000000055879354,
+      "status": "fail"
+     }
+    },
+    {
+     "quantity": "lag1_autocorrelation",
+     "value": -0.999,
+     "printed": "-0.999",
+     "tolerance": {
+      "rel": 1e-9
+     },
+     "source": "NIST certified",
+     "engine": {
+      "value": -0.9990000000000016,
+      "status": "pass"
+     }
+    },
+    {
+     "quantity": "n",
+     "value": 1001,
+     "tolerance": {
+      "abs": 0
+     },
+     "source": "NIST",
+     "engine": {
+      "value": 1001,
+      "status": "pass"
+     }
+    }
+   ]
+  }
+ ]
+}
