@@ -1,0 +1,147 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "BCG vaccine trials",
+ "prefs": {
+  "defaultTableType": "grouped",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r712",
+ "sheets": [
+  {
+   "id": "d711",
+   "kind": "data",
+   "name": "BCG trials (Colditz 1994)",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "log risk ratio",
+    "rowTitles": [
+     "Aronson 1948",
+     "Ferguson & Simes 1949",
+     "Rosenthal 1960",
+     "Hart & Sutherland 1977",
+     "Frimodt-Moller 1973",
+     "Stein & Aronson 1953",
+     "Vandiviere 1973",
+     "TPT Madras 1980",
+     "Coetzee & Berjak 1968",
+     "Rosenthal 1961",
+     "Comstock 1974",
+     "Comstock & Webster 1969",
+     "Comstock 1976"
+    ],
+    "datasets": [
+     {
+      "name": "log RR",
+      "subTitles": [
+       "log RR",
+       "SE"
+      ],
+      "rows": [
+       [
+        "-0.889311",
+        "0.5706"
+       ],
+       [
+        "-1.585389",
+        "0.441114"
+       ],
+       [
+        "-1.348073",
+        "0.64449"
+       ],
+       [
+        "-1.441551",
+        "0.141457"
+       ],
+       [
+        "-0.217547",
+        "0.226297"
+       ],
+       [
+        "-0.786116",
+        "0.0831"
+       ],
+       [
+        "-1.620898",
+        "0.472247"
+       ],
+       [
+        "0.011952",
+        "0.062941"
+       ],
+       [
+        "-0.469418",
+        "0.237559"
+       ],
+       [
+        "-1.371345",
+        "0.270231"
+       ],
+       [
+        "-0.339359",
+        "0.11141"
+       ],
+       [
+        "0.445913",
+        "0.72973"
+       ],
+       [
+        "-0.017314",
+        "0.267217"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "mean_sem",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r712",
+   "kind": "results",
+   "parentId": "d711",
+   "analysis": "meta_analysis",
+   "options": {
+    "scale": "log_ratio"
+   },
+   "name": "Combined experiments of BCG trials"
+  },
+  {
+   "id": "g713",
+   "kind": "graph",
+   "parentId": "d711",
+   "resultsId": "r712",
+   "graphType": "meta_forest",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Forest plot of BCG trials"
+  }
+ ]
+}

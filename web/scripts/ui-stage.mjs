@@ -1055,6 +1055,44 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1000);
   } },
+  // dat.bcg (P-92): 13 trials' log risk ratios with SEs combined; the
+  // results sheet (headline, typeset tables, checks) and the forest plot
+  { name: "results-meta-analysis", setup: async (s) => {
+    await fixture(s, "meta-bcg.json", { live: true });
+    await s.page.locator(".pane-results .meta-results").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .meta-results");
+  } },
+  { name: "graphs-forest-meta", setup: async (s) => {
+    await fixture(s, "meta-bcg.json", { live: true });
+    await selectSheet(s, "Forest plot of BCG trials");
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.name === "Random effects"), null, { timeout: 180000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
+  // DABEST's seeded data (P-93): three repeats combined by the mini-meta,
+  // and a 2 x 2 delta-delta, each as the rightmost column of the plot
+  { name: "graphs-estimation-minimeta", setup: async (s) => {
+    await fixture(s, "estimation-minimeta.json", { live: true });
+    await selectSheet(s, "Estimation plot of Three repeats");
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.name === "combined-effect"), null, { timeout: 180000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
+  { name: "results-estimation-minimeta", setup: async (s) => {
+    await fixture(s, "estimation-minimeta.json", { live: true });
+    await s.page.locator(".pane-results .estimation-results .derived").first().waitFor({ timeout: 180000 });
+    await into(s, ".pane-results .estimation-results");
+  } },
+  { name: "graphs-estimation-delta-delta", setup: async (s) => {
+    await fixture(s, "estimation-minimeta.json", { live: true });
+    await selectSheet(s, "Estimation plot of Genotype by drug");
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.name === "combined-effect"), null, { timeout: 180000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
   { name: "graphs-graph-sheet", setup: async (s) => {
     await example(s);
     await selectSheet(s, "Graph of Dose response");

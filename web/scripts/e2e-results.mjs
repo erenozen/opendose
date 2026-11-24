@@ -1490,6 +1490,51 @@ const analyzeWith = async (re) => {
       && pe.some((r) => r.startsWith(`rx 2 Median (50%) Extrapolated ${sig4(cf["rx 2"])} `)), pe.join(" | "));
 }
 
+// --- P-92: combining experiments (meta-analysis) ----------------------------
+{
+  // dat.bcg (Colditz et al. 1994): 13 trials' log risk ratios with their
+  // SEs, as metafor's escalc computes them (6 decimals). metafor 5.3-4's
+  // rma.uni Examples print REML -0.7145, SE 0.1798, 95% CI -1.0669 to
+  // -0.3622, tau^2 0.3132 (SE 0.1664), I^2 92.22%; predict(transf = exp)
+  // 0.49 (0.34 to 0.70). The Hartung-Knapp CI from
+  // engine/tests/reference/meta_reference.json (bcg_reml.ci_hk).
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/meta_reference.json"), "utf8")).bcg_reml;
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  await page.keyboard.press("Escape");
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "meta-bcg-data.json"));
+  await page.getByRole("treeitem", { name: "BCG trials (Colditz 1994)" }).first().waitFor({ timeout: 60000 });
+  await page.getByRole("button", { name: "Analyze", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Combine experiments (meta-analysis)" }).click();
+  await page.getByLabel("Estimates are").selectOption("log_ratio");
+  const ratio = (v) => sig4(Math.exp(v));
+  const want = `95% CI ${ratio(REF.ci_hk[0])} to ${ratio(REF.ci_hk[1])} (Hartung-Knapp)`;
+  const shown = await answerText(new RegExp(`0\\.4894[\\s\\S]*${want.replace(/[().]/g, "\\$&")}`), 180000);
+  const answer = (await page.locator(".pane-answer").first().innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect(`P-92 acceptance: dat.bcg pooled RR 0.4894 (REML -0.7145, as metafor), "${want}"`, shown, answer.slice(0, 300));
+  expect("P-92 tau^2 0.3132 and I^2 92.22% (metafor) in the headline",
+    answer.includes("τ² 0.3132") && answer.includes("I² 92.22%"), answer.slice(0, 300));
+  const card = async () => (await page.locator(".pane-results .meta-results").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  const c1 = await card();
+  expect("P-92 random-effects row: log RR -0.7145, RR 0.4894 with the Hartung-Knapp CI",
+    c1.includes(`Random effects (REML, Hartung-Knapp) -0.7145 ${sig4(REF.se_hk)} 0.4894 ${ratio(REF.ci_hk[0])} to ${ratio(REF.ci_hk[1])}`), c1.slice(0, 1600));
+  expect("P-92 tau^2 with its SE as metafor prints it", c1.includes("τ² (REML) 0.3132 (SE 0.1664)"), c1);
+  expect("P-92 the 13 trials are listed", c1.includes("Aronson 1948") && c1.includes("Comstock 1976")
+    && c1.includes("13 experiments"));
+  // the normal (z) interval reproduces metafor's printed CI
+  await page.getByLabel("Pooled CI").selectOption("z");
+  // textContent runs the cells together: the pattern allows no space between them
+  const z = await liveResults(new RegExp(`Random effects \\(REML, z\\)\\s*-0\\.7145\\s*0\\.1798\\s*0\\.4894\\s*`
+    + `${ratio(REF.ci_z[0]).replace(".", "\\.")} to ${ratio(REF.ci_z[1]).replace(".", "\\.")}`), 120000);
+  // REF.ci_z is -1.066898 to -0.362167, metafor's printed -1.0669 to -0.3622
+  expect("P-92 z interval: SE 0.1798, RR CI exp(-1.0669) to exp(-0.3622) (metafor)", z
+    && Math.abs(REF.ci_z[0] + 1.0669) < 5e-5 && Math.abs(REF.ci_z[1] + 0.3622) < 5e-5, (await card()).slice(0, 1600));
+  await openChecks();
+  const checks = (await page.locator(".pane-answer details.checks").first().innerText().catch(() => "")).replace(/\s+/g, " ");
+  expect("P-92 the checks say the experiments disagree (I² 92.2%)", checks.includes("I² 92.2%"), checks.slice(0, 300));
+}
+
 // ------------------------------------------------------------------------
 await browser.close();
 if (errors.length) console.log(errors.slice(0, 10).join("\n"));

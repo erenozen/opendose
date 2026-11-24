@@ -4232,7 +4232,10 @@ def _estimation(data, options):
     multi_two_group), effects (["mean_diff"]; any of "mean_diff",
     "median_diff", "cohens_d", "hedges_g", "cliffs_delta"), ci_level
     (0.95), n_boot (5000), n_permutations (5000), seed (12345), ci_type
-    ("bca" | "percentile"), permutation (true). Result: {"analysis",
+    ("bca" | "percentile"), permutation (true), combine ("mini_meta" |
+    "delta_delta": the weighted delta of independent unpaired repeats,
+    or the second comparison's mean difference minus the first's; mean
+    difference only). Result: {"analysis",
     "design", "paired", "groups": [{name, n, mean, sd, median, q1, q3,
     values}], "comparisons": [{control, test, paired, n_control, n_test,
     effects: [{effect, label, difference, ci, ci_type, ci_level, bca_ci,
@@ -4240,7 +4243,8 @@ def _estimation(data, options):
     {n_resamples, mean, sd, percentiles, kde: {x, density, bandwidth}},
     permutation: {p, n_permutations, exact, method}}]}], "plot": {kind:
     "gardner_altman" | "cumming", order, pairs, paired_lines,
-    reference_mean?}}."""
+    reference_mean?}, "combined"?: {kind, label, difference, ci, bca_ci,
+    percentile_ci, comparisons, weights?, bootstrap, permutation?}}."""
     names = [ds.get("name", f"Group {i + 1}")
              for i, ds in enumerate(data["datasets"])]
     design = options.get("design")
@@ -4262,7 +4266,8 @@ def _estimation(data, options):
         ci_level=options.get("ci_level", 0.95), n_boot=n_boot,
         n_permutations=n_perm, seed=options.get("seed", 12345),
         ci_type=options.get("ci_type", "bca"),
-        permutation=options.get("permutation", True))}
+        permutation=options.get("permutation", True),
+        combine=options.get("combine"))}
 
 
 def _power(data, options):
@@ -5007,6 +5012,36 @@ def _precision_study(data, options):
 
 
 _HANDLERS["precision_study"] = _precision_study
+
+from . import meta  # noqa: E402
+
+
+def _meta_analysis(data, options):
+    """Combining experiments: common- and random-effects meta-analysis
+    (opendose.meta, P-92). data: {"rows": [{"label", "values"}]}, one row
+    per experiment holding the subcolumns of one data set. options:
+    format ("mean_sem" | "mean_sem_n" | "mean_sd_n" | "mean_ci_n" |
+    "mean_limits"), scale ("difference" | "log_ratio" | "ratio"),
+    limits_level (0.95, for mean_limits), method ("REML" | "DL"), test
+    ("knha" | "z"), ci_level (0.95), name (the data set). Result:
+    {"analysis": "meta_analysis", "name", "k", "studies", "dropped",
+    "fixed", "random", "heterogeneity", "prediction", "notes", ...}
+    (meta.meta_analysis)."""
+    scale = options.get("scale", "difference")
+    labels, est, ses, problems = meta.read_rows(
+        data.get("rows") or [], options.get("format", "mean_sem"),
+        scale=scale, limits_level=float(options.get("limits_level", 0.95)))
+    res = meta.meta_analysis(
+        est, ses, labels, method=options.get("method", "REML"),
+        test=options.get("test", "knha"),
+        ci_level=float(options.get("ci_level", 0.95)), scale=scale)
+    for d in res["dropped"]:
+        if d["label"] in problems:
+            d["reason"] = problems[d["label"]]
+    return {"analysis": "meta_analysis", "name": options.get("name"), **res}
+
+
+_HANDLERS["meta_analysis"] = _meta_analysis
 
 
 def analyze(payload: dict) -> dict:

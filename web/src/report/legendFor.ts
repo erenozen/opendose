@@ -26,6 +26,8 @@ import { fitLegendClause } from "../sheets/xy/fitLegend.ts";
 import { ctBracketLegend, ctBracketsDrawn } from "../sheets/contingency/brackets.ts";
 import { estimationMargins, marginsLegend, type EquivalenceLink } from "./estimation/margins.ts";
 import { GRAPH_ESTIMATION } from "./estimation/run.ts";
+import { FOREST_DEFAULTS, forestPlotted, type ForestSettings } from "./metaAnalysis/forest.ts";
+import { GRAPH_FOREST } from "./metaAnalysis/run.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -168,13 +170,17 @@ export function legendFor(c: LegendContext): string {
     ? marginsLegend(estimationMargins(c.result, c.equivalence.result, c.equivalence.options)) : "";
   const estPlotted = eqClause ? `${whatIsPlotted(GRAPH_ESTIMATION, {
     estimation: ra === "estimation" ? c.result as any : null })} ${eqClause}` : undefined;
+  // the forest plot of combined experiments: the plot says what it pools
+  const forest = c.graph?.graphType === GRAPH_FOREST && ra === "meta_analysis"
+    ? forestPlotted(c.result as any, { ...FOREST_DEFAULTS,
+      ...(c.graph.settings.forest as Partial<ForestSettings> | undefined) }) : undefined;
   return legendParagraph({
     graphType: c.graph?.graphType ?? null,
-    plotted: xyFit ?? ctPlotted ?? estPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
+    plotted: forest ?? xyFit ?? ctPlotted ?? estPlotted ?? withCompareClause(c.graph ? (own ? ownPlotted(c.graph, c.result, c.options)
       : plottedClause(c.graph, c.table, c.result, c.options)) : undefined, c.result),
     valuesAre: c.valuesAre ?? undefined,
     result: c.result,
-    groups: xyGroups,
+    groups: forest ? [] : xyGroups,
     unit: { unit, experiments: onePer ? null : meta.experiments ?? null,
       within: onePer ? undefined : withinPerGroup(facts, xy) || undefined, ...(xyByExp ? { per: "X value" } : {}) },
     nNote: withinNote(facts, xy) || undefined,

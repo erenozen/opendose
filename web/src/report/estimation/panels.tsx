@@ -9,9 +9,10 @@ import { getRuntimeVersions } from "../../lib/engine";
 import type { ControlsProps, ResultsProps } from "../../sheets/types";
 import { tableP } from "../pformat";
 import {
-  DESIGN_LABELS, EFFECT_LABELS, type EstimationDesign, type EstimationEffect,
-  type EstimationOptions,
+  COMBINE_LABELS, DESIGN_LABELS, EFFECT_LABELS, canCombine, type EstimationCombine,
+  type EstimationDesign, type EstimationEffect, type EstimationOptions,
 } from "./run";
+import { combinedMethods, combinedRow } from "./combined";
 import { NumberField } from "../../components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -53,6 +54,30 @@ export function EstimationControls({ table, options: o, onChange }: ControlsProp
           </label>
         )}
         {paired && <p className="hint-block">Paired: values in the same row are the same subject; rows with a blank are left out of that comparison.</p>}
+        {canCombine(table.type, o) && (
+          <>
+            <label className="check-row">
+              <span>Combine the comparisons</span>
+              <select aria-label="Combine the comparisons" value={o.combine}
+                onChange={(e) => set({ combine: e.target.value as EstimationCombine })}>
+                {(Object.keys(COMBINE_LABELS) as EstimationCombine[]).map((k) => (
+                  <option key={k} value={k}>{COMBINE_LABELS[k]}</option>
+                ))}
+              </select>
+            </label>
+            {o.combine !== "none" && (
+              <p className="hint-block">
+                {o.combine === "mini_meta"
+                  ? `Each ${grouped ? "row" : "pair"} must be an independent repeat of the same experiment; `
+                    + "its mean difference is weighted by the inverse of its pooled group variance (DABEST; "
+                    + "Ho et al. 2019, Nat Methods 16:565)."
+                  : `Exactly two ${grouped ? "rows" : "pairs"}: the second mean difference minus the first, `
+                    + "for a 2 × 2 design (DABEST; Ho et al. 2019, Nat Methods 16:565)."}
+                {o.effect !== "mean_diff" && " Needs Mean difference as the effect size."}
+              </p>
+            )}
+          </>
+        )}
       </section>
       <section>
         <h3>Effect size and bootstrap</h3>
@@ -126,8 +151,20 @@ export function EstimationResults({ result }: ResultsProps<EstimationOptions, an
               <td className="num">{e.permutation ? `${tableP(e.permutation.p)}${e.permutation.exact ? " (exact)" : ""}` : "n/a"}</td>
             </tr>
           )))}
+          {result.combined && (() => {
+            const c = combinedRow(result.combined);
+            return (
+              <tr className="derived">
+                <th scope="row">{c.label}</th><td className="num">{c.n}</td><td>{c.effect}</td>
+                <td className="num">{c.value}</td><td className="num">{c.ci}</td><td className="num">{c.p}</td>
+              </tr>
+            );
+          })()}
         </tbody>
       </table>
+      {result.combined?.kind === "mini_meta" && (
+        <p className="model-line">{combinedRow(result.combined).weights}</p>
+      )}
       <h4>Groups</h4>
       <table className="results-table">
         <thead><tr><th>Group</th><th>n</th><th>Mean</th><th>SD</th><th>Median</th><th>Q1 to Q3</th></tr></thead>
@@ -158,6 +195,7 @@ export function EstimationMethods({ result }: ResultsProps<EstimationOptions, an
     + `(Ho, Tumkaya, Aryal, Choi & Claridge-Chang 2019, Nat Methods 16:565-566)`
     + `${result.paired ? ", pairing values by subject" : ""}. Two-sided P values come from a permutation test `
     + `(${result.n_permutations} reshuffles, or every arrangement when there are fewer) and are not corrected for multiple comparisons. `
+    + combinedMethods(result)
     + softwareSentence(getRuntimeVersions());
   return <CopyableMethods text={text} />;
 }

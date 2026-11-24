@@ -1,0 +1,239 @@
+{
+ "opendose_project": 2,
+ "version": 2,
+ "title": "Repeated experiments",
+ "prefs": {
+  "defaultTableType": "grouped",
+  "errorBars": "sd",
+  "ciMethod": "asymptotic",
+  "scheme": "default",
+  "digits": 4
+ },
+ "selected": "r812",
+ "sheets": [
+  {
+   "id": "d811",
+   "kind": "data",
+   "name": "Three repeats",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Response",
+    "rowTitles": [
+     "Repeat 1",
+     "Repeat 2",
+     "Repeat 3"
+    ],
+    "datasets": [
+     {
+      "name": "Control",
+      "rows": [
+       [
+        "11.74",
+        "8.27",
+        "9.98",
+        "8.96",
+        "11.81",
+        "8.85",
+        "",
+        ""
+       ],
+       [
+        "11.84",
+        "9.28",
+        "9.5",
+        "10.47",
+        "9.55",
+        "10.06",
+        "10.46",
+        "10.31"
+       ],
+       [
+        "7.97",
+        "14.85",
+        "10.74",
+        "10.51",
+        "10.22",
+        "",
+        "",
+        ""
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "8.21",
+        "6.51",
+        "9.06",
+        "6.79",
+        "6.34",
+        "5.76",
+        "",
+        ""
+       ],
+       [
+        "10.19",
+        "8.0",
+        "10.17",
+        "9.15",
+        "8.17",
+        "9.78",
+        "8.8",
+        ""
+       ],
+       [
+        "7.8",
+        "7.83",
+        "1.51",
+        "8.45",
+        "3.48",
+        "6.36",
+        "",
+        ""
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r812",
+   "kind": "results",
+   "parentId": "d811",
+   "analysis": "estimation",
+   "options": {
+    "combine": "mini_meta"
+   },
+   "name": "Estimation of Three repeats"
+  },
+  {
+   "id": "g813",
+   "kind": "graph",
+   "parentId": "d811",
+   "resultsId": "r812",
+   "graphType": "estimation",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Estimation plot of Three repeats"
+  },
+  {
+   "id": "d821",
+   "kind": "data",
+   "name": "Genotype by drug",
+   "table": {
+    "type": "grouped",
+    "x": [
+     "",
+     ""
+    ],
+    "xTitle": "",
+    "xFormat": "numbers",
+    "xUnit": "",
+    "yTitle": "Response",
+    "rowTitles": [
+     "W",
+     "M"
+    ],
+    "datasets": [
+     {
+      "name": "Placebo",
+      "rows": [
+       [
+        "21.0",
+        "20.52",
+        "26.91",
+        "22.73",
+        "23.03",
+        "16.16",
+        "25.38",
+        "16.93",
+        ""
+       ],
+       [
+        "18.04",
+        "18.75",
+        "20.23",
+        "18.46",
+        "22.23",
+        "18.57",
+        "17.36",
+        "",
+        ""
+       ]
+      ]
+     },
+     {
+      "name": "Drug",
+      "rows": [
+       [
+        "13.36",
+        "17.27",
+        "11.33",
+        "16.31",
+        "10.83",
+        "14.83",
+        "16.72",
+        "13.09",
+        ""
+       ],
+       [
+        "17.42",
+        "16.83",
+        "16.86",
+        "17.46",
+        "15.05",
+        "25.93",
+        "18.1",
+        "17.35",
+        "14.02"
+       ]
+      ]
+     }
+    ],
+    "subcolumnFormat": "replicates",
+    "replicateLayout": "side_by_side"
+   }
+  },
+  {
+   "id": "r822",
+   "kind": "results",
+   "parentId": "d821",
+   "analysis": "estimation",
+   "options": {
+    "combine": "delta_delta"
+   },
+   "name": "Estimation of Genotype by drug"
+  },
+  {
+   "id": "g823",
+   "kind": "graph",
+   "parentId": "d821",
+   "resultsId": "r822",
+   "graphType": "estimation",
+   "settings": {
+    "titles": {
+     "x": "",
+     "y": ""
+    },
+    "scheme": "default"
+   },
+   "name": "Estimation plot of Genotype by drug"
+  }
+ ]
+}

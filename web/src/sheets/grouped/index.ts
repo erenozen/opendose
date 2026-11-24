@@ -27,6 +27,7 @@ import { runColumnStats, runMultiT, runRowMeans, runThreeWay, runTwoWay } from "
 import { runReplicateTwoWay } from "./replicateMeans";
 import { rowMeansTable } from "./tables";
 import { estimationAnalysis, estimationGraph } from "../../report/estimation";
+import { forestGraph, metaAnalysis } from "../../report/metaAnalysis";
 import { groupedSample } from "./sample";
 import {
   A_NESTED_TWO_WAY, DEFAULT_NESTED_TWO_WAY, normalizeNestedTwoWay, runNestedTwoWay,
@@ -292,6 +293,6 @@ export const groupedTable: TableTypeDef = {
     + "column is a level of the second factor. Replicates go side by side "
     + "in subcolumns.",
   analyses: [twoWayAnalysis, multiTAnalysis, threeWayAnalysis, rowMeansAnalysis,
-    columnStatsAnalysis, repTwoWayAnalysis, estimationAnalysis, nestedTwoWayAnalysis],
-  graphs: [...groupedGraphs, estimationGraph, mixedNestedGraph],
+    columnStatsAnalysis, repTwoWayAnalysis, estimationAnalysis, nestedTwoWayAnalysis, metaAnalysis],
+  graphs: [...groupedGraphs, estimationGraph, mixedNestedGraph, forestGraph],
 };

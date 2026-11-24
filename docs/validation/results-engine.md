@@ -2804,3 +2804,112 @@ cancer-death incidence 0.173469 at month 20, the engine's 0.1735; the
 exponential AFT medians from the closed form ln 2 x (total time /
 events) on ovarian are 665.92 and 1228.67 days for rx 1 and 2, the
 values the engine's exponential fit is pinned to.
+
+## Feature validation: combining experiments, mini-meta and delta-delta (2026-11-24)
+
+### P-92 Combining experiments (meta-analysis) and the forest plot
+
+`opendose.meta` pools one estimate with its SE per experiment (a grouped
+table in Mean, SEM, or Mean, SD, N, or with CI limits; ratios with CI
+limits are pooled on the log scale): the common (inverse-variance)
+effect, Cochran's Q, tau^2 by REML (the root of the restricted
+likelihood score, bracketed and solved with Brent's method) or
+DerSimonian-Laird, the random-effects estimate with the Hartung-Knapp CI
+(t on k - 1 df, the default) and the z CI, I^2 and H^2 from tau^2, I^2
+from Q, and the prediction interval mu +/- t_{k-2} sqrt(tau^2 + SE^2)
+with the SE of the chosen interval. With fewer than 5 experiments the
+result and the Checks row say tau^2 is estimated poorly.
+
+References: metafor 5.3-4's printed output for dat.bcg (rma.uni and
+predict.rma "Examples" pages; R itself is not installed); R metafor and R
+meta outputs stored in statsmodels 0.15
+(`statsmodels/stats/tests/results/results_meta.py`); and
+`engine/tests/reference/meta_reference.py` (REML by Fisher scoring as
+metafor iterates it, Hartung-Knapp written out, statsmodels
+`combine_effects` for DerSimonian-Laird). `engine/tests/test_meta.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| dat.bcg (Colditz et al. 1994), 13 log risk ratios, REML, z (metafor printed) | -0.7145, SE 0.1798, 95% CI -1.0669 to -0.3622, tau^2 0.3132 (SE 0.1664), tau 0.5597, I^2 92.22%, H^2 12.86, Q(12) = 152.2330; exp: 0.49 (0.34 to 0.70) | printed digits |
+| dat.bcg, common effect (metafor method = "FE", printed) | -0.4303, SE 0.0405, CI -0.5097 to -0.3509, I^2 92.12% | printed digits |
+| dat.bcg, REML, Hartung-Knapp (meta_reference.py) | SE 0.180792, CI -1.108444 to -0.320621, P 0.001920 (t, 12 df); prediction interval -2.009058 to 0.579993 (t, 11 df) | 1e-9 relative |
+| dat.bcg, DerSimonian-Laird, HKSJ (statsmodels combine_effects) | tau^2 0.308760, -0.714117, CI -1.107821 to -0.320413 | 1e-9 relative |
+| Kacker 2004, 9 studies, DL, test = "knha" (R metafor, in statsmodels) | 62.390139, SE 0.294776, CI 61.710384 to 63.069893, tau^2 0.288049, I^2 67.7444%, Q 24.8019 | 1e-9 relative |
+| 17 trials, DL, hakn = TRUE (R meta, in statsmodels) | 0.429520, SE 0.091595, CI 0.235347 to 0.623694, prediction 0.215651 to 0.643390 | 1e-9 relative |
+| Three experiments (1.2, 0.4, 0.9; SE 0.30, 0.25, 0.40), REML (meta_reference.py) | tau^2 0.110293, HK CI -0.257597 to 1.864798, z CI 0.288527 to 1.318674 | 1e-8 relative |
+
+Also tested: fewer than 2 rows (error naming the count), 2 rows (no
+prediction interval, df 1), missing and SE <= 0 rows listed as left out
+with the reason, all estimates equal (tau^2 0, a note), homogeneous
+estimates (tau^2 0, random = common), units x 1e-12 and x 1e12 (estimate
+and CI scale, tau^2 by the square, I^2 and P unchanged), row order and
+sign flips, a shift of every estimate, ratio CI limits read back to the
+log estimate and SE, the API's formats and its refusals (replicates;
+ratios with an SE).
+
+Web: `src/report/metaAnalysis/__tests__/meta.test.ts` (payload, options,
+results strings, headline, checks, forest rows with CI ends equal to the
+engine's, log axis at 1); e2e-results drives Analyze > Combine
+experiments on dat.bcg and reads RR 0.4894 with the Hartung-Knapp CI,
+tau^2 0.3132 (SE 0.1664), I^2 92.22% and, with the z interval, SE 0.1798
+and exp(-1.0669) to exp(-0.3622); e2e-figures checks the forest plot's
+13 rows, the diamonds and its CI ends against the table.
+
+### P-93 Delta-delta and mini-meta estimation plots
+
+`estimation.combined_effect` adds DABEST's two combined effects of
+unpaired mean differences to the estimation analysis (option `combine`):
+the mini-meta weighted delta of independent repeats of a two-group
+experiment (each repeat's mean difference weighted by the inverse of its
+pooled group variance, as DABEST weights them; the pooling step is
+`meta.weighted_mean`, shared with P-92) and the delta-delta of a 2 x 2
+design (the second comparison's mean difference minus the first's). The
+bootstrap distribution applies the same arithmetic to the comparisons'
+own bootstrap differences (independent resamples, seeded), with a BCa
+interval whose acceleration comes from the delete-one jackknife over every
+observation; the mini-meta has a permutation P (every repeat reshuffled
+together, P = (b + 1) / (m + 1)). The delta-delta has no P: shuffling
+within each pair tests that both differences are 0, not that they are
+equal. The comparisons' own results are unchanged by the option (their
+random streams are the same).
+
+Reference: DABEST-python 2025.03.27 itself, installed in a throwaway
+virtual environment for `engine/tests/reference/estimation_minimeta.py`
+(never a project dependency), on data the script draws with a fixed seed
+and stores in `estimation_minimeta.json`. Point estimates are
+deterministic; DABEST's bootstrap limits come from its own random
+streams, so the engine's agree with them within Monte Carlo error.
+`engine/tests/test_estimation_minimeta.py`:
+
+| Input | Reference (DABEST) | Engine tolerance |
+|---|---|---|
+| Three repeats, control vs drug (n 6/6, 8/7, 5/6), mini_meta = True | differences -2.823333, -1.003750, -4.953000; pooled variances 1.956603, 0.733584, 7.110670; weighted delta -1.740944, BCa -2.462132 to -1.070963, percentile -2.449816 to -1.056635; permutation P 0 of 5000 | 1e-12 on the estimates; CI limits within 5% of the CI width (engine BCa -2.4457 to -1.0923); P = 1/5001 |
+| 2 x 2 (W / M x Placebo / Drug), delta2 = True | differences -7.365000 (W), -1.422540 (M); delta-delta 5.942460, BCa 2.295198 to 9.868194, percentile 2.210595 to 9.759107 | 1e-12; CI limits within 5% of the width (engine BCa 2.3841 to 9.7256) |
+
+Also tested: the weighted delta equals meta.weighted_mean of the
+differences; the SD of its bootstrap distribution equals the normal
+approximation sqrt(sum w^2 se^2) / sum w (plug-in variances) within 3%
+at 20000 resamples; the same seed gives the same CI and the comparisons'
+CIs and P values are bit-identical with and without the option;
+percentile intervals; units x 1000 (difference and CI scale, weights
+unchanged), a shift of every value, swapping control and test (sign
+flips), swapping the two pairs of a delta-delta (sign flips); equal
+repeats weigh one third each; 2 values per group and missing values;
+refusals with a reason (an effect size other than the mean difference,
+paired designs, one comparison, a delta-delta without exactly 2, shared
+groups, a repeat with no spread, an unknown option).
+
+Web: `src/report/estimation/__tests__/combined.test.ts` (options,
+payloads, the results row, methods, legend and the plot's combined
+column with the engine's CI ends); e2e-figures switches the grouped
+estimation analysis of the three repeats to the mini-meta and reads the
+weighted delta -1.741 with a CI within Monte Carlo error of DABEST's, the
+plot's "Weighted delta" column at the same values, and the 2 x 2
+delta-delta 5.942.
+
+Independent check (2026-11-24, by the lead): dat.bcg rebuilt from the
+published trial counts (log risk ratios and their variances), REML tau^2
+by bounded minimisation of the restricted likelihood and the
+Hartung-Knapp interval written out: tau^2 0.313243, pooled log RR
+-0.714532 (SE 0.179782), HK 95% CI -1.108444 to -0.320621, RR 0.4894
+(0.3301 to 0.7257): the engine's values.

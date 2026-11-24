@@ -15,6 +15,7 @@ import { tagTrace } from "../../graph/apply.ts";
 import type { Chrome } from "../../lib/palette.ts";
 import { maxOf, minOf } from "../../lib/extent.ts";
 import { marginLabel, type EstimationMargins } from "./margins.ts";
+import { combinedShort } from "./combined.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -182,6 +183,40 @@ export function estimationFigure(inp: FigureInput): Figure {
       eHi = Math.max(eHi, m.ci[1], ...[m.lower, m.upper].filter(finite));
     }
   });
+  // ---- the mini-meta weighted delta or the delta-delta (P-93): a column
+  // right of the groups on the difference axis, drawn as the differences
+  const comb: R | null = !ga && r.combined && finite(r.combined.difference) ? r.combined : null;
+  const xComb = order.length + 0.1;
+  if (comb) {
+    const kde = comb.bootstrap?.kde;
+    if (kde && Array.isArray(kde.x) && Array.isArray(kde.density) && kde.x.length > 1) {
+      const dmax = Math.max(...kde.density.filter(finite)) || 1;
+      traces.push(tagTrace({
+        type: "scatter", mode: "lines", name: "combined-distribution", fill: "toself",
+        x: [...kde.x.map((_: number, k: number) => xComb + (0.36 * kde.density[k]) / dmax),
+          ...[...kde.x].reverse().map(() => xComb)],
+        y: [...kde.x, ...[...kde.x].reverse()],
+        fillcolor: chrome.muted + "40", line: { color: chrome.muted, width: 1 },
+        hoverinfo: "skip", showlegend: false, xaxis: "x", yaxis: "y2",
+      }, { ds: 0, role: "decor" }) as Plotly.Data);
+      eLo = Math.min(eLo, ...kde.x); eHi = Math.max(eHi, ...kde.x);
+    }
+    const ci: [number, number] | null = Array.isArray(comb.ci) && finite(comb.ci[0]) && finite(comb.ci[1])
+      ? [comb.ci[0], comb.ci[1]] : null;
+    if (ci) { eLo = Math.min(eLo, ci[0]); eHi = Math.max(eHi, ci[1]); }
+    eLo = Math.min(eLo, comb.difference, 0); eHi = Math.max(eHi, comb.difference, 0);
+    traces.push(tagTrace({
+      type: "scatter", mode: "markers", name: "combined-effect", x: [xComb], y: [comb.difference],
+      marker: { color: chrome.ink, size: 10, symbol: "diamond" },
+      error_y: ci ? { type: "data", symmetric: false, array: [ci[1] - comb.difference],
+        arrayminus: [comb.difference - ci[0]], color: chrome.ink, thickness: 2, width: 0, visible: true } : undefined,
+      showlegend: false,
+      hovertemplate: `${esc(comb.label ?? combinedShort(comb))} ${fmt(comb.difference)}`
+        + (ci ? `<br>${Math.round((comb.ci_level ?? 0.95) * 100)}% CI (${comb.ci_type === "percentile" ? "percentile" : "BCa"}) ${fmt(ci[0])} to ${fmt(ci[1])}` : "")
+        + "<extra></extra>",
+      xaxis: "x", yaxis: "y2",
+    }, { ds: 0, role: "decor" }) as Plotly.Data);
+  }
   if (!Number.isFinite(eLo)) { eLo = -1; eHi = 1; }
 
   const tickvals = order.map((_, i) => i);
@@ -233,13 +268,16 @@ export function estimationFigure(inp: FigureInput): Figure {
     shapes.push({ type: "line", xref: "paper", yref: "y2", x0: 0, x1: 1, y0: 0, y1: 0,
       line: { color: chrome.muted, width: 1, dash: "dot" } });
     layout = {
-      xaxis: { ...axisBase, tickvals, ticktext, range: [-0.6, order.length - 0.4], showgrid: false,
+      xaxis: { ...axisBase, tickvals: comb ? [...tickvals, xComb] : tickvals,
+        ticktext: comb ? [...ticktext, combinedShort(comb)] : ticktext,
+        range: [-0.6, comb ? xComb + 0.6 : order.length - 0.4], showgrid: false,
         fixedrange: true, anchor: "y2" },
       yaxis: { ...axisBase, title: { text: inp.yTitle, font: { color: chrome.inkSecondary } },
         range: [lo, hi], domain: [0.44, 1] },
       yaxis2: { ...axisBase, range: [eLo - ePad, eHi + ePad], domain: [0, 0.36], anchor: "x",
         title: { text: effLabel, font: { color: chrome.inkSecondary } } },
-      margin: { l: 70, r: 16, t: 14, b: 86 },
+      // room for the combined column's rotated tick label
+      margin: { l: 70, r: comb ? 64 : 16, t: 14, b: 86 },
     };
   }
   const eqLine = { color: chrome.inkSecondary, width: 1.25, dash: "dash" };

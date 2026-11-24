@@ -1542,6 +1542,134 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     newLegend.slice(0, 200));
 }
 
+// --- P-92: the forest plot of combined experiments --------------------------
+{
+  // dat.bcg (Colditz et al. 1994), 13 log risk ratios with SEs, pooled by
+  // REML with the Hartung-Knapp CI (engine/tests/reference/
+  // meta_reference.json bcg_reml; metafor prints REML -0.7145): the plot
+  // draws 13 squares and the pooled diamonds on a log axis, every CI end
+  // equal to the results table's
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/meta_reference.json"), "utf8")).bcg_reml;
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "meta-bcg.json"));
+  await page.getByRole("treeitem", { name: "Forest plot of BCG trials", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.name === "Random effects"), null, { timeout: 180000 }).catch(() => {});
+  const f = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const pts = (gd?.data ?? []).find((t) => t.name === "Experiments");
+    const dia = (name) => {
+      const t = (gd?.data ?? []).find((x) => x.name === name);
+      return t ? [Math.min(...t.x), t.x[1], Math.max(...t.x)] : null;
+    };
+    return {
+      n: pts?.x.length ?? 0, ticks: gd?.layout?.yaxis?.ticktext ?? [], type: gd?.layout?.xaxis?.type,
+      ref: (gd?.layout?.shapes ?? [])[0]?.x0,
+      ends: pts ? pts.x.map((x, i) => [x - pts.error_x.arrayminus[i], x + pts.error_x.array[i]]) : [],
+      random: dia("Random effects"), fixed: dia("Common effect"),
+      pi: (() => { const t = (gd?.data ?? []).find((x) => x.name === "Prediction interval"); return t ? t.x : null; })(),
+    };
+  });
+  const near = (a, b) => Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(b));
+  expect("P-92 acceptance: the forest plot draws 13 rows and the pooled diamond", f.n === 13
+    && f.ticks.length === 16 && f.ticks[0] === "Aronson 1948" && f.ticks[13] === "Common effect"
+    && f.ticks[14] === "Random effects" && !!f.random, JSON.stringify(f.ticks));
+  expect("P-92 ratios on a log axis with the no-effect line at 1", f.type === "log" && f.ref === 1, `${f.type} ${f.ref}`);
+  expect("P-92 the random-effects diamond spans exp of the Hartung-Knapp CI around exp(-0.7145)",
+    f.random && near(f.random[0], Math.exp(REF.ci_hk[0])) && near(f.random[2], Math.exp(REF.ci_hk[1]))
+      && Number(f.random[1].toPrecision(4)) === 0.4894, JSON.stringify(f.random));
+  expect("P-92 the prediction interval bar is exp of t(11) limits", f.pi && near(f.pi[0], Math.exp(REF.pi_hk[0]))
+    && near(f.pi[1], Math.exp(REF.pi_hk[1])), JSON.stringify(f.pi));
+  // every CI end on the plot is the one printed in the results table
+  await page.getByRole("treeitem", { name: "Combined experiments of BCG trials", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.locator(".pane-results .meta-results").first().waitFor({ timeout: 120000 });
+  const tableCI = await page.locator(".pane-results .meta-results table").first().locator("tbody tr")
+    .evaluateAll((rows) => rows.slice(0, 13).map((r) => r.querySelectorAll("td")[3]?.textContent ?? ""));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const plotted = f.ends.map(([a, b]) => `${sig(a)} to ${sig(b)}`);
+  expect("P-92 the 13 CI ends on the plot equal the results table's", JSON.stringify(plotted) === JSON.stringify(tableCI),
+    `${plotted.slice(0, 2)} vs ${tableCI.slice(0, 2)}`);
+  await page.getByRole("treeitem", { name: "Forest plot of BCG trials", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const legend = await page.locator(".plot-card .figure-legend-text").textContent({ timeout: 60000 }).catch(() => "");
+  expect("P-92 the legend says what the squares, diamonds and bar are",
+    legend.startsWith("Squares show the estimate of each of 13 experiments with its 95% CI;")
+      && legend.includes("Ratios are drawn on a log axis") && !/Mean ± SEM/.test(legend), legend);
+  await shot("forest-meta");
+}
+
+// --- P-93: mini-meta and delta-delta on the estimation plot -----------------
+{
+  // DABEST 2025.03.27 on its seeded data (engine/tests/reference/
+  // estimation_minimeta.json): three repeats of control vs drug, weighted
+  // delta -1.7409 (BCa -2.462 to -1.071 in DABEST's streams); a 2 x 2,
+  // delta-delta 5.942. The engine's BCa limits differ from DABEST's only
+  // by Monte Carlo error: checked within 5% of the CI width.
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/estimation_minimeta.json"), "utf8"));
+  const sig4 = (v) => String(Number(v.toPrecision(4)));
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "estimation-minimeta.json"));
+  await page.getByRole("treeitem", { name: "Estimation of Three repeats", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const combine = page.getByLabel("Combine the comparisons");
+  await combine.waitFor({ timeout: 60000 });
+  await combine.selectOption("none");
+  await page.waitForFunction(() => !/Mini-meta of/.test(document.querySelector(".pane-results .estimation-results")
+    ?.textContent ?? "x"), null, { timeout: 120000 }).catch(() => {});
+  const plainPlot = await page.evaluate(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.name === "combined-effect"));
+  expect("P-93 without a combined effect the plot has no weighted delta", !plainPlot);
+  await combine.selectOption("mini_meta");
+  const mm = REF.mini_meta;
+  const rowRe = new RegExp(`Mini-meta of 3 repeats 3 comparisons Weighted mean difference ${sig4(mm.difference)} (-?[\\d.]+) to (-?[\\d.]+)`);
+  await page.waitForFunction((src) => new RegExp(src).test((document.querySelector(".pane-results .estimation-results")
+    ?.textContent ?? "").replace(/\s+/g, " ")), rowRe.source.replace(/ /g, "\\s*"), { timeout: 180000 }).catch(() => {});
+  const card = (await page.locator(".pane-results .estimation-results").first().innerText().catch(() => ""))
+    .replace(/\s+/g, " ");
+  const m = card.match(rowRe);
+  const w = mm.bca_high - mm.bca_low;
+  expect(`P-93 acceptance: three repeats, the weighted mean difference ${sig4(mm.difference)} (DABEST) with a BCa CI `
+    + `within Monte Carlo error of DABEST's ${sig4(mm.bca_low)} to ${sig4(mm.bca_high)}`,
+    !!m && Math.abs(Number(m[1]) - mm.bca_low) < 0.05 * w && Math.abs(Number(m[2]) - mm.bca_high) < 0.05 * w,
+    m ? m[0] : card.slice(0, 600));
+  expect("P-93 the weights are listed", /Weights \(inverse pooled group variance\): Repeat 1: Drug minus Repeat 1: Control/.test(card));
+  await page.getByRole("treeitem", { name: "Estimation plot of Three repeats", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.name === "combined-effect"), null, { timeout: 180000 }).catch(() => {});
+  const plot = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const t = (gd?.data ?? []).find((x) => x.name === "combined-effect");
+    return t ? { y: t.y[0], lo: t.y[0] - t.error_y.arrayminus[0], hi: t.y[0] + t.error_y.array[0],
+      tick: (gd.layout.xaxis.ticktext ?? []).at(-1) } : null;
+  });
+  expect("P-93 acceptance: the estimation plot adds the weighted delta with its bootstrap CI",
+    !!plot && Math.abs(plot.y - mm.difference) < 1e-9 && plot.tick === "Weighted delta"
+      && m && sig4(plot.lo) === m[1] && sig4(plot.hi) === m[2], JSON.stringify(plot));
+  const legend = await page.locator(".plot-card .figure-legend-text").textContent({ timeout: 60000 }).catch(() => "");
+  expect("P-93 the legend names the weighted delta column",
+    legend.includes("The rightmost column is the weighted mean difference of the independent repeats"), legend);
+  await shot("estimation-minimeta");
+
+  // the 2 x 2 delta-delta
+  await page.getByRole("treeitem", { name: "Estimation plot of Genotype by drug", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.name === "combined-effect"), null, { timeout: 180000 }).catch(() => {});
+  const dd = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const t = (gd?.data ?? []).find((x) => x.name === "combined-effect");
+    return t ? { y: t.y[0], lo: t.y[0] - t.error_y.arrayminus[0], hi: t.y[0] + t.error_y.array[0],
+      tick: (gd.layout.xaxis.ticktext ?? []).at(-1) } : null;
+  });
+  const d = REF.delta_delta, dw = d.bca_high - d.bca_low;
+  expect(`P-93 delta-delta ${sig4(d.difference)} (DABEST), CI within Monte Carlo error of ${sig4(d.bca_low)} to ${sig4(d.bca_high)}`,
+    !!dd && Math.abs(dd.y - d.difference) < 1e-9 && dd.tick === "Delta-delta"
+      && Math.abs(dd.lo - d.bca_low) < 0.05 * dw && Math.abs(dd.hi - d.bca_high) < 0.05 * dw, JSON.stringify(dd));
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

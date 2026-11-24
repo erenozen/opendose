@@ -19,6 +19,7 @@ import {
 import {
   NOT_REACHED, displayOf, isLogMidpoint, isMidpoint, rangeHidesSpread,
 } from "../../sheets/xy/rangeReport.ts";
+import { metaHeadline } from "../../report/metaAnalysis/format.ts";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type R = Record<string, any>;
@@ -373,6 +374,15 @@ function parametricFacts(r: R): KeyFacts {
   } }] };
 }
 
+/** Combining experiments (P-92): the random-effects estimate with its
+ *  CI, τ², I² and P. */
+function metaFacts(r: R): KeyFacts {
+  if (!r.random) return null;
+  const h = metaHeadline(r);
+  return { kind: "figures", items: [{ title: h.title,
+    figure: { name: h.name, value: h.value, ci: h.ci, facts: h.facts } }] };
+}
+
 /** The headline facts of a result, or null for "show the table first". */
 export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFacts {
   if (!result || typeof result !== "object") return null;
@@ -384,6 +394,7 @@ export function keyFacts(result: unknown, opts: { xUnit?: string } = {}): KeyFac
   if (r.analysis === "ancova") return ancovaFacts(r);
   if (r.analysis === "competing_risks") return competingFacts(r);
   if (r.analysis === "parametric_survival") return parametricFacts(r);
+  if (r.analysis === "meta_analysis") return metaFacts(r);
   if (r.analysis === "binomial_regression" || r.analysis === "negative_binomial_regression"
     || (r.analysis === "logistic_regression" && r.method === "firth")) return glmFacts(r);
   if (Array.isArray(r.datasets)) return fitFacts(r, opts.xUnit || "M");
