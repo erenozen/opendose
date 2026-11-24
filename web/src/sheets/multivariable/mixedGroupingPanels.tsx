@@ -110,7 +110,8 @@ export function MixedGroupingControls({ table, options: o, onChange }: ControlsP
         </p>
       </section>
       <UnitControls o={o} set={set} a={o.factor1 || "Factor"} b={two ? o.factor2 : null}
-        la={levels(o.factor1)} lb={two ? levels(o.factor2) : []} general={general} />
+        la={levels(o.factor1)} lb={two ? levels(o.factor2) : []} general={general}
+        comparisons={!general || !!o.factor1} />
     </div>
   );
 }

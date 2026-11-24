@@ -119,10 +119,13 @@ export function FamilyComparisons({ block, what, name, ciLevel = 0.95, familyHea
 // ------------------------------------------------------------ controls
 
 /** Unit, comparisons, CI level and negative variance (both analyses). */
-export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb, general = false }: {
+export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb, general = false,
+  comparisons = true }: {
   o: O; set: (patch: Partial<O>) => void; a: string; b: string | null; la: string[]; lb: string[];
   /** The general model (P-87): variances bounded at zero, no containment df. */
   general?: boolean;
+  /** false: no factor, so nothing to compare (covariates only). */
+  comparisons?: boolean;
 }) {
   const words = unitWords(o.unit, o.unitCustom);
   const scopes: ComparisonScope[] = b ? SCOPES : ["a_means"];
@@ -154,6 +157,7 @@ export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb,
           of {words.plural}, not of values (<Cite src={MIXED_SRC.lazic2010} />).
         </p>
       </section>
+      {comparisons && (
       <section>
         <h3>Multiple comparisons</h3>
         <label className="check-row">
@@ -188,6 +192,7 @@ export function UnitControls<O extends MixedUnitOptions>({ o, set, a, b, la, lb,
           comparison its own). Tukey and Dunnett adjust within each family; Šídák, Bonferroni and
           Holm count every comparison of every family.</p>
       </section>
+      )}
       <section>
         <h3>Options</h3>
         <label className="check-row">

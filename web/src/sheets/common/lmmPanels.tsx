@@ -57,7 +57,9 @@ export function LmmResults({ result: r }: { result: R }) {
   const corr: R[] = Array.isArray(r.correlations) ? r.correlations : [];
   const shares = r.variance_shares as Record<string, number> | null;
   const emm = (r.emmeans ?? {}) as Record<string, R[]>;
-  const { a, b } = factorsOf(r);
+  const nFactors = Array.isArray(r.factor_names) ? r.factor_names.length : 0;
+  const { a: fa, b } = factorsOf(r);
+  const a = nFactors ? fa : null;
   const covMeans = Object.entries((r.covariate_means ?? {}) as Record<string, number>);
   const ddf = ddfName(ddfOf(r.ddf));
   const anovaMatrix = () => [["Term", "F", "DFn", "DFd", "P"],
