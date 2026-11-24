@@ -5935,6 +5935,97 @@ engine reports (as Prism and the GraphPad guide do), raw P 0.175281,
 0.006961, 0.034328 and Holm 0.175281, 0.020882, 0.068656: the bracket
 values. (The Mantel-Haenszel variance form would give 0.1601, 0.0098,
 0.0389 after Holm; the engine also reports that form as chi2_variance.)
+
+## Feature validation: smoothing, splines and spline standard curves (2026-11-24)
+
+### P-103 Smoothing, splines and spline standard curves
+
+`engine/opendose/smooth.py` draws a curve through XY data without a model
+(`smooth_xy`: LOWESS, a natural cubic smoothing spline, or a natural cubic
+spline, PCHIP or straight lines through the mean Y at each X), smooths,
+differentiates or integrates a curve into a linked XY table (`curve_ops`:
+Savitzky-Golay, central differences, cumulative trapezoid), and gives the
+standard-curve assay two interpolating models, "Cubic spline (no CI)" and
+"Point to point (no CI)" (`assay_stdcurve`, `model = "spline" |
+"point_to_point"`). None of these curves has parameters, so none has a
+model-based CI: the results say "no model CI" instead of inventing one.
+The LOWESS the Cox Schoenfeld residual plot drew in TypeScript
+(`sheets/survival/cox.ts`) is gone; the plot now draws the engine's
+(`cox.py` returns `schoenfeld.smooth` and `smooth_scaled`).
+
+References: `engine/tests/reference/smoothing.py` (writes
+`smoothing.json`). R is not installed. R's own printed output is taken
+from R's example transcript `tests/Examples/stats-Ex.Rout.save` in the R
+sources (the `?smooth.spline` and `?predict.smooth.spline` examples). R's
+`sgram.f` builds the roughness penalty with the constant 0.333 where the
+integral has 1/3; an independent penalised regression on the cubic
+B-spline basis written out in the reference script, with that constant,
+reproduces every digit R prints (df 2.635278, 6.400884 and 8.494168, the
+fitted values, leverages, penalised RSS and GCV), and with 1/3 gives the
+exact values the engine must match. statsmodels' `lowess` is the LOWESS
+oracle with R's arguments mapped: f = frac, iter = it, and R's default
+delta = 0.01 x range(X) passed explicitly (statsmodels defaults to 0).
+statsmodels departs from R's `clowess` only where R's rules bite (ties on
+the right of the window taken in, the 0.001 and 0.999 weight cut-offs, at
+least two positive weights), so the comparison uses windows of enough
+distinct points; the engine is a line-by-line port of `clowess`.
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| R's cars, smooth.spline at R's lambda 0.1112206 | R printed df 2.635278, fitted 1.6578, 11.6829, ...; B-spline with 0.333: the same digits; exact penalty: df 2.635251 | exact reference 1e-8 (df, fit), 1e-7 (leverages); scipy make_smoothing_spline 1e-9; R within 2e-4 |
+| cars, df = 6.4 (R's ?predict.smooth.spline) | R printed lambda 0.0008526606, df 6.400884, 19 fitted values; exact penalty at that lambda: df 6.400128 | df met to 1e-9; lambda within 1e-3 of R's |
+| cars, lambda by GCV in R's form (RSS / N) / (1 - df / N)^2 over all 50 points | R: lambda 0.1112206, df 2.635278, GCV 244.1044; exact-penalty grid and golden search: lambda 0.1111378, df 2.63555, GCV 244.1044 | lambda 1e-3, df 1e-4, GCV 1e-7 |
+| R's y18 (1:3, 5, 4, 7:3, 2*(2:5), rep(10, 4)), GCV | R: df 8.494168, GCV 0.7155391; exact: df 8.49385 | 1e-4 of R |
+| cars, LOWESS f = 2/3, 0.2 (iter 3) and 2/3 with iter 0 | statsmodels: 4.965459, 4.965459, 13.124495, 13.124495, 15.858633, ... | 1e-7 (largest difference 2.9e-9) |
+| 60 random points with an outlier, f = 0.3, delta 0 | statsmodels | 1e-7 |
+| natural cubic spline, 7 uneven points | tridiagonal solve for the second derivatives; Burden & Faires (Numerical Analysis, 9th ed., section 3.5): e^x at 0..3 gives S0 = 1 + 1.46600x + 0.25228x^3, S1, S2 as printed | 1e-10; textbook coefficients to their 5 decimals |
+| PCHIP, the same points | Fritsch & Butland (1984) derivatives as Moler (2004) writes them, Hermite cubics | 1e-10 |
+| Savitzky-Golay, 12 points, (k, order) = (2, 2), (3, 0), (3, 4) | numpy.polyfit of each window, the end windows' polynomials for the ends | 1e-10 |
+| derivative of 2x^2 - 3x + 1 on uneven X, integral of 3x + 2 | closed form: 4x - 3 at interior points, 1.5x^2 + 2x | 1e-12 |
+| the example ELISA (stdcurve/sample.ts) with the 7.81 standard left out, "Cubic spline (no CI)" | natural spline on log10 concentration through the blank-corrected level means, by tridiagonal solve and bisection: S1 47.6008 pg/mL (95.2016 after 1:2), S4 161.508; point to point: S1 45.1251, S4 159.287 | 1e-9 relative; CI None |
+| Cox on survival::lung (age + sex): the Schoenfeld smooths | statsmodels lowess of the engine's residuals on the transformed time, R's defaults | 1e-6 |
+
+Also tested: the smoothing spline is invariant to an affine change of X
+(scaled to [0, 1] as R scales it), its fit scales with Y (1e-12 and 1e12)
+with lambda and df unchanged, and the order of the points does not
+matter; a constant and a straight line come back exactly; fewer than 4
+distinct X, more than 500, and df outside (2, n) are refused with a
+sentence; LOWESS reproduces a line, is invariant to X and Y units, and
+handles n = 0, 1, 2, all Y equal and all X tied; missing values are
+dropped and the input order kept; PCHIP keeps monotone data monotone
+where the natural spline overshoots; curve operations average tied X,
+say when X is unevenly spaced, refuse windows longer than the data, and
+scale with the units of X as the calculus says. Spline standard curves:
+an unknown above the top standard is ">ULOQ" (never extrapolated), one
+below the bottom "<LLOQ", one that a turning spline reads as two
+concentrations "ambiguous" with no number; the parallelism F test is not
+run (no parameters) while the CV across dilutions is; the answer scales
+with the concentration unit; existing models are unchanged (their tests
+pass as before). The old TypeScript LOWESS was not R's lowess (it used
+ceil(f n) points and 2 iterations); on the lung data the engine's smooth
+differs from it by at most 0.00037 (age) and 0.024 (sex) on scaled
+residuals whose smooths span 0.078 and 1.16. Web: options, payloads,
+result shapes and methods (`smooth.test.ts`, `curveOps.test.ts`,
+`splineModels.test.ts`, `cox.test.ts`). e2e: `e2e-results.mjs` (the
+spline's df, lambda and GCV on cars, LOWESS values with f = 2/3 and 0.2,
+the graph, the Savitzky-Golay linked table, the Analyze menu entries),
+`e2e-assays.mjs` (the acceptance test below), `e2e-check.mjs` (the Cox
+plot draws the engine's smooth).
+
+Acceptance: the example ELISA kit with "Cubic spline (no CI)" chosen in
+the model picker reads S1 at 47.6 pg/mL (95.2 after 1:2) with "no model
+CI" in the CI column, and the plate's model line and methods say the
+curve has no parameters and no model-based CI.
+
+Independent check values (for the lead): the stage project
+`web/e2e-fixtures/stage/smoothing.json` ("Smoothing spline of Cars": R's
+cars data, Speed against the stopping distances as replicates): results
+table "Equivalent degrees of freedom" 2.636, "λ (X scaled to 0 to 1)"
+0.1111, "GCV score" 244.1; "Curve at each X" at speed 4: mean 6, curve
+1.659. "LOWESS of Cars": curve at speed 4 4.965, at 25 84.33 (statsmodels
+lowess(dist, speed, frac=2/3, it=3, delta=0.21)). "Standard curve of
+ELISA kit": S1 interpolated 47.6, x dilution 95.2, 95% CI column "no
+model CI".
 """
 
 

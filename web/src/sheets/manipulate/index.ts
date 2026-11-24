@@ -17,6 +17,9 @@ import {
   DEFAULT_TRANSFORM, DEFAULT_TRANSPOSE, resultToTable, runBaseline, runConc, runFraction,
   runNormalize, runPrune, runTransform, runTranspose, type ManipResult,
 } from "./run";
+import {
+  curveOpsMethods, DEFAULT_CURVE_OPS, normalizeCurveOps, runCurveOps,
+} from "./curveOps";
 
 // Panels load on first use (sheets/lazy.ts).
 const monteCarloPanelsModule = () => import("./MonteCarloPanels");
@@ -34,6 +37,7 @@ const NormalizeControls = lazyPart(panelsModule, "NormalizeControls");
 const PruneControls = lazyPart(panelsModule, "PruneControls");
 const TransformControls = lazyPart(panelsModule, "TransformControls");
 const TransposeControls = lazyPart(panelsModule, "TransposeControls");
+const CurveOpsControls = lazyPart(() => import("./curveOpsPanels"), "CurveOpsControls");
 const monteCarloHistogramModule = () => import("./MonteCarloHistogram");
 const HistogramPlot = lazyPart(monteCarloHistogramModule, "default");
 
@@ -46,6 +50,7 @@ export const ANALYSIS_TRANSPOSE = "transpose";
 export const ANALYSIS_PRUNE = "prune_rows";
 export const ANALYSIS_FRACTION = "fraction_of_total_table";
 export const ANALYSIS_MONTE_CARLO = "monte_carlo";
+export const ANALYSIS_CURVE_OPS = "curve_ops";
 export const GRAPH_MC_HISTOGRAM = "mc_histogram";
 
 const merge = <O,>(defaults: O) => (raw: unknown): O => ({
@@ -156,6 +161,17 @@ export const fractionAnalysis = manipulation({
   methods: (o) => fractionMethods(o), extra: FractionExtra,
 });
 
+export const curveOpsAnalysis = manipulation({
+  id: ANALYSIS_CURVE_OPS,
+  label: "Smooth, differentiate or integrate a curve",
+  short: "Curve ops",
+  description: "Savitzky-Golay smoothing, the first derivative or the area from the first X, "
+    + "as a linked XY table.",
+  verb: "Smooth, differentiate or integrate", output: (t) => `Curve of ${t}`,
+  defaults: DEFAULT_CURVE_OPS, run: runCurveOps, Controls: CurveOpsControls,
+  methods: (o) => curveOpsMethods(normalizeCurveOps(o)),
+});
+
 const DEFAULT_MC: MonteCarloOptions = {
   simulation: null, analysis: "dose_response", fitFrom: "", tabulate: [], hit: DEFAULT_HIT,
   nRepeats: "100", seed: "", histogram: "", output: null,
@@ -202,7 +218,7 @@ export const mcHistogramGraph = defineGraph<MonteCarloOptions, McOutput | null>(
 
 const MANIPULATIONS: Partial<Record<TableType, AnalysisDef[]>> = {
   xy: [transformAnalysis, concAnalysis, baselineAnalysis, normalizeAnalysis, transposeAnalysis,
-    pruneAnalysis, fractionAnalysis, monteCarloAnalysis],
+    pruneAnalysis, fractionAnalysis, curveOpsAnalysis, monteCarloAnalysis],
   column: [transformAnalysis, baselineAnalysis, normalizeAnalysis, transposeAnalysis,
     pruneAnalysis, fractionAnalysis, monteCarloAnalysis],
   grouped: [transformAnalysis, baselineAnalysis, normalizeAnalysis, transposeAnalysis,

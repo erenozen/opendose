@@ -61,6 +61,19 @@ def _safe_exp(x):
 import numpy as np
 from scipy import stats
 
+from . import smooth
+
+
+def _smooths(t, res):
+    """LOWESS (smooth.lowess, R's lowess() defaults) of each residual
+    column on time t: [[value per residual row] per column], rows of
+    the residual matrix order (None where the residual is missing)."""
+    t = [float(v) for v in t]
+    res = np.asarray(res, dtype=float)
+    if res.ndim != 2 or res.shape[0] == 0:
+        return []
+    return [smooth.lowess(t, res[:, j].tolist()) for j in range(res.shape[1])]
+
 
 # ------------------------------------------------------------------ helpers
 
@@ -853,6 +866,11 @@ def cox_regression(time, event, covariates: dict, *, categorical=None,
             "columns": labels,
             "residuals": schoen.tolist(),
             "scaled": scaled.tolist(),
+            # the residual plot's smooth: R's lowess() with its defaults
+            # (f = 2/3, iter = 3, delta = 1% of the range) of each column
+            # on the transformed time, one value per residual row
+            "smooth": _smooths(tt[sch_subj], schoen),
+            "smooth_scaled": _smooths(tt[sch_subj], scaled),
         },
         "residuals": {"martingale": per_input(mart),
                       "deviance": per_input(dev)},

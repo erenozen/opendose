@@ -50,6 +50,7 @@ from . import art
 from . import compare_models, compare_params, flow, qpcr_refs, relpotency
 from . import potency
 from . import fitboot, fitregion
+from . import smooth
 
 
 def _expand(x_col, replicate_rows):
@@ -3823,6 +3824,75 @@ def _proportion_test(data, options):
     return out
 
 
+def _smooth_xy(data, options):
+    """LOWESS, a smoothing spline or an interpolating curve through each
+    data set of an XY table (smooth.fit_smooth; replicates are separate
+    points). options: method (lowess | smoothing_spline |
+    natural_spline | pchip | linear), span (2/3), iterations (3), delta
+    (None: 1% of the X range, as R's lowess), df (smoothing spline: None
+    = GCV), curve_points (200). Result: {"analysis", "method",
+    "no_model_ci": true, "note", "datasets": [{"name", "fit"} | {"name",
+    "error"}]}; none of these curves has a model CI."""
+    method = options.get("method", "lowess")
+    if method not in smooth.METHODS:
+        raise ValueError(f"unknown smoothing method: {method}")
+    df = options.get("df")
+    out = []
+    for ds in data["datasets"]:
+        entry = {"name": ds.get("name", "")}
+        try:
+            xs, ys = _expand(data["x"], ds["ys"])
+            entry["fit"] = smooth.fit_smooth(
+                xs, ys, method, span=float(options.get("span", 2.0 / 3.0)),
+                iterations=int(options.get("iterations", 3)),
+                delta=options.get("delta"),
+                df=None if df in (None, "") else float(df),
+                curve_points=int(options.get("curve_points",
+                                             smooth.CURVE_POINTS)))
+        except smooth.SmoothError as exc:
+            entry["error"] = str(exc)
+        out.append(entry)
+    return {"analysis": "smooth_xy", "method": method, "no_model_ci": True,
+            "note": smooth.NO_CI, "datasets": out}
+
+
+def _curve_ops(data, options):
+    """Smooth (Savitzky-Golay), differentiate or integrate each data set
+    of an XY table (smooth.curve_operation) on the mean of its
+    replicates. options: op (smooth | derivative | integral), neighbours
+    (k: 2k + 1 points per window), order (polynomial order, 0 = moving
+    average). Result: {"analysis", "op", "datasets": [{"name", "rows"
+    (one value per table row, None where the row has no X or no Y),
+    "notes"} | {"name", "error"}]}."""
+    op = options.get("op", "smooth")
+    if op not in smooth.CURVE_OPS:
+        raise ValueError(f"unknown curve operation: {op}")
+    x_col = data["x"]
+    out = []
+    for ds in data["datasets"]:
+        entry = {"name": ds.get("name", "")}
+        means = []
+        for row in ds["ys"]:
+            vals = [float(v) for v in row
+                    if v is not None and math.isfinite(float(v))]
+            means.append(sum(vals) / len(vals) if vals else None)
+        try:
+            r = smooth.curve_operation(
+                x_col, means, op, neighbours=int(options.get("neighbours", 2)),
+                order=int(options.get("order", 2)))
+            at = dict(zip(r["x"], r["y"]))
+            rows = []
+            for xv, m in zip(x_col, means):
+                ok = (xv is not None and m is not None
+                      and math.isfinite(float(xv)))
+                rows.append(at.get(float(xv)) if ok else None)
+            entry.update(rows=rows, notes=r["notes"])
+        except smooth.SmoothError as exc:
+            entry["error"] = str(exc)
+        out.append(entry)
+    return {"analysis": "curve_ops", "op": op, "datasets": out}
+
+
 def _deming(data, options):
     """Deming (Model II) regression, one fit per data set.
 
@@ -3909,6 +3979,8 @@ _HANDLERS = {
     "binomial_regression": _binomial_regression,
     "negative_binomial_regression": _negative_binomial_regression,
     "ordinal_regression": _ordinal_regression,
+    "smooth_xy": _smooth_xy,
+    "curve_ops": _curve_ops,
     "pca": _pca,
     "mv_rearrange": _mv_rearrange,
     "chisq_goodness_of_fit": _chisq_goodness_of_fit,

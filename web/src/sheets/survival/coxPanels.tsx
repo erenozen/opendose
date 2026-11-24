@@ -18,7 +18,7 @@ import { baseLayout, chromeFor, useDark } from "../multivariable/chart";
 import { PlotMessage, PlotlyChart } from "../multivariable/plotkit";
 import type { ControlsProps, GraphOptionsProps, PlotProps, ResultsProps } from "../types";
 import {
-  coefficientLabel, coxModel, lowess, phReading,
+  coefficientLabel, coxModel, phReading, schoenfeldSmooth,
   PH_TRANSFORM_LABELS, TIES_LABELS, type CoxCoefficient, type CoxOptions, type CoxResult,
 } from "./cox";
 
@@ -391,8 +391,9 @@ export function CoxSchoenfeldPlot({ graph, result, titles, scheme, format, onFor
     const vals = (s.scaled ? sch.scaled : sch.residuals).map((r) => r[j]);
     const xs = sch.time;
     const tx = sch.transformed_time;
-    const smooth = lowess(tx, vals);
-    const order = xs.map((_, i) => i).sort((a, b) => tx[a] - tx[b] || xs[a] - xs[b]);
+    const smooth = schoenfeldSmooth(sch, j, s.scaled);
+    const order = xs.map((_, i) => i).filter((i) => smooth[i] != null)
+      .sort((a, b) => tx[a] - tx[b] || xs[a] - xs[b]);
     const coef = result!.coefficients.find((c) => c.name === col)?.coef;
     const logX = result!.ph_test.transform === "log";
     const traces: Plotly.Data[] = [

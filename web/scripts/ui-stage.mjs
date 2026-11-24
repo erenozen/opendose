@@ -1507,6 +1507,46 @@ const scenes = [
     await block.evaluate((el) => el.scrollIntoView({ block: "center" }));
     await settle(s, 800);
   } },
+  // P-103: a smoothing spline (GCV) through R's cars data: df, lambda,
+  // GCV, the no-CI line and the curve at each X
+  { name: "results-smooth", setup: async (s) => {
+    await fixture(s, "smoothing.json", { live: true });
+    await selectSheet(s, "Smoothing spline of Cars");
+    await s.page.locator(".smooth-card").first().waitFor({ timeout: 240000 });
+    await into(s, ".smooth-no-ci", "start");
+    await settle(s, 800);
+  } },
+  // P-103: LOWESS settings (span and iterations as number fields)
+  { name: "controls-smooth", setup: async (s) => {
+    await fixture(s, "smoothing.json", { live: true });
+    await selectSheet(s, "LOWESS of Cars");
+    await s.page.locator(".smooth-card").first().waitFor({ timeout: 240000 });
+    await into(s, ".pane-controls", "start");
+    await settle(s, 800);
+  } },
+  // P-103: the points and the smoothing spline drawn on the XY graph
+  { name: "graph-smooth", setup: async (s) => {
+    await fixture(s, "smoothing.json", { live: true });
+    await selectSheet(s, "Smoothing spline graph of Cars");
+    await s.page.locator(".plot-card .plot .scatterlayer .trace").first().waitFor({ timeout: 240000 });
+    await settle(s, 1200);
+  } },
+  // P-103: Savitzky-Golay smoothing of a trace into a linked table
+  { name: "results-curve-ops", setup: async (s) => {
+    await fixture(s, "smoothing.json", { live: true });
+    await selectSheet(s, "Smooth, differentiate or integrate of Trace");
+    await s.page.locator(".manip-results").first().waitFor({ timeout: 240000 });
+    await settle(s, 800);
+  } },
+  // P-103: a kit standard curve read off a cubic spline: the unknowns say
+  // "no model CI"
+  { name: "results-stdcurve-spline", setup: async (s) => {
+    await fixture(s, "smoothing.json", { live: true });
+    await selectSheet(s, "Standard curve of ELISA kit");
+    await s.page.locator(".std-unknowns").first().waitFor({ timeout: 240000 });
+    await into(s, ".std-unknowns", "center");
+    await settle(s, 800);
+  } },
   // P-98: the Checks row's note that propagated SDs are not replicates,
   // and the uncertainty settings
   { name: "results-propagation-note", setup: async (s) => {

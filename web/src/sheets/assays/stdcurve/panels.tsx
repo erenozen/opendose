@@ -13,7 +13,7 @@ import { Chip, ColumnPicker, KV, LinkedOutputs, Note, Pass, Warnings } from "../
 import { useAssay, type SpecsFor } from "../kit/useAssay";
 import Wizard from "../kit/Wizard";
 import {
-  columnSettings, concentrationTable, MODEL_LABELS, readRows, runStdCurve, signalColumns,
+  columnSettings, concentrationTable, isInterpolating, MODEL_LABELS, readRows, runStdCurve, signalColumns,
   STD_ROLES, type StdModel, type StdOptions, type StdRow, type StdRun, type Weighting,
 } from "./model";
 import { Button, NumberField } from "../../../components/ui";
@@ -104,16 +104,25 @@ function ModelFields({ o, set, readOnly }: {
           {(Object.keys(MODEL_LABELS) as StdModel[]).map((m) => <option key={m} value={m}>{MODEL_LABELS[m]}</option>)}
         </select>
       </label>
+      {isInterpolating(o.model) && (
+        <p className="hint-block">
+          A curve through the mean signal of each standard: no parameters, no weighting and no
+          confidence interval for the unknowns. Use it when the kit insert prescribes it; otherwise a 4PL
+          or 5PL fit gives CIs and tests parallelism.
+        </p>
+      )}
       <div className="wizard-row">
-        <label className="field">
-          <span>Weighting</span>
-          <select value={o.weighting} disabled={readOnly} aria-label="Weighting"
-            onChange={(e) => set({ weighting: e.target.value as Weighting })}>
-            <option value="none">None (ordinary least squares)</option>
-            <option value="1/Y">1/Y</option>
-            <option value="1/Y2">1/Y²</option>
-          </select>
-        </label>
+        {!isInterpolating(o.model) && (
+          <label className="field">
+            <span>Weighting</span>
+            <select value={o.weighting} disabled={readOnly} aria-label="Weighting"
+              onChange={(e) => set({ weighting: e.target.value as Weighting })}>
+              <option value="none">None (ordinary least squares)</option>
+              <option value="1/Y">1/Y</option>
+              <option value="1/Y2">1/Y²</option>
+            </select>
+          </label>
+        )}
         <label className="field">
           <span>Blank</span>
           <select value={o.blank} disabled={readOnly} aria-label="Blank"
@@ -137,7 +146,7 @@ function ModelFields({ o, set, readOnly }: {
               onBlur={(e) => set({ bottom: e.target.value.trim() })} />
           </label>
         )}
-        {o.model === "linear" && (
+        {(o.model === "linear" || isInterpolating(o.model)) && (
           <label className="check-row">
             <input type="checkbox" checked={o.logX} disabled={readOnly}
               onChange={(e) => set({ logX: e.target.checked })} /> Fit on log(concentration)
@@ -241,6 +250,11 @@ function StdWizard({ start, table, options, tableName, hasOutputs, onClose, onFi
                   odd standard. Choose the <strong>weighting</strong> by the back-calculated accuracy of
                   the standards (signals whose scatter grows with the mean usually need 1/Y²); R² close
                   to 1 does not show that a curve is right.
+                </p>
+                <p>
+                  Choose <strong>Cubic spline</strong> or <strong>Point to point</strong> only when the kit
+                  insert prescribes it: the curve passes through every standard&apos;s mean, so recoveries
+                  are near 100% by construction and the unknowns get no confidence interval.
                 </p>
               </div>
             </>
@@ -489,6 +503,7 @@ function AcceptancePreview({ table, options }: { table: DataTableModel; options:
 const FLAG_TEXT: Record<string, [string, "fail" | "warn" | "info"]> = {
   "<LLOQ": ["< LLOQ", "warn"], ">ULOQ": ["> ULOQ", "warn"], extrapolated: ["extrapolated", "fail"],
   outside_curve: ["outside the curve", "fail"], high_cv: ["CV over limit", "fail"],
+  ambiguous: ["two concentrations", "fail"],
   replicate_outside_curve: ["a replicate is off the curve", "warn"],
 };
 
@@ -567,11 +582,13 @@ function StdPlate({ res, o, onExclude }: {
       </div>
       {res.detection_limits && <DetectionLimits dl={res.detection_limits} unit={u} />}
       <p className="model-line">
-        {fit.label ?? res.model_id}{res.log_x ? ", X = log10(concentration)" : ""}; weighting {res.weighting};
-        {" "}{res.blank !== null && res.blank !== undefined ? `blank ${num(res.blank)} subtracted` : "no blank subtracted"};
-        {" "}R² {num(fit.goodness?.r_squared, 4)} (not a measure of accuracy: see the recoveries).
+        {fit.label ?? res.model_id}{res.log_x ? ", X = log10(concentration)" : ""};
+        {res.no_model_ci ? "" : ` weighting ${res.weighting};`}
+        {" "}{res.blank !== null && res.blank !== undefined ? `blank ${num(res.blank)} subtracted` : "no blank subtracted"}
+        {res.no_model_ci ? "; an interpolating curve: no parameters, no R², no model CI."
+          : `; R² ${num(fit.goodness?.r_squared, 4)} (not a measure of accuracy: see the recoveries).`}
       </p>
-      <div className="results-scroll">
+      {params.length > 0 && <div className="results-scroll">
         <table className="results-table">
           <thead><tr><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">SE</th><th scope="col">95% CI</th></tr></thead>
           <tbody>
@@ -581,7 +598,7 @@ function StdPlate({ res, o, onExclude }: {
             ))}
           </tbody>
         </table>
-      </div>
+      </div>}
 
       <h4>Back-calculated standards</h4>
       <div className="results-scroll">
@@ -640,7 +657,8 @@ function StdPlate({ res, o, onExclude }: {
                 <td>{num(x.dilution)}</td>
                 <td>{num(x.mean_signal)}</td>
                 <td>{x.status === "ok" ? num(x.concentration) : x.status}</td>
-                <td>{x.status === "ok" ? interval(x.concentration_ci) : ""}</td>
+                <td className={res.no_model_ci && x.status === "ok" ? "std-no-ci" : undefined}>
+                  {x.status !== "ok" ? "" : res.no_model_ci ? "no model CI" : interval(x.concentration_ci)}</td>
                 <td>{x.status === "ok" ? num(x.corrected) : x.status === "<LLOQ"
                   ? `< ${num(x.lloq_corrected)}` : x.status === ">ULOQ" ? `> ${num(x.uloq_corrected)}` : ""}</td>
                 <td>{pct(o.cvBasis === "signal" ? x.cv_signal_pct : x.cv_concentration_pct)}</td>
@@ -793,10 +811,19 @@ export function StdMethods({ options: o, result }: ResultsProps<StdOptions, StdR
     linear: o.logX ? "a straight line on log10(concentration)" : "a straight line",
     loglog: "a straight line of log10(signal) on log10(concentration)",
     quadratic: "a second-order polynomial on concentration, read only within the standards' range",
+    spline: `a natural cubic spline through the mean signal of each standard level${o.logX
+      ? " on log10(concentration)" : ""} (an interpolating curve, read only within the standards' range)`,
+    point_to_point: `straight lines between the mean signals of adjacent standard levels${o.logX
+      ? " on log10(concentration)" : ""} (point to point, read only within the standards' range)`,
   };
+  const ciText = res.no_model_ci
+    ? "An interpolating curve has no parameters, so interpolated concentrations have no model-based "
+      + "confidence interval and none is reported. "
+    : "Confidence intervals of interpolated concentrations are where the curve's "
+      + "confidence band crosses the signal. ";
   const q = res.quantification_range ?? {};
   const text = `Standards${res.blank != null ? " (blank-subtracted)" : ""} were fitted with ${model[o.model]}`
-    + `${o.weighting !== "none" ? `, weighted by ${o.weighting === "1/Y" ? "1/Y" : "1/Y²"}` : ""}`
+    + `${o.weighting !== "none" && !res.no_model_ci ? `, weighted by ${o.weighting === "1/Y" ? "1/Y" : "1/Y²"}` : ""}`
     // the Bottom constant applies to the logistic models only (model.ts)
     + `${o.bottom && (o.model === "4pl" || o.model === "5pl") ? `, Bottom held at ${o.bottom}` : ""}. Calibration acceptance followed ICH M10 (2022): `
     + `back-calculated standards within ±${o.accuracy}% of nominal (±${o.accuracyEnds}% at the LLOQ and ULOQ) `
@@ -805,8 +832,7 @@ export function StdMethods({ options: o, result }: ResultsProps<StdOptions, StdR
     + `${num(q.uloq) || "undefined"} ${o.unit} (lowest and highest passing levels). Unknown concentrations were `
     + `interpolated from the curve, multiplied by their dilution factor and averaged per sample over the `
     + `dilutions within the range; values outside it are reported as below the LLOQ or above the ULOQ and `
-    + `were not extrapolated. Confidence intervals of interpolated concentrations are where the curve's `
-    + `confidence band crosses the signal. ${limitsMethods(res.detection_limits, o.unit)}`
+    + `were not extrapolated. ${ciText}${limitsMethods(res.detection_limits, o.unit)}`
     + `${precisionMethods(result.precision, o)}Analysed in OpenDose.`;
   return <CopyableMethods text={text} />;
 }

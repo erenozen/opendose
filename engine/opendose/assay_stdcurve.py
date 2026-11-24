@@ -74,7 +74,18 @@ curve), "quadratic" (second-order polynomial on concentration, common for
 colorimetric protein assays such as BCA; interpolated only within the
 standards' range, and only on the side of its turning point the
 standards are on, since a parabola reads two concentrations for one
-signal past its vertex).
+signal past its vertex), and two interpolating curves some kit inserts
+prescribe (FEATURE-PLAN P-103): "spline" (the natural cubic spline
+through the mean signal of each standard level, smooth.Interpolating-
+Curve; R's splinefun(method = "natural")) and "point_to_point" (straight
+lines between the level means), on log10 concentration by default. They
+are not fitted models: they have no parameters, no R squared and no
+confidence band, so an interpolated unknown has no model-based CI (the
+result says so: "no_model_ci"), weighting does not apply, and the
+parallelism F test, which compares fitted parameters, is not run. They
+are read only within the standards (never extrapolated). A spline that
+turns between two levels reads one signal as two concentrations there:
+such an unknown is reported as "ambiguous" with no number.
 """
 
 from __future__ import annotations
@@ -86,8 +97,15 @@ from scipy import stats
 from scipy.optimize import brentq
 
 from . import equations, interpolate, nlfit  # noqa: F401 (registers 5PL)
+from . import smooth
 
-MODELS = ("4pl", "5pl", "linear", "loglog", "quadratic")
+MODELS = ("4pl", "5pl", "linear", "loglog", "quadratic", "spline",
+          "point_to_point")
+INTERPOLATING = ("spline", "point_to_point")
+_INTERP_LABELS = {
+    "spline": "Natural cubic spline through the standard means (no model CI)",
+    "point_to_point": "Point to point through the standard means (no model CI)",
+}
 _WEIGHT_ALIASES = {"none": "none", "1/Y": "1/Y", "1/Y2": "1/Y2",
                    "1/Y^2": "1/Y2", "1/y": "1/Y", "1/y2": "1/Y2"}
 
@@ -225,6 +243,53 @@ class _Curve:
         return [self.to_conc(lo), self.to_conc(hi)]
 
 
+class _InterpCurve:
+    """An interpolating standard curve (spline or point to point) with
+    _Curve's interface: no parameters, no confidence band."""
+
+    no_model_ci = True
+    location = None
+    log_y = False
+    turns_inside = False
+
+    def __init__(self, kind, log_x, x_fit, y_fit):
+        self.kind, self.log_x = kind, log_x
+        self.curve = smooth.InterpolatingCurve(kind, x_fit, y_fit)
+        self.x_lo, self.x_hi = self.curve.lo, self.curve.hi
+        self.increasing = self.curve.increasing
+        self.y_range = self.curve.y_range
+        self.fit = {
+            "model": kind, "label": _INTERP_LABELS[kind], "status": "interpolating",
+            "params": {}, "param_order": [], "fitted_values": {},
+            "weighting": "none", "no_model_ci": True,
+            "knots": {"x": self.curve.x.tolist(), "y": self.curve.y.tolist()},
+            "monotone": self.curve.monotone,
+            "goodness": {"r_squared": None, "df": 0, "n_points": len(x_fit)},
+        }
+
+    to_x = _Curve.to_x
+    to_conc = _Curve.to_conc
+    to_y = _Curve.to_y
+    side = _Curve.side
+
+    def crossings(self, signal):
+        y = self.to_y(signal)
+        return [] if y is None else self.curve.inverse(y)
+
+    def interpolate(self, signals):
+        out = []
+        for s in signals:
+            roots = self.crossings(s) if s is not None else []
+            out.append(self.to_conc(roots[0]) if len(roots) == 1 else None)
+        return out
+
+    def ci(self, signal, ci_level=0.95):
+        return None
+
+    def values(self, xs):
+        return self.curve(xs)
+
+
 def _model_for(kind, log_x, increasing):
     if kind == "4pl":
         if log_x:
@@ -251,7 +316,7 @@ def fit_standards(standards, *, model="4pl", weighting="none",
         raise ValueError(f"unknown weighting: {weighting}")
     weighting = _WEIGHT_ALIASES[weighting]
     if log_x is None:
-        log_x = model in ("4pl", "5pl", "loglog")
+        log_x = model in ("4pl", "5pl", "loglog") or model in INTERPOLATING
     if model == "loglog":
         log_x = True
     warnings, prepared = [], []
@@ -290,6 +355,21 @@ def fit_standards(standards, *, model="4pl", weighting="none",
                         "fit (use them as the blank instead).")
     if len(set(xs)) < 2:
         raise ValueError("need standards at two or more concentrations")
+    if model in INTERPOLATING:
+        curve = _InterpCurve(model, log_x, xs, ys)
+        warnings.append(
+            "An interpolating curve passes through the mean signal of every "
+            "standard level, so back-calculated recoveries sit near 100% by "
+            "construction and say little about how well the curve describes "
+            "the assay; interpolated unknowns have no model-based confidence "
+            "interval.")
+        if not curve.curve.monotone:
+            warnings.append(
+                "The curve turns between standard levels, so some signals "
+                "read two or more concentrations; those unknowns are reported "
+                "as ambiguous, with no number. Check the standards or use a "
+                "4PL fit.")
+        return curve, prepared, warnings
     increasing = (np.corrcoef(xs, ys)[0, 1] >= 0
                   if np.std(ys) > 0 and np.std(xs) > 0 else True)
     model_id, location = _model_for(model, log_x, increasing)
@@ -490,8 +570,13 @@ def standard_curve_qc(standards, unknowns=None, *, model="4pl",
             else None
         flags = []
         status = "ok"
+        interp = isinstance(curve, _InterpCurve)
         if mean_sig is None:
             status = "no_data"
+        elif conc is None and interp and len(curve.crossings(mean_sig)) > 1:
+            # the curve turns: one signal, two or more concentrations
+            status = "ambiguous"
+            flags.append("ambiguous")
         elif conc is None:
             side = curve.side(mean_sig)
             status = "<LLOQ" if side == "below" else ">ULOQ"
@@ -565,9 +650,13 @@ def standard_curve_qc(standards, unknowns=None, *, model="4pl",
                                          parallelism_cv_limit, constraints))
 
     # ---- curve for plotting (concentration axis in the fit's X units)
-    spec = nlfit.MODELS[fit["model"]]
     gx = np.linspace(curve.x_lo, curve.x_hi, int(curve_points))
-    gy = spec.func(gx, fit["fitted_values"])
+    if isinstance(curve, _InterpCurve):
+        gx = np.union1d(gx, curve.curve.x)
+        gy = curve.values(gx)
+    else:
+        spec = nlfit.MODELS[fit["model"]]
+        gy = spec.func(gx, fit["fitted_values"])
     plot = {"x": gx.tolist(),
             "y": (np.power(10.0, gy) if curve.log_y else gy).tolist(),
             "x_is_log": curve.log_x}
@@ -594,6 +683,8 @@ def standard_curve_qc(standards, unknowns=None, *, model="4pl",
     }
     if limits is not None:
         out["detection_limits"] = limits
+    if isinstance(curve, _InterpCurve):
+        out["no_model_ci"] = True
     return out
 
 
@@ -741,6 +832,10 @@ def _parallelism(curve, prepared, name, entries, ok, weighting, cv_limit,
            "cv_pct": cv, "cv_limit_pct": cv_limit,
            "cv_pass": (cv <= cv_limit + 1e-9) if cv is not None else None,
            "f_test": None, "f_test_note": None}
+    if isinstance(curve, _InterpCurve):
+        out["f_test_note"] = ("not run: the F test compares fitted curves, and "
+                              "an interpolating curve has no parameters")
+        return out
     model_id = curve.fit["model"]
     spec = nlfit.MODELS[model_id]
     # sample series on the standards' X scale: relative concentration

@@ -1093,3 +1093,49 @@ const longData = (name, names, rows, categorical) => data(name, {
   gt.settings.format = { comparisons: { show: true } };
   write("km-brackets.json", project("Log-rank and panel brackets", [surv, rs, gs, tw, rt, gt], { selected: gs.id }));
 }
+
+// smoothing.json (P-103; engine/tests/reference/smoothing.py): R's cars
+// data (stopping distance against speed, the ties as replicates) under a
+// smoothing spline by GCV and LOWESS with R's defaults; a 12-point trace
+// smoothed by Savitzky-Golay into a linked table; and the example ELISA
+// read off a cubic spline (no model CI)
+{
+  n = 0;
+  const ref = JSON.parse(readFileSync(join(here, "../../../engine/tests/reference/smoothing.json"), "utf8"));
+  const SPEED = [4, 4, 7, 7, 8, 9, 10, 10, 10, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15,
+    15, 16, 16, 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 20, 20, 20, 20, 20, 22, 23, 24, 24, 24, 24, 25];
+  const DIST = [2, 10, 4, 22, 16, 10, 18, 26, 34, 17, 28, 14, 20, 24, 28, 26, 34, 34, 46, 26, 36, 60, 80, 20,
+    26, 54, 32, 40, 32, 40, 50, 42, 56, 76, 84, 36, 46, 68, 32, 48, 52, 56, 64, 66, 54, 70, 92, 93, 120, 85];
+  const speeds = [...new Set(SPEED)];
+  const reps = speeds.map((s) => DIST.filter((_, i) => SPEED[i] === s).map(String));
+  const cars = data("Cars", table("xy", { x: speeds.map(String), xTitle: "Speed", xUnit: "mph",
+    yTitle: "Stopping distance (ft)",
+    datasets: [{ name: "Distance", subTitles: ["", "", "", "", ""],
+      rows: reps.map((r) => [...r, ...Array(5 - r.length).fill("")]) }] }));
+  const ss = results(cars, "smooth_xy", { method: "smoothing_spline", span: "", iterations: "", smoothing: "gcv",
+    df: "" }, "Smoothing spline of Cars");
+  const lw = results(cars, "smooth_xy", { method: "lowess", span: "", iterations: "", smoothing: "gcv", df: "" },
+    "LOWESS of Cars");
+  const gs = graph(cars, ss, "smooth_xy_graph", "Smoothing spline graph of Cars");
+  const sg = ref.savgol;
+  const trace = data("Trace", table("xy", { x: sg.x.map(String), xTitle: "Time", yTitle: "Signal",
+    datasets: [{ name: "Signal", rows: sg.y.map((v) => [String(v)]) }] }));
+  const ops = results(trace, "curve_ops", { op: "smooth", neighbours: "2", order: "2" },
+    "Smooth, differentiate or integrate of Trace");
+  const out = data("Curve of Trace", table("xy", { x: sg.x.map(String), datasets: [{ name: "Signal",
+    rows: sg.x.map(() => [""]) }] }), { derived: { sourceId: trace.id, resultsId: ops.id } });
+  const rows = [
+    ["Standard", "Std 1", "", "1000", "", "2.343", "2.267"], ["Standard", "Std 2", "", "500", "", "2.074", "2.083"],
+    ["Standard", "Std 3", "", "250", "", "1.541", "1.566"], ["Standard", "Std 4", "", "125", "", "1.142", "1.13"],
+    ["Standard", "Std 5", "", "62.5", "", "0.724", "0.71"], ["Standard", "Std 6", "", "31.25", "", "0.451", "0.451"],
+    ["Standard", "Std 7", "", "15.63", "", "0.282", "0.288"], ["Standard", "Std 8", "", "7.81", "", "0.236", "0.202"],
+    ["Blank", "Blank", "", "0", "", "0.063", "0.058"],
+    ["Unknown", "S1", "Control", "", "2", "0.603", "0.581"], ["Unknown", "S4", "Treated", "", "2", "1.307", "1.257"],
+    ["Unknown", "S7", "Treated", "", "2", "2.532", "2.527"],
+  ];
+  const kit = longData("ELISA kit", ["Type", "Name", "Group", "Concentration", "Dilution", "Signal 1", "Signal 2"],
+    rows, ["Type", "Name", "Group"]);
+  const rk = results(kit, "assay_stdcurve", { unit: "pg/mL", model: "spline", excludeLevels: [7.81] },
+    "Standard curve of ELISA kit");
+  write("smoothing.json", project("Smoothing", [cars, ss, lw, gs, trace, ops, out, kit, rk], { selected: ss.id }));
+}
