@@ -63,6 +63,41 @@ const fmt = (v: number, d = 2) => (Math.abs(v) >= 0.001 || v === 0
   ? String(Number(v.toPrecision(d + 1))) : v.toExponential(1));
 const pText = (p: number) => formatPValue(p);
 
+/** Combining experiments (P-92): few experiments, rows left out, and
+ *  how much the experiments disagree. */
+export function metaChips(r: R): Chip[] {
+  const k = Number(r.k ?? 0);
+  const out: Chip[] = [];
+  if (k < 5) {
+    out.push({ id: "meta-few", label: `Only ${k} experiments`, state: "warn",
+      detail: `With ${k} experiments the variance between them (τ²) is estimated poorly and is often 0 `
+        + "even when they differ. "
+        + (r.random?.test === "knha" ? "The Hartung-Knapp CI used here allows for that."
+          : "The normal (z) CI chosen here does not allow for it and is too narrow; choose Hartung-Knapp."),
+      sources: [SRC.intHout2014] });
+  } else {
+    out.push({ id: "meta-few", label: `${k} experiments`, state: "ok",
+      detail: "Enough experiments for a usable estimate of the variance between them.",
+      sources: [SRC.intHout2014] });
+  }
+  const dropped = (r.dropped ?? []) as R[];
+  if (dropped.length) {
+    out.push({ id: "meta-dropped", label: `${dropped.length} ${dropped.length === 1 ? "row" : "rows"} left out`,
+      state: "warn", detail: dropped.map((d) => `${d.label}: ${d.reason}.`).join(" ") });
+  }
+  const i2 = r.heterogeneity?.I2;
+  if (typeof i2 === "number" && r.random) {
+    const pi = r.prediction ? " The prediction interval shows the range of the true effect in a new experiment." : "";
+    out.push({ id: "meta-het", label: `I² ${Number(i2.toFixed(1))}%`, state: i2 >= 50 ? "warn" : "info",
+      detail: (i2 >= 50
+        ? "The experiments differ by more than their SEs explain, so the pooled estimate is an average "
+          + "of effects that vary."
+        : "Most of the spread between experiments is what their SEs predict.") + pi,
+      sources: [SRC.higginsThompson2002, SRC.riley2011] });
+  }
+  return out;
+}
+
 /** Which analysis the sheet runs, as one key: "ttest:welch", "anova", ... */
 export function analysisKind(ctx: ResultContext): string {
   const o = ctx.options;
@@ -618,6 +653,7 @@ export function resultChips(ctx: ResultContext): Chip[] {
     return contingencyChips(ctx);
   }
   if (kind === "survival") return survivalChips(ctx);
+  if (kind === "meta_analysis") return metaChips(r);
   if (kind === "grouped_two_way" || kind === "grouped_three_way" || kind === "grouped_multiple_t") {
     const cells = cellChecks(ctx.table);
     const groups: GroupCheck[] = cells.map((c) => ({ name: `${c.row} / ${c.dataset}`, n: c.s.n,

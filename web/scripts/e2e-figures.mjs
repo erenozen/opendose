@@ -1542,6 +1542,64 @@ const fitLegendText = () => page.locator(".plot-card .figure-legend-text").textC
     newLegend.slice(0, 200));
 }
 
+// --- P-92: the forest plot of combined experiments --------------------------
+{
+  // dat.bcg (Colditz et al. 1994), 13 log risk ratios with SEs, pooled by
+  // REML with the Hartung-Knapp CI (engine/tests/reference/
+  // meta_reference.json bcg_reml; metafor prints REML -0.7145): the plot
+  // draws 13 squares and the pooled diamonds on a log axis, every CI end
+  // equal to the results table's
+  const REF = JSON.parse(readFileSync(join(here, "../../engine/tests/reference/meta_reference.json"), "utf8")).bcg_reml;
+  await page.setInputFiles('input[aria-label="Open an OpenDose project or a Prism file"]',
+    join(here, "..", "e2e-fixtures", "stage", "meta-bcg.json"));
+  await page.getByRole("treeitem", { name: "Forest plot of BCG trials", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+    .some((t) => t.name === "Random effects"), null, { timeout: 180000 }).catch(() => {});
+  const f = await page.evaluate(() => {
+    const gd = document.querySelector(".plot-card .plot");
+    const pts = (gd?.data ?? []).find((t) => t.name === "Experiments");
+    const dia = (name) => {
+      const t = (gd?.data ?? []).find((x) => x.name === name);
+      return t ? [Math.min(...t.x), t.x[1], Math.max(...t.x)] : null;
+    };
+    return {
+      n: pts?.x.length ?? 0, ticks: gd?.layout?.yaxis?.ticktext ?? [], type: gd?.layout?.xaxis?.type,
+      ref: (gd?.layout?.shapes ?? [])[0]?.x0,
+      ends: pts ? pts.x.map((x, i) => [x - pts.error_x.arrayminus[i], x + pts.error_x.array[i]]) : [],
+      random: dia("Random effects"), fixed: dia("Common effect"),
+      pi: (() => { const t = (gd?.data ?? []).find((x) => x.name === "Prediction interval"); return t ? t.x : null; })(),
+    };
+  });
+  const near = (a, b) => Math.abs(a - b) <= 1e-6 * Math.max(1, Math.abs(b));
+  expect("P-92 acceptance: the forest plot draws 13 rows and the pooled diamond", f.n === 13
+    && f.ticks.length === 16 && f.ticks[0] === "Aronson 1948" && f.ticks[13] === "Common effect"
+    && f.ticks[14] === "Random effects" && !!f.random, JSON.stringify(f.ticks));
+  expect("P-92 ratios on a log axis with the no-effect line at 1", f.type === "log" && f.ref === 1, `${f.type} ${f.ref}`);
+  expect("P-92 the random-effects diamond spans exp of the Hartung-Knapp CI around exp(-0.7145)",
+    f.random && near(f.random[0], Math.exp(REF.ci_hk[0])) && near(f.random[2], Math.exp(REF.ci_hk[1]))
+      && Number(f.random[1].toPrecision(4)) === 0.4894, JSON.stringify(f.random));
+  expect("P-92 the prediction interval bar is exp of t(11) limits", f.pi && near(f.pi[0], Math.exp(REF.pi_hk[0]))
+    && near(f.pi[1], Math.exp(REF.pi_hk[1])), JSON.stringify(f.pi));
+  // every CI end on the plot is the one printed in the results table
+  await page.getByRole("treeitem", { name: "Combined experiments of BCG trials", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  await page.locator(".pane-results .meta-results").first().waitFor({ timeout: 120000 });
+  const tableCI = await page.locator(".pane-results .meta-results table").first().locator("tbody tr")
+    .evaluateAll((rows) => rows.slice(0, 13).map((r) => r.querySelectorAll("td")[3]?.textContent ?? ""));
+  const sig = (v) => String(Number(v.toPrecision(4)));
+  const plotted = f.ends.map(([a, b]) => `${sig(a)} to ${sig(b)}`);
+  expect("P-92 the 13 CI ends on the plot equal the results table's", JSON.stringify(plotted) === JSON.stringify(tableCI),
+    `${plotted.slice(0, 2)} vs ${tableCI.slice(0, 2)}`);
+  await page.getByRole("treeitem", { name: "Forest plot of BCG trials", exact: true }).first()
+    .locator(":scope > .nav-row").click();
+  const legend = await page.locator(".plot-card .figure-legend-text").textContent({ timeout: 60000 }).catch(() => "");
+  expect("P-92 the legend says what the squares, diamonds and bar are",
+    legend.startsWith("Squares show the estimate of each of 13 experiments with its 95% CI;")
+      && legend.includes("Ratios are drawn on a log axis") && !/Mean ± SEM/.test(legend), legend);
+  await shot("forest-meta");
+}
+
 console.log(errors.length ? errors.join("\n") : "no page errors");
 await browser.close();
 if (fail.length || errors.length) {

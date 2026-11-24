@@ -4927,6 +4927,36 @@ def _precision_study(data, options):
 
 _HANDLERS["precision_study"] = _precision_study
 
+from . import meta  # noqa: E402
+
+
+def _meta_analysis(data, options):
+    """Combining experiments: common- and random-effects meta-analysis
+    (opendose.meta, P-92). data: {"rows": [{"label", "values"}]}, one row
+    per experiment holding the subcolumns of one data set. options:
+    format ("mean_sem" | "mean_sem_n" | "mean_sd_n" | "mean_ci_n" |
+    "mean_limits"), scale ("difference" | "log_ratio" | "ratio"),
+    limits_level (0.95, for mean_limits), method ("REML" | "DL"), test
+    ("knha" | "z"), ci_level (0.95), name (the data set). Result:
+    {"analysis": "meta_analysis", "name", "k", "studies", "dropped",
+    "fixed", "random", "heterogeneity", "prediction", "notes", ...}
+    (meta.meta_analysis)."""
+    scale = options.get("scale", "difference")
+    labels, est, ses, problems = meta.read_rows(
+        data.get("rows") or [], options.get("format", "mean_sem"),
+        scale=scale, limits_level=float(options.get("limits_level", 0.95)))
+    res = meta.meta_analysis(
+        est, ses, labels, method=options.get("method", "REML"),
+        test=options.get("test", "knha"),
+        ci_level=float(options.get("ci_level", 0.95)), scale=scale)
+    for d in res["dropped"]:
+        if d["label"] in problems:
+            d["reason"] = problems[d["label"]]
+    return {"analysis": "meta_analysis", "name": options.get("name"), **res}
+
+
+_HANDLERS["meta_analysis"] = _meta_analysis
+
 
 def analyze(payload: dict) -> dict:
     kind = payload.get("analysis")

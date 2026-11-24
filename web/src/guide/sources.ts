@@ -314,6 +314,17 @@ export const SRC = {
     url: "https://doi.org/10.1093/biomet/80.1.27" },
   heinzeSchemper2002: { label: "Heinze & Schemper 2002, A solution to the problem of separation in logistic regression, Stat Med 21:2409",
     url: "https://doi.org/10.1002/sim.1047" },
+  // Combining experiments (P-92): with few studies the Hartung-Knapp CI
+  // keeps its coverage, the DerSimonian-Laird z CI does not; the
+  // prediction interval shows the spread of true effects; I^2. Crossref:
+  // BMC Med Res Methodol 14:25, BMJ 342:d549, Stat Med 21:1539-1558,
+  // read 2026-11-24.
+  intHout2014: { label: "IntHout, Ioannidis & Borm 2014, The Hartung-Knapp-Sidik-Jonkman method for random effects meta-analysis, BMC Med Res Methodol 14:25",
+    url: "https://doi.org/10.1186/1471-2288-14-25" },
+  riley2011: { label: "Riley, Higgins & Deeks 2011, Interpretation of random effects meta-analyses, BMJ 342:d549",
+    url: "https://doi.org/10.1136/bmj.d549" },
+  higginsThompson2002: { label: "Higgins & Thompson 2002, Quantifying heterogeneity in a meta-analysis, Stat Med 21:1539",
+    url: "https://doi.org/10.1002/sim.1186" },
 } satisfies Record<string, Source>;
 
 export type SourceKey = keyof typeof SRC;

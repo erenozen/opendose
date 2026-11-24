@@ -1055,6 +1055,21 @@ const scenes = [
     await into(s, ".plot-card", "center");
     await settle(s, 1000);
   } },
+  // dat.bcg (P-92): 13 trials' log risk ratios with SEs combined; the
+  // results sheet (headline, typeset tables, checks) and the forest plot
+  { name: "results-meta-analysis", setup: async (s) => {
+    await fixture(s, "meta-bcg.json", { live: true });
+    await s.page.locator(".pane-results .meta-results").first().waitFor({ timeout: 120000 });
+    await into(s, ".pane-results .meta-results");
+  } },
+  { name: "graphs-forest-meta", setup: async (s) => {
+    await fixture(s, "meta-bcg.json", { live: true });
+    await selectSheet(s, "Forest plot of BCG trials");
+    await s.page.waitForFunction(() => (document.querySelector(".plot-card .plot")?.data ?? [])
+      .some((t) => t.name === "Random effects"), null, { timeout: 180000 });
+    await into(s, ".plot-card", "center");
+    await settle(s, 1000);
+  } },
   { name: "graphs-graph-sheet", setup: async (s) => {
     await example(s);
     await selectSheet(s, "Graph of Dose response");

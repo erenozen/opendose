@@ -4853,6 +4853,56 @@ sum-of-squares F(1, 68) is 218.3 and AICc (n ln(SS/n) + 2K + 2K(K+1)/(n -
 K - 1), K counting the variance) is 73.48 and -27.71, difference -101.19:
 the engine's 218.2638, 73.46265, -27.71851 and -101.1812 to the rounding
 of the printed sums of squares.
+
+## Feature validation: combining experiments, mini-meta and delta-delta (2026-11-24)
+
+### P-92 Combining experiments (meta-analysis) and the forest plot
+
+`opendose.meta` pools one estimate with its SE per experiment (a grouped
+table in Mean, SEM, or Mean, SD, N, or with CI limits; ratios with CI
+limits are pooled on the log scale): the common (inverse-variance)
+effect, Cochran's Q, tau^2 by REML (the root of the restricted
+likelihood score, bracketed and solved with Brent's method) or
+DerSimonian-Laird, the random-effects estimate with the Hartung-Knapp CI
+(t on k - 1 df, the default) and the z CI, I^2 and H^2 from tau^2, I^2
+from Q, and the prediction interval mu +/- t_{k-2} sqrt(tau^2 + SE^2)
+with the SE of the chosen interval. With fewer than 5 experiments the
+result and the Checks row say tau^2 is estimated poorly.
+
+References: metafor 5.3-4's printed output for dat.bcg (rma.uni and
+predict.rma "Examples" pages; R itself is not installed); R metafor and R
+meta outputs stored in statsmodels 0.15
+(`statsmodels/stats/tests/results/results_meta.py`); and
+`engine/tests/reference/meta_reference.py` (REML by Fisher scoring as
+metafor iterates it, Hartung-Knapp written out, statsmodels
+`combine_effects` for DerSimonian-Laird). `engine/tests/test_meta.py`:
+
+| Input | Reference | Engine tolerance |
+|---|---|---|
+| dat.bcg (Colditz et al. 1994), 13 log risk ratios, REML, z (metafor printed) | -0.7145, SE 0.1798, 95% CI -1.0669 to -0.3622, tau^2 0.3132 (SE 0.1664), tau 0.5597, I^2 92.22%, H^2 12.86, Q(12) = 152.2330; exp: 0.49 (0.34 to 0.70) | printed digits |
+| dat.bcg, common effect (metafor method = "FE", printed) | -0.4303, SE 0.0405, CI -0.5097 to -0.3509, I^2 92.12% | printed digits |
+| dat.bcg, REML, Hartung-Knapp (meta_reference.py) | SE 0.180792, CI -1.108444 to -0.320621, P 0.001920 (t, 12 df); prediction interval -2.009058 to 0.579993 (t, 11 df) | 1e-9 relative |
+| dat.bcg, DerSimonian-Laird, HKSJ (statsmodels combine_effects) | tau^2 0.308760, -0.714117, CI -1.107821 to -0.320413 | 1e-9 relative |
+| Kacker 2004, 9 studies, DL, test = "knha" (R metafor, in statsmodels) | 62.390139, SE 0.294776, CI 61.710384 to 63.069893, tau^2 0.288049, I^2 67.7444%, Q 24.8019 | 1e-9 relative |
+| 17 trials, DL, hakn = TRUE (R meta, in statsmodels) | 0.429520, SE 0.091595, CI 0.235347 to 0.623694, prediction 0.215651 to 0.643390 | 1e-9 relative |
+| Three experiments (1.2, 0.4, 0.9; SE 0.30, 0.25, 0.40), REML (meta_reference.py) | tau^2 0.110293, HK CI -0.257597 to 1.864798, z CI 0.288527 to 1.318674 | 1e-8 relative |
+
+Also tested: fewer than 2 rows (error naming the count), 2 rows (no
+prediction interval, df 1), missing and SE <= 0 rows listed as left out
+with the reason, all estimates equal (tau^2 0, a note), homogeneous
+estimates (tau^2 0, random = common), units x 1e-12 and x 1e12 (estimate
+and CI scale, tau^2 by the square, I^2 and P unchanged), row order and
+sign flips, a shift of every estimate, ratio CI limits read back to the
+log estimate and SE, the API's formats and its refusals (replicates;
+ratios with an SE).
+
+Web: `src/report/metaAnalysis/__tests__/meta.test.ts` (payload, options,
+results strings, headline, checks, forest rows with CI ends equal to the
+engine's, log axis at 1); e2e-results drives Analyze > Combine
+experiments on dat.bcg and reads RR 0.4894 with the Hartung-Knapp CI,
+tau^2 0.3132 (SE 0.1664), I^2 92.22% and, with the z interval, SE 0.1798
+and exp(-1.0669) to exp(-0.3622); e2e-figures checks the forest plot's
+13 rows, the diamonds and its CI ends against the table.
 """
 
 

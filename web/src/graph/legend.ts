@@ -23,6 +23,7 @@ import {
 } from "../sheets/grouped/options.ts";
 import { cellStats, type ErrorKind } from "../sheets/grouped/stats.ts";
 import { readFormat } from "./format.ts";
+import { GRAPH_FOREST } from "../report/metaAnalysis/run.ts";
 import { resolveSummary } from "../sheets/column/rankSummary.ts";
 import type { WhiskerRule } from "./boxStats.ts";
 import { bandwidthText, groupDensity, type NoDensity } from "./kde.ts";
@@ -271,7 +272,7 @@ const GROUPED_SUMMARY: Record<ErrorKind, LegendSummary> = {
 function groupedSpec(graph: Pick<GraphSheet, "graphType" | "settings">, table: DataTableModel,
   result: unknown): LegendSpec | null {
   const kind = graph.graphType;
-  if (kind === G_HEATMAP || kind === G_VOLCANO) return null;
+  if (kind === G_HEATMAP || kind === G_VOLCANO || kind === GRAPH_FOREST) return null;
   const s = normalizeGraph(graph.settings.grouped);
   const stars = starsOf(graph);
   const rowName = (r: number) => table.rowTitles[r]?.trim() || `Row ${r + 1}`;
