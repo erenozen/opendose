@@ -1563,8 +1563,10 @@
             "axes",
             "box",
             "offset",
-            "none"
-          ]
+            "none",
+            "scalebars"
+          ],
+          "description": "\"scalebars\": no axes, a horizontal and a vertical scale bar at the lower left instead (lengths: AxisFormat.scaleBar)."
         },
         "origin": {
           "type": "string",
@@ -1803,8 +1805,10 @@
           "enum": [
             "out",
             "in",
+            "cross",
             "none"
-          ]
+          ],
+          "description": "\"cross\": ticks on both sides of the axis line."
         },
         "tickLen": {
           "type": "number"
@@ -1884,6 +1888,20 @@
         "scaleFactor": {
           "type": "number",
           "description": "Scale factor k (linear axes): tick labels show value / 10^k and the title gets \"(×10^k)\"; the data are unchanged."
+        },
+        "crossAt": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Where this axis crosses the other one, in the other axis's data units (X axis: a Y value; Y axis: an X value). Absent: at its edge."
+        },
+        "scaleBar": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Length of this axis's scale bar (frame \"scalebars\"), in data units; absent: a round value about a sixth of the range."
         }
       },
       "additionalProperties": false

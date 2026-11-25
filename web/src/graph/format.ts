@@ -96,7 +96,8 @@ export interface AxisFormat {
   majorStep?: number | null;
   /** Minor ticks per major interval (0 = none). */
   minorCount?: number;
-  ticks?: "out" | "in" | "none";
+  /** "cross": ticks on both sides of the axis line. */
+  ticks?: "out" | "in" | "cross" | "none";
   tickLen?: number;
   grid?: boolean;
   minorGrid?: boolean;
@@ -125,6 +126,12 @@ export interface AxisFormat {
   /** Scale factor k (linear axes): tick labels show value / 10^k and the
    *  title gets "(×10^k)"; the data are unchanged. */
   scaleFactor?: number;
+  /** Where this axis crosses the other one, in the other axis's data
+   *  units (X axis: a Y value; Y axis: an X value). Absent: at its edge. */
+  crossAt?: number | null;
+  /** Length of this axis's scale bar (frame "scalebars"), in data units;
+   *  absent: a round value about a sixth of the range. */
+  scaleBar?: number | null;
 }
 
 export type LegendPosition =
@@ -259,7 +266,9 @@ export interface GraphFormat {
   x?: AxisFormat;
   y?: AxisFormat;
   y2?: AxisFormat;
-  frame?: "auto" | "axes" | "box" | "offset" | "none";
+  /** "scalebars": no axes, a horizontal and a vertical scale bar at the
+   *  lower left instead (lengths: AxisFormat.scaleBar). */
+  frame?: "auto" | "axes" | "box" | "offset" | "none" | "scalebars";
   origin?: "auto" | "zero";
   legend?: LegendFormat;
   font?: FontFormat;
@@ -337,7 +346,7 @@ function axisFormat(r: Raw): AxisFormat {
     decimals: r.decimals === null ? null : num(r.decimals, 0, 10),
     majorStep: r.majorStep === null ? null : num(r.majorStep, 1e-300, 1e300),
     minorCount: num(r.minorCount, 0, 20),
-    ticks: oneOf(r.ticks, ["out", "in", "none"] as const),
+    ticks: oneOf(r.ticks, ["out", "in", "cross", "none"] as const),
     tickLen: num(r.tickLen, 0, 30),
     grid: bool(r.grid),
     minorGrid: bool(r.minorGrid),
@@ -359,6 +368,8 @@ function axisFormat(r: Raw): AxisFormat {
       const k = num(r.scaleFactor, -15, 15);
       return k === undefined || Math.round(k) === 0 ? undefined : Math.round(k);
     })(),
+    crossAt: num(r.crossAt, -1e300, 1e300),
+    scaleBar: num(r.scaleBar, 1e-300, 1e300),
   });
 }
 
@@ -471,7 +482,7 @@ export function normalizeFormat(raw: unknown): GraphFormat {
     x: axis(raw.x),
     y: axis(raw.y),
     y2: axis(raw.y2),
-    frame: oneOf(raw.frame, ["auto", "axes", "box", "offset", "none"] as const),
+    frame: oneOf(raw.frame, ["auto", "axes", "box", "offset", "none", "scalebars"] as const),
     origin: oneOf(raw.origin, ["auto", "zero"] as const),
     legend: legend && Object.keys(legend).length ? legend : undefined,
     font: font && Object.keys(font).length ? font : undefined,

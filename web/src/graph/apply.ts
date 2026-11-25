@@ -10,7 +10,7 @@ import {
   CHROME_DARK, CHROME_LIGHT, PLOT_FONT, seriesStyle, type Chrome, type SchemeId,
 } from "../lib/palette.ts";
 import {
-  axisMap, generateTicks, plotlyNumberAttrs, shortNumber, type AxisMap,
+  axisMap, generateTicks, niceStep, plotlyNumberAttrs, shortNumber, type AxisMap,
 } from "./axes.ts";
 import {
   datasetFmt, isDefaultFormat, type Annotation, type AxisFormat, type DatasetFormat,
@@ -336,7 +336,18 @@ export function applyFormat(tracesIn: Trace[], layoutIn: Layout, format: GraphFo
   if (gap && gap.to > gap.from) splitAxis(layout, traces, gap, maps.y, ext.y, format.y!);
 
   // ---- frame and origin
-  if (format.frame && format.frame !== "auto") frame(layout, format.frame, chrome);
+  if (format.frame === "scalebars") scaleBars(layout, format, ext, maps, chrome);
+  else if (format.frame && format.frame !== "auto") frame(layout, format.frame, chrome);
+  // ---- axes crossing at a value, crossing ticks
+  if (format.frame !== "scalebars") {
+    for (const which of ["x", "y"] as const) {
+      const v = format[which]?.crossAt;
+      if (isNum(v)) crossAt(layout, which, v, ext, maps);
+    }
+    for (const which of ["x", "y"] as const) {
+      if (format[which]?.ticks === "cross") crossTicks(layout, which, ext, maps, chrome);
+    }
+  }
   if (format.origin === "zero") {
     for (const k of ["xaxis", "yaxis"]) {
       layout[k] = { ...(layout[k] ?? {}), zeroline: true,
@@ -895,7 +906,9 @@ function formatAxis(axIn: Layout, a: AxisFormat, m: AxisMap, range: [number, num
       ax.tick0 = 0;
     }
   }
-  const tickDir = a.ticks === "in" ? "inside" : a.ticks === "none" ? "" : a.ticks === "out" ? "outside" : undefined;
+  // crossing ticks: outward here, inward on a matching overlay (crossTicks)
+  const tickDir = a.ticks === "in" ? "inside" : a.ticks === "none" ? ""
+    : a.ticks === "out" || a.ticks === "cross" ? "outside" : undefined;
   if (tickDir !== undefined) {
     ax.ticks = tickDir;
     ax.tickcolor = ax.tickcolor ?? chrome.axis;
@@ -1364,6 +1377,124 @@ function splitAxis(layout: Layout, traces: Trace[], gap: { from: number; to: num
 }
 
 // ============================================================ chrome
+
+/** Explicit range of an axis (axis units): the one set, or the data with
+ *  5% padding (fixed, so positions in data units stay put). */
+function fixRange(layout: Layout, which: "x" | "y", e: Extent, m: AxisMap): [number, number] | null {
+  const key = which === "x" ? "xaxis" : "yaxis";
+  const ax = layout[key] ?? {};
+  if (Array.isArray(ax.range) && ax.range.length === 2 && ax.range.every(isNum) && ax.type !== "category") {
+    return [ax.range[0], ax.range[1]];
+  }
+  let lo = Infinity, hi = -Infinity;
+  for (const v of e.values) {
+    const w = m.to(v);
+    if (!isNum(w)) continue;
+    if (w < lo) lo = w;
+    if (w > hi) hi = w;
+  }
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;
+  const pad = (hi - lo || Math.abs(hi) || 1) * 0.05;
+  const r: [number, number] = [lo - pad, hi + pad];
+  layout[key] = { ...ax, range: r, autorange: false };
+  return r;
+}
+
+/** Draw the X axis at Y = v (or the Y axis at X = v), in data units. */
+function crossAt(layout: Layout, which: "x" | "y", v: number,
+  ext: { x: Extent; y: Extent }, maps: { x: AxisMap; y: AxisMap }) {
+  const other = which === "x" ? "y" : "x";
+  const okey = other === "x" ? "xaxis" : "yaxis";
+  if (layout[okey]?.type === "category") return;
+  const r = fixRange(layout, other, ext[other], maps[other]);
+  const w = maps[other].to(v);
+  if (!r || !isNum(w)) return;
+  const frac = Math.min(1, Math.max(0, (w - r[0]) / (r[1] - r[0])));
+  const dom: number[] = Array.isArray(layout[okey]?.domain) ? layout[okey].domain : [0, 1];
+  const key = which === "x" ? "xaxis" : "yaxis";
+  layout[key] = { ...(layout[key] ?? {}), anchor: "free", position: dom[0] + frac * (dom[1] - dom[0]) };
+}
+
+/** Ticks across the axis line, drawn as short lines centred on it (sized
+ *  in pixels) at each major tick; the axis's own ticks are turned off.
+ *  Ticks fall on round steps (or the "Major ticks every" step). Linear
+ *  number axes only; others keep outward ticks. */
+function crossTicks(layout: Layout, which: "x" | "y", ext: { x: Extent; y: Extent },
+  maps: { x: AxisMap; y: AxisMap }, chrome: Chrome) {
+  const key = which === "x" ? "xaxis" : "yaxis";
+  const ax = layout[key] ?? {};
+  if (ax.type === "category" || ax.type === "log" || ax.type === "date" || !maps[which].native) return;
+  const r = fixRange(layout, which, ext[which], maps[which]);
+  if (!r) return;
+  const lo = Math.min(...r), hi = Math.max(...r);
+  let vals: number[];
+  if (ax.tickmode === "array" && Array.isArray(ax.tickvals)) vals = ax.tickvals.filter(isNum);
+  else {
+    const step = ax.tickmode === "linear" && isNum(ax.dtick) && ax.dtick > 0 ? ax.dtick : niceStep(hi - lo);
+    const t0 = ax.tickmode === "linear" && isNum(ax.tick0) ? ax.tick0 : 0;
+    vals = [];
+    for (let v = Math.ceil((lo - t0) / step - 1e-9) * step + t0; v <= hi + step * 1e-9; v += step) {
+      vals.push(Number(v.toPrecision(12)));
+    }
+    Object.assign(ax, { tickmode: "linear", dtick: step, tick0: t0 });
+  }
+  const other = which === "x" ? layout.yaxis : layout.xaxis;
+  const dom: number[] = Array.isArray(other?.domain) ? other.domain : [0, 1];
+  const at = ax.anchor === "free" && isNum(ax.position) ? ax.position : dom[0];
+  const len = isNum(ax.ticklen) ? ax.ticklen : 5;
+  const line = { color: ax.tickcolor ?? chrome.axis, width: isNum(ax.tickwidth) ? ax.tickwidth : 1 };
+  for (const v of vals) {
+    layout.shapes.push(which === "x"
+      ? { type: "line", xref: "x", yref: "paper", x0: v, x1: v, ysizemode: "pixel", yanchor: at,
+        y0: -len, y1: len, line }
+      : { type: "line", yref: "y", xref: "paper", y0: v, y1: v, xsizemode: "pixel", xanchor: at,
+        x0: -len, x1: len, line });
+  }
+  layout[key] = { ...ax, ticks: "" };
+}
+
+/** A round scale-bar length: about a sixth of the range. */
+export function scaleBarLength(span: number): number { return niceTick(span); }
+
+/** The unit in an axis title's brackets: "Time (ms)" -> "ms". */
+export function titleUnit(title: unknown): string {
+  const t = typeof title === "string" ? title
+    : title && typeof title === "object" ? String((title as { text?: unknown }).text ?? "") : "";
+  const m = /[([]\s*([^()[\]]{1,24}?)\s*[)\]]\s*$/.exec(t);
+  return m ? m[1] : "";
+}
+
+/** Frame "scalebars": no axes; a horizontal and a vertical bar meeting
+ *  at the lower left of the plot, labelled with their lengths and the
+ *  units in the axis titles. Linear axes only (else plain axes). */
+function scaleBars(layout: Layout, format: GraphFormat, ext: { x: Extent; y: Extent },
+  maps: { x: AxisMap; y: AxisMap }, chrome: Chrome) {
+  if (!maps.x.native || !maps.y.native || layout.xaxis?.type === "category"
+    || layout.xaxis?.type === "log" || layout.yaxis?.type === "log") {
+    frame(layout, "axes", chrome);
+    return;
+  }
+  const rx = fixRange(layout, "x", ext.x, maps.x), ry = fixRange(layout, "y", ext.y, maps.y);
+  if (!rx || !ry) return;
+  const ux = titleUnit(layout.xaxis?.title), uy = titleUnit(layout.yaxis?.title);
+  for (const k of ["xaxis", "yaxis"]) {
+    layout[k] = { ...(layout[k] ?? {}), visible: false, showgrid: false, zeroline: false };
+  }
+  const x0 = Math.min(...rx), y0 = Math.min(...ry);
+  const lx = format.x?.scaleBar ?? scaleBarLength(Math.abs(rx[1] - rx[0]));
+  const ly = format.y?.scaleBar ?? scaleBarLength(Math.abs(ry[1] - ry[0]));
+  const line = { color: chrome.ink, width: 2 };
+  layout.shapes.push(
+    { type: "line", xref: "x", yref: "y", x0, x1: x0 + lx, y0, y1: y0, line },
+    { type: "line", xref: "x", yref: "y", x0, x1: x0, y0, y1: y0 + ly, line });
+  const label = (v: number, u: string) => `${shortNumber(v)}${u ? ` ${u}` : ""}`;
+  const font = { color: chrome.ink, size: 12 };
+  layout.annotations.push(
+    { x: x0 + lx / 2, y: y0, xref: "x", yref: "y", text: label(lx, ux), showarrow: false,
+      yanchor: "top", yshift: -3, font },
+    { x: x0, y: y0 + ly / 2, xref: "x", yref: "y", text: label(ly, uy), showarrow: false,
+      xanchor: "right", xshift: -4, font });
+}
 
 function frame(layout: Layout, style: "axes" | "box" | "offset" | "none", chrome: Chrome) {
   const axes = ["xaxis", "yaxis", "yaxis3"].filter((k) => k !== "yaxis3" || layout.yaxis3);

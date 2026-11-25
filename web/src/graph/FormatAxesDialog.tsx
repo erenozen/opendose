@@ -65,7 +65,7 @@ export default function FormatAxesDialog({
             <SelectField label="Frame" value={draft.frame ?? "auto"}
               options={[["auto", "As drawn (grid only)"], ["axes", "Plain X and Y axes"],
                 ["box", "Box around the plot"], ["offset", "Offset X and Y axes"],
-                ["none", "No axis lines"]]}
+                ["none", "No axis lines"], ["scalebars", "Scale bars instead of axes"]]}
               onChange={(v) => setDraft((d) => withField(d, "frame", v === "auto" ? undefined : v))} />
             <SelectField label="Origin" value={draft.origin ?? "auto"}
               options={[["auto", "Automatic (lower left)"], ["zero", "Draw lines through zero"]]}
@@ -116,6 +116,15 @@ function AxisEditor({ which, value: a, unit, onChange, categorical, zeroBreak, t
           onChange={(v) => set({ lineWidth: v })} />
         <CheckField label="Hide this axis" checked={!!a.hide}
           onChange={(v) => set({ hide: v || undefined })} />
+        {which !== "y2" && (
+          <NumField label={which === "x" ? "Crosses the Y axis at Y =" : "Crosses the X axis at X ="}
+            value={a.crossAt} placeholder="the edge"
+            onChange={(v) => set({ crossAt: v ?? undefined })} />
+        )}
+        {which !== "y2" && !categorical && (
+          <NumField label="Scale bar length (frame: scale bars)" value={a.scaleBar} placeholder="automatic"
+            onChange={(v) => set({ scaleBar: v && v > 0 ? v : undefined })} />
+        )}
       </Section>
       {!categorical && (
         <Section title="Range and scale">
@@ -174,7 +183,8 @@ function AxisEditor({ which, value: a, unit, onChange, categorical, zeroBreak, t
             onChange={(v) => set({ minorCount: v == null ? undefined : Math.round(v) })} />
         )}
         <SelectField label="Tick direction" value={a.ticks ?? "auto"}
-          options={[["auto", "As drawn"], ["out", "Outward"], ["in", "Inward"], ["none", "No ticks"]]}
+          options={[["auto", "As drawn"], ["out", "Outward"], ["in", "Inward"], ["cross", "Crossing the axis"],
+            ["none", "No ticks"]]}
           onChange={(v) => set({ ticks: v === "auto" ? undefined : v })} />
         <SizeField label="Tick length" unit={unit} value={a.tickLen} onChange={(v) => set({ tickLen: v })} />
         <SelectField label="Major grid lines" value={a.grid === undefined ? "auto" : a.grid ? "on" : "off"}
