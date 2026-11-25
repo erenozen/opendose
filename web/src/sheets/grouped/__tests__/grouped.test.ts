@@ -50,6 +50,14 @@ test("summary formats convert to SD / SEM", () => {
   const lim = summaryCell([10, 13, 8], "upper_lower")!;
   assert.deepEqual(errorExtent(lim, "sd"), [2, 3]);
   assert.equal(summaryCell([null, 1, 2], "mean_sd_n"), null);
+  // Mean, 95% CI limits, N: the limits as entered, N from the 4th subcolumn
+  const ci = summaryCell([10, 8, 12, 5], "mean_ci_n")!;
+  assert.equal(ci.n, 5);
+  assert.deepEqual([ci.ciLo, ci.ciHi, ci.lo, ci.hi], [8, 12, 8, 12]);
+  assert.ok(Math.abs(ci.sem! - 2 / tQuantile(0.975, 4)) < 1e-12);
+  // Mean, +error, -error (asymmetric)
+  const pm = summaryCell([10, 3, 1], "mean_pm")!;
+  assert.deepEqual([pm.lo, pm.hi], [9, 13]);
 });
 
 test("cell stats, grand mean and the grouped payload honor the table", () => {

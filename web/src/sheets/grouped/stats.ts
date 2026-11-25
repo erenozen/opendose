@@ -138,9 +138,11 @@ export function summarize(values: number[]): CellStat | null {
  *  N, or limits). Returns null when no mean was entered. */
 export function summaryCell(cells: (number | null)[], fmt: SubcolumnFormat):
   CellStat | null {
-  const [m, e, third] = cells;
+  const [m, e, third, fourth] = cells;
   if (m === null || m === undefined || !Number.isFinite(m)) return null;
-  const n0 = fmt.endsWith("_n") && third != null && third > 0 ? third : null;
+  // N is the last subcolumn: the 3rd, or the 4th after a CI's two limits
+  const nCell = fmt === "mean_ci_n" ? fourth : third;
+  const n0 = fmt.endsWith("_n") && nCell != null && nCell > 0 ? nCell : null;
   let sd: number | null = null;
   let sem: number | null = null;
   let lo: number | null = null;
@@ -151,12 +153,18 @@ export function summaryCell(cells: (number | null)[], fmt: SubcolumnFormat):
     case "mean_sem_n": case "mean_sem": sem = err; break;
     case "mean_cv_n": sd = err !== null ? Math.abs(m) * err / 100 : null; break;
     case "mean_ci_n":
-      if (err !== null && n0 !== null && n0 > 1) {
-        sem = err / tQuantile(0.975, n0 - 1);
+      // the entered 95% CI limits; SEM from their half-width
+      if (err !== null && third != null) {
+        lo = Math.min(err, third); hi = Math.max(err, third);
+        if (n0 !== null && n0 > 1) sem = (hi - lo) / 2 / tQuantile(0.975, n0 - 1);
       }
       break;
     case "upper_lower":
       hi = err; lo = third ?? null;
+      break;
+    case "mean_pm":
+      hi = err !== null ? m + Math.abs(err) : null;
+      lo = third != null ? m - Math.abs(third) : null;
       break;
     default: break;
   }
@@ -164,7 +172,9 @@ export function summaryCell(cells: (number | null)[], fmt: SubcolumnFormat):
   if (sem === null && sd !== null && n0) sem = sd / Math.sqrt(n0);
   let ciLo: number | null = null;
   let ciHi: number | null = null;
-  if (sem !== null && n0 && n0 > 1) {
+  if (fmt === "mean_ci_n" && lo !== null && hi !== null) {
+    ciLo = lo; ciHi = hi;
+  } else if (sem !== null && n0 && n0 > 1) {
     const h = tQuantile(0.975, n0 - 1) * sem;
     ciLo = m - h; ciHi = m + h;
   }
