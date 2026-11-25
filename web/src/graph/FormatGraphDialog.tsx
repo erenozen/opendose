@@ -18,6 +18,7 @@ import {
 } from "./controls";
 import { useDiscardGuard } from "./useDiscardGuard";
 import { useSizeUnit } from "./useSizeUnit";
+import { GRADIENT_END, GRADIENT_START, gradientColors } from "./gradient";
 
 type Target = "this" | "all" | "selected";
 
@@ -79,6 +80,13 @@ export default function FormatGraphDialog({
     setG("order", next.every((v, i) => v === i) ? undefined : next);
   };
 
+  // Colour gradient across the data sets, in plotting order
+  const [grad, setGrad] = useState({ start: GRADIENT_START, end: GRADIENT_END });
+  const applyGradient = () => {
+    const cols = gradientColors(grad.start, grad.end, order.length);
+    setDraft((d) => order.reduce((acc, ds, k) => withDatasetFormat(acc, [ds], { color: cols[k] }), d));
+  };
+
   const apply = () => { onApply(draft); setApplied(draft); };
   const dirty = JSON.stringify(draft) !== JSON.stringify(applied);
   const requestClose = useDiscardGuard(dirty, onClose);
@@ -128,6 +136,19 @@ export default function FormatGraphDialog({
               </fieldset>
             )}
           </div>
+
+          {datasets.length > 1 && (features.points || features.bars || features.boxes || features.color) && (
+            <Section title="Colour gradient">
+              <ColorField label="Start colour" value={grad.start} auto={GRADIENT_START} mark={false}
+                surface={chrome.surface} onChange={(v) => setGrad((g) => ({ ...g, start: v ?? GRADIENT_START }))} />
+              <ColorField label="End colour" value={grad.end} auto={GRADIENT_END} mark={false}
+                surface={chrome.surface} onChange={(v) => setGrad((g) => ({ ...g, end: v ?? GRADIENT_END }))} />
+              <button type="button" onClick={applyGradient}>
+                Colour all {datasets.length} data sets from start to end</button>
+              <p className="hint-block">In plotting order, evenly mixed between the two colours.
+                Each data set&apos;s colour can still be changed after.</p>
+            </Section>
+          )}
 
           <Section title="Show">
             <CheckField label="Show on graph" checked={cur.show !== false}
