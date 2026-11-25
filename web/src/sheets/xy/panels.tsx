@@ -11,7 +11,7 @@ import { normalizeTable } from "../../project/table";
 import {
   SUBCOLUMN_FORMAT_HAS_N, SUBCOLUMN_FORMAT_LABELS,
 } from "../../project/types";
-import { xTickFormatter } from "../../project/xformat";
+import { xTickFormatter, xTicks as xTicksOf } from "../../project/xformat";
 import type { AnalysisResult, OptionsState } from "../../types";
 import LongTableButton from "../common/LongTableButton";
 import type { AsideProps, ControlsProps, PlotProps, ResultsProps } from "../types";
@@ -193,6 +193,8 @@ export function XYPlot({ graph, table, result, options, titles, scheme, format, 
   onPointPick }: PlotProps<OptionsState, AnalysisResult>) {
   // Dates / elapsed times: X ticks read as dates or h:mm:ss.
   const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
+  const xTicks = useMemo(() => (xTickFormat
+    ? (lo: number, hi: number, f?: string) => xTicksOf(table, lo, hi, f) : undefined), [table, xTickFormat]);
   // Waiting for a model: draw the points alone.
   const shown = useMemo(() => {
     const choose = chooseModelOf(result);
@@ -227,7 +229,7 @@ export function XYPlot({ graph, table, result, options, titles, scheme, format, 
   }, [onPointPick, shown, table]);
   return (
     <PlotPanel result={shown} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
-      xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
+      xTickFormat={xTickFormat} xTicks={xTicks} format={format} onFormatChange={onFormatChange}
       rowTitles={table.rowTitles} drop={drop} caption={caption} onPointClick={pick}
       xUnit={table.xUnit || ""} />
   );

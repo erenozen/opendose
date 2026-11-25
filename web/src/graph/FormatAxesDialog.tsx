@@ -139,7 +139,7 @@ function AxisEditor({ which, value: a, unit, onChange, categorical, zeroBreak, t
               onChange={(v) => set({ elapsedUnit: v === "h" ? undefined : v })} />
           )}
           {numbers === "date" && (
-            <TextField label="Date format" value={a.dateFormat} placeholder="%Y-%m-%d"
+            <TextField label="Date format" value={a.dateFormat} placeholder="automatic, e.g. %b %e, %Y"
               onChange={(v) => set({ dateFormat: v })} />
           )}
           {(a.scale ?? "linear") === "linear" && numbers !== "antilog" && numbers !== "date" && (
@@ -156,8 +156,10 @@ function AxisEditor({ which, value: a, unit, onChange, categorical, zeroBreak, t
           )}
           {numbers === "date" && (
             <p className="field-note fmt-span">
-              Applies when the X values arrive as dates; tables store dates as
-              text for now.
+              On XY tables whose X column holds dates, ticks fall on whole days,
+              weeks (Mondays), months or years. Codes: %Y year, %b month name,
+              %m month, %d day (%e without a zero), %a weekday, %H:%M time.
+              Empty: a format suited to the tick spacing (“Mar 5”, “Mar 2024”, “2024”).
             </p>
           )}
         </Section>

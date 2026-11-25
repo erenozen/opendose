@@ -245,3 +245,109 @@ export function niceTicks(lo: number, hi: number, count = 6): number[] {
   }
   return out;
 }
+
+// ------------------------------------------------------------ calendar ticks
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August",
+  "September", "October", "November", "December"];
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** Days since 1970-01-01 UTC formatted with strftime codes: %Y %y %m %d
+ *  %e (day, no zero) %b %B (month name) %a %A (weekday) %H %M %S %j %%;
+ *  "%-d" / "%-m" drop the leading zero. */
+export function formatDateWith(days: number, fmt: string): string {
+  const d = new Date(Math.round(days * 86400) * 1000);
+  const y = d.getUTCFullYear(), mo = d.getUTCMonth(), da = d.getUTCDate();
+  const doy = Math.floor((Date.UTC(y, mo, da) - Date.UTC(y, 0, 1)) / 86400000) + 1;
+  return fmt.replace(/%(-?)([YymdebBaAHMSj%])/g, (_, nz: string, c: string) => {
+    const p = (n: number, w = 2) => (nz ? String(n) : String(n).padStart(w, "0"));
+    switch (c) {
+      case "Y": return String(y);
+      case "y": return p(y % 100);
+      case "m": return p(mo + 1);
+      case "d": return p(da);
+      case "e": return String(da);
+      case "b": return MONTH_NAMES[mo].slice(0, 3);
+      case "B": return MONTH_NAMES[mo];
+      case "a": return WEEKDAYS[d.getUTCDay()].slice(0, 3);
+      case "A": return WEEKDAYS[d.getUTCDay()];
+      case "H": return p(d.getUTCHours());
+      case "M": return p(d.getUTCMinutes());
+      case "S": return p(d.getUTCSeconds());
+      case "j": return p(doy, 3);
+      default: return "%";
+    }
+  });
+}
+
+type CalStep = { unit: "day" | "month" | "year"; n: number };
+const CAL_STEPS: CalStep[] = [
+  { unit: "day", n: 1 }, { unit: "day", n: 2 }, { unit: "day", n: 7 }, { unit: "day", n: 14 },
+  { unit: "month", n: 1 }, { unit: "month", n: 2 }, { unit: "month", n: 3 }, { unit: "month", n: 6 },
+  ...[1, 2, 5, 10, 20, 25, 50, 100].map((n) => ({ unit: "year" as const, n })),
+];
+const stepDays = (s: CalStep) => s.n * (s.unit === "day" ? 1 : s.unit === "month" ? 30.4375 : 365.25);
+const dayOf = (y: number, m: number, d = 1) => Date.UTC(y, m, d) / 86400000;
+
+/** Tick dates (days since 1970) on calendar boundaries between two dates:
+ *  whole days, weeks (Mondays, ISO 8601), the first of a month (every 1,
+ *  2, 3 or 6 months, from January) or of a year; about `count` of them.
+ *  Null for spans under two days (hours suit those better). */
+export function calendarTicks(lo: number, hi: number, count = 6): { days: number[]; step: CalStep } | null {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi - lo < 2) return null;
+  const span = hi - lo;
+  const step = CAL_STEPS.find((s) => span / stepDays(s) <= count + 2) ?? CAL_STEPS[CAL_STEPS.length - 1];
+  const out: number[] = [];
+  if (step.unit === "day") {
+    // weeks and fortnights from a Monday (1970-01-05 was a Monday)
+    const anchor = step.n >= 7 ? 4 : 0;
+    let d = Math.ceil((lo - anchor) / step.n) * step.n + anchor;
+    for (; d <= hi + 1e-9; d += step.n) out.push(d);
+  } else {
+    const s = new Date(Math.floor(lo) * 86400000);
+    let y = s.getUTCFullYear(), m = step.unit === "month" ? s.getUTCMonth() : 0;
+    if (step.unit === "month") m -= m % step.n; else y -= ((y % step.n) + step.n) % step.n;
+    for (let guard = 0; guard < 500; guard++) {
+      const d = dayOf(y, m);
+      if (d > hi + 1e-9) break;
+      if (d >= lo - 1e-9) out.push(d);
+      if (step.unit === "month") { m += step.n; if (m >= 12) { y += Math.floor(m / 12); m %= 12; } } else y += step.n;
+    }
+  }
+  return { days: out, step };
+}
+
+/** The default label format for calendar ticks of that step. */
+export function defaultDateTickFormat(days: number[], step: CalStep): string {
+  if (step.unit === "year") return "%Y";
+  if (step.unit === "month") return "%b %Y";
+  const years = new Set(days.map((d) => new Date(d * 86400000).getUTCFullYear()));
+  return years.size > 1 ? "%b %-d, %Y" : "%b %-d";
+}
+
+/** X tick positions and labels for an XY table's X column, in analysis
+ *  units (xNumbers): calendar ticks for dates (labels in `dateFormat`,
+ *  strftime codes, or a default suited to the step), round values with
+ *  h:mm labels for elapsed times. Null for plain numbers. */
+export function xTicks(t: DataTableModel, lo: number, hi: number, dateFormat?: string):
+  { tickvals: number[]; ticktext: string[] } | null {
+  const fmt = xTickFormatter(t);
+  if (!fmt) return null;
+  if (t.xFormat === "dates") {
+    const origin = dateOrigin(t);
+    const unit = SEC[t.xTimeUnit ?? defaultTimeUnit(t.xFormat)];
+    if (origin !== null) {
+      const toDays = (v: number) => origin + (v * unit) / 86400;
+      const cal = calendarTicks(toDays(lo), toDays(hi));
+      if (cal && cal.days.length >= 2) {
+        const f = dateFormat?.trim() || defaultDateTickFormat(cal.days, cal.step);
+        return {
+          tickvals: cal.days.map((d) => ((d - origin) * 86400) / unit),
+          ticktext: cal.days.map((d) => formatDateWith(d, f)),
+        };
+      }
+    }
+  }
+  const vals = niceTicks(lo, hi, 6);
+  return { tickvals: vals, ticktext: vals.map(fmt) };
+}

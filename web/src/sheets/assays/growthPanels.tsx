@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import PlotPanel from "../../components/PlotPanel";
 import ResultsPanel from "../../components/ResultsPanel";
-import { xTickFormatter } from "../../project/xformat";
+import { xTickFormatter, xTicks as xTicksOf } from "../../project/xformat";
 import { datasetLetter } from "../../project/table";
 import { formatSig } from "../../types";
 import CopyableMethods from "../common/CopyableMethods";
@@ -163,9 +163,11 @@ export function GrowthMethods({ options, result }: ResultsProps<GrowthOptions, G
 export function GrowthPlot({ table, result, titles, scheme, format, onFormatChange }:
   PlotProps<GrowthOptions, GrowthResult>) {
   const xTickFormat = useMemo(() => xTickFormatter(table) ?? undefined, [table]);
+  const xTicks = useMemo(() => (xTickFormat
+    ? (lo: number, hi: number, f?: string) => xTicksOf(table, lo, hi, f) : undefined), [table, xTickFormat]);
   return (
     <PlotPanel result={result} scheme={scheme} xTitle={titles.x} yTitle={titles.y}
-      xTickFormat={xTickFormat} format={format} onFormatChange={onFormatChange}
+      xTickFormat={xTickFormat} xTicks={xTicks} format={format} onFormatChange={onFormatChange}
       rowTitles={table.rowTitles} />
   );
 }

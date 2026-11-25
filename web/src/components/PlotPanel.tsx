@@ -34,6 +34,9 @@ interface Props {
   xTitle: string;
   yTitle: string;
   scheme?: SchemeId;
+  /** X ticks for date / elapsed-time X columns (project/xformat.ts xTicks):
+   *  positions and labels for a range. */
+  xTicks?: (lo: number, hi: number, dateFormat?: string) => { tickvals: number[]; ticktext: string[] } | null;
   /** X tick labels for date / elapsed-time X columns (data table format). */
   xTickFormat?: (v: number) => string;
   /** Format Graph / Format Axes settings (graph/README.md). */
@@ -60,7 +63,7 @@ interface PlotClick {
 }
 
 export default function PlotPanel({
-  result, xTitle, yTitle, scheme = DEFAULT_SCHEME, xTickFormat, format = EMPTY_FORMAT,
+  result, xTitle, yTitle, scheme = DEFAULT_SCHEME, xTickFormat, xTicks, format = EMPTY_FORMAT,
   onFormatChange, rowTitles, drop, caption, onPointClick, xUnit,
 }: Props) {
   const el = useRef<HTMLDivElement>(null);
@@ -276,17 +279,24 @@ export default function PlotPanel({
       uirevision: "keep",
     };
 
-    if (xTickFormat && layout.xaxis) {
+    if ((xTicks || xTickFormat) && layout.xaxis) {
       const xs = traces.flatMap((tr) => ((tr as { x?: unknown[] }).x ?? []))
         .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
       if (xs.length) {
-        const vals = niceTicks(minOf(xs), maxOf(xs), 6);
+        const lo = minOf(xs), hi = maxOf(xs);
+        // dates: calendar ticks, in the Format axes date format if set
+        const t = xTicks?.(lo, hi, format.x?.numbers === "date" ? format.x?.dateFormat : undefined);
+        const vals = t ? t.tickvals : niceTicks(lo, hi, 6);
         layout.xaxis.tickvals = vals;
-        layout.xaxis.ticktext = vals.map(xTickFormat);
+        layout.xaxis.ticktext = t ? t.ticktext : vals.map(xTickFormat!);
       }
     }
 
-    const out = applyFormat(traces as never, layout, format, {
+    // Table dates carry their own calendar ticks (above, in the chosen date
+    // format): the axis keeps them rather than re-reading values as dates.
+    const fmtX = xTicks && format.x?.numbers === "date"
+      ? { ...format, x: { ...format.x, numbers: undefined, dateFormat: undefined } } : format;
+    const out = applyFormat(traces as never, layout, fmtX, {
       dark, scheme, datasets: result.datasets.map((d) => d.name), rowTitles,
       results: resultBlocks(result, graphPStyle(format)), editRevision: rev, caption,
     });
@@ -324,7 +334,7 @@ export default function PlotPanel({
         });
       }
     });
-  }, [result, dark, xTitle, yTitle, scheme, xTickFormat, format, rev, rowTitles, onFormatChange,
+  }, [result, dark, xTitle, yTitle, scheme, xTickFormat, xTicks, format, rev, rowTitles, onFormatChange,
     attach, draw, attempt, drop, caption, pickable, xUnit]);
 
   return (
