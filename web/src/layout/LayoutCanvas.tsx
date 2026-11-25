@@ -17,7 +17,10 @@ export interface CanvasProps {
   ink: string;
   surface: string;
   selected: string | null;
+  /** Every selected item (Shift / Ctrl / Cmd + click adds one). */
+  selection: string[];
   onSelect: (id: string | null) => void;
+  onToggle: (id: string) => void;
   /** Commit a new rectangle; `key` coalesces keyboard nudges into one undo step. */
   onRect: (id: string, rect: LayoutRect, key: string | null) => void;
   onRemove: (id: string) => void;
@@ -105,6 +108,10 @@ export default function LayoutCanvas(props: CanvasProps) {
     if (e.pointerType === "touch" && selected !== it.id) return;
     e.preventDefault();
     e.stopPropagation();
+    if (mode === "move" && (e.shiftKey || e.ctrlKey || e.metaKey)) {
+      props.onToggle(it.id);
+      return;
+    }
     props.onSelect(it.id);
     const handle = e.currentTarget as HTMLElement;
     const el = handle.closest<HTMLElement>(".layout-item");
@@ -195,20 +202,21 @@ export default function LayoutCanvas(props: CanvasProps) {
           inset: px(Math.min(layout.page.margin, w / 3, h / 3)) }} />
         {layout.items.map((it) => {
           const sel = selected === it.id;
+          const inSel = props.selection.includes(it.id);
           const graph = it.kind === "graph" && it.graphId
             ? project.sheets.find((s): s is GraphSheet => s.kind === "graph" && s.id === it.graphId)
             : undefined;
           return (
             <div key={it.id} data-item-id={it.id}
-              className={`layout-item kind-${it.kind}${sel ? " selected" : ""}`
+              className={`layout-item kind-${it.kind}${inSel ? " selected" : ""}`
                 + `${it.kind === "graph" && it.hideLegend ? " no-legend" : ""}`
                 + `${it.kind === "graph" && !graph ? " is-empty" : ""}`}
               style={{ left: px(it.x), top: px(it.y), width: px(it.w), height: px(it.h) }}
               tabIndex={0} role="group"
               aria-label={`${itemLabel(it, project)}${letters.get(it.id) ? `, panel ${letters.get(it.id)}` : ""}`
                 + (readOnly ? "" : ". Arrows move it, Alt+arrows resize, Delete removes")}
-              aria-current={sel || undefined}
-              onFocus={() => props.onSelect(it.id)}
+              aria-current={inSel || undefined}
+              onFocus={() => { if (!props.selection.includes(it.id)) props.onSelect(it.id); }}
               onKeyDown={(e) => onKey(e, it)}
               onPointerDown={(e) => begin(e, it, "move")}
               onPointerMove={move} onPointerUp={end} onPointerCancel={end}>
@@ -242,7 +250,7 @@ export default function LayoutCanvas(props: CanvasProps) {
                   aria-hidden="true"
                   dangerouslySetInnerHTML={{ __html: legendSvg(it, legend, ink, surface) }} />
               )}
-              {sel && !readOnly && (
+              {sel && props.selection.length === 1 && !readOnly && (
                 <span className="layout-handle" aria-hidden="true" data-still
                   onPointerDown={(e) => begin(e, it, "resize")}
                   onPointerMove={move} onPointerUp={end} onPointerCancel={end} />

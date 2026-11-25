@@ -43,7 +43,13 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
   const cmd = useCommands();
   const layout = resolveLayout(sheet);
   const readOnly = !!sheet.frozen;
-  const [selected, setSelected] = useState<string | null>(null);
+  // Selected items; the last one is the one the inspector edits.
+  // Shift / Ctrl / Cmd + click adds or removes one (align, distribute).
+  const [selection, setSelection] = useState<string[]>([]);
+  const selected = selection[selection.length - 1] ?? null;
+  const setSelected = (id: string | null) => setSelection(id ? [id] : []);
+  const toggleSelected = (id: string) =>
+    setSelection((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   const [zoomPref, setZoomPref] = useState<Zoom>("fit");
   const [fitZoom, setFitZoom] = useState(0.6);
   const [rows, setRows] = useState(String(layout.grid.rows));
@@ -99,8 +105,10 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
 
   // Selection must point at an existing item (undo can remove it).
   useEffect(() => {
-    if (selected && !layout.items.some((i) => i.id === selected)) setSelected(null);
-  }, [selected, layout.items]);
+    if (selection.some((id) => !layout.items.some((i) => i.id === id))) {
+      setSelection((s) => s.filter((id) => layout.items.some((i) => i.id === id)));
+    }
+  }, [selection, layout.items]);
 
   const edit = (fn: (l: ResolvedLayout) => ResolvedLayout, key: string | null = null) =>
     apply((p) => updateSheet<Sheet>(p, sheet.id, (s) => (s.kind === "layout" && !s.frozen
@@ -239,6 +247,7 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
   const print = () => { setSelected(null); requestAnimationFrame(() => window.print()); };
 
   const sel = layout.items.find((i) => i.id === selected) ?? null;
+  const selItems = layout.items.filter((i) => selection.includes(i.id));
   const graphCount = project.sheets.filter((s) => s.kind === "graph").length;
 
   return (
@@ -360,8 +369,8 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
       <div className="layout-body">
         <div className="layout-scroll" ref={scrollRef}>
           <LayoutCanvas layout={layout} project={project} readOnly={readOnly} zoom={zoom}
-            ink={chrome.ink} surface={chrome.surface} selected={selected}
-            onSelect={setSelected} onRect={setRect} onRemove={remove}
+            ink={chrome.ink} surface={chrome.surface} selected={selected} selection={selection}
+            onSelect={setSelected} onToggle={toggleSelected} onRect={setRect} onRemove={remove}
             onChooseGraph={(id) => {
               setSelected(id);
               requestAnimationFrame(() => pickerRef.current?.focus());
@@ -369,6 +378,7 @@ export default function LayoutSheetView({ sheet }: { sheet: LayoutSheet }) {
             legend={legend} pageRef={pageRef} />
         </div>
         <LayoutInspector layout={layout} project={project} readOnly={readOnly} selected={sel}
+          selection={selItems}
           edit={edit} editItem={editItem} onRemove={remove} onUnlink={(id) => void unlink(id)}
           onFill={fill} pickerRef={pickerRef} />
       </div>

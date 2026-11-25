@@ -230,7 +230,9 @@ export function composePage(input: ComposeInput): { svg: string; width: number; 
       "image/svg+xml").documentElement;
     root.appendChild(doc.importNode(parsed, true));
   };
-  input.panels.forEach(({ item, svg }, i) => {
+  // Everything in stacking order (the item list: the last is on top), as
+  // on screen; panel letters above all.
+  const drawPanel = ({ item, svg }: PagePanel, i: number) => {
     const el = new DOMParser().parseFromString(svg, "image/svg+xml").documentElement;
     if (el.nodeName !== "svg") return;
     const ow = Number.parseFloat(el.getAttribute("width") ?? "") || mmPx(item.w);
@@ -243,8 +245,11 @@ export function composePage(input: ComposeInput): { svg: string; width: number; 
     el.removeAttribute("style"); // Plotly puts its background colour here
     prefixIds(el, `p${i}-`);
     root.appendChild(doc.importNode(el, true));
-  });
+  };
+  const panelOf = new Map(input.panels.map((pn, i) => [pn.item.id, [pn, i] as const]));
   for (const it of input.items) {
+    const pn = panelOf.get(it.id);
+    if (pn) { drawPanel(pn[0], pn[1]); continue; }
     const x = mmPx(it.x);
     const y = mmPx(it.y);
     if (it.kind === "text") fragment(textSvg(it, input.ink), x, y, mmPx(it.w), mmPx(it.h));

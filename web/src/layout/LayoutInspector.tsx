@@ -1,7 +1,8 @@
 import { useId, useState, type ReactNode } from "react";
 import { Button, NumberField } from "../components/ui";
 import { findSheet } from "../project/ops";
-import { DEFAULT_PAGE, MIN_ITEM_MM, PAGE_SIZES, pageDims, type ResolvedLayout } from "../project/layout";
+import { contentRect, DEFAULT_PAGE, MIN_ITEM_MM, PAGE_SIZES, pageDims, type ResolvedLayout } from "../project/layout";
+import { alignItems, distributeItems, reorderItems, type AlignEdge, type ZOp } from "../project/layoutArrange";
 import type {
   GraphSheet, LayoutItem, LayoutPage, PanelLetters, Project,
 } from "../project/types";
@@ -11,6 +12,8 @@ export interface InspectorProps {
   project: Project;
   readOnly: boolean;
   selected: LayoutItem | null;
+  /** Every selected item (several: align and distribute them). */
+  selection: LayoutItem[];
   edit: (fn: (l: ResolvedLayout) => ResolvedLayout, key?: string | null) => void;
   editItem: (id: string, patch: Partial<LayoutItem>, key?: string | null) => void;
   onRemove: (id: string) => void;
@@ -88,10 +91,22 @@ export default function LayoutInspector(p: InspectorProps) {
     return parent ? `${g.name} · ${parent.name}` : g.name;
   };
 
+  const arrangeTools = (
+    <ArrangeTools ids={(p.selection.length ? p.selection : it ? [it] : []).map((i) => i.id)}
+      edit={p.edit} />
+  );
+
   return (
     <aside className="layout-inspector" aria-label="Layout settings">
       <fieldset disabled={readOnly} className="layout-fieldset">
-        {it ? (
+        {p.selection.length > 1 ? (
+          <section className="layout-section" aria-labelledby="li-multi">
+            <h3 id="li-multi">{p.selection.length} items selected</h3>
+            <p className="hint-block">Shift-, Ctrl- or Cmd-click an item to add it to the selection
+              or take it out.</p>
+            {arrangeTools}
+          </section>
+        ) : it ? (
           <section className="layout-section" aria-labelledby="li-item">
             <h3 id="li-item">
               {it.kind === "graph" ? "Graph placeholder" : it.kind === "picture" ? "Picture"
@@ -170,6 +185,7 @@ export default function LayoutInspector(p: InspectorProps) {
                   onCommit={(v) => p.editItem(it.id, { [k]: v }, `geom:${it.id}:${k}`)} />
               ))}
             </div>
+            {arrangeTools}
             {/* Undoable, so a keycap rather than a danger fill (buttons.md). */}
             <Button className="layout-action" onClick={() => p.onRemove(it.id)}>
               Remove from page
@@ -182,6 +198,7 @@ export default function LayoutInspector(p: InspectorProps) {
               Select an item on the page to bind a graph, edit text or set
               its exact size. Drag to move (edges snap; hold Alt to place
               freely), drag the corner to resize, or use the arrow keys.
+              Shift-, Ctrl- or Cmd-click to select several and align them.
             </p>
           </section>
         )}
@@ -284,5 +301,45 @@ export default function LayoutInspector(p: InspectorProps) {
         </section>
       </fieldset>
     </aside>
+  );
+}
+
+const Z_OPS: [ZOp, string][] = [["front", "Bring to front"], ["forward", "Forward"],
+  ["backward", "Backward"], ["back", "Send to back"]];
+const ALIGN: [AlignEdge, string][] = [["left", "Left"], ["hcenter", "Centre"], ["right", "Right"],
+  ["top", "Top"], ["vmiddle", "Middle"], ["bottom", "Bottom"]];
+
+/** Stacking order, alignment and distribution of the selected items
+ *  (project/layoutArrange.ts). */
+function ArrangeTools({ ids, edit }: { ids: string[]; edit: InspectorProps["edit"] }) {
+  if (!ids.length) return null;
+  const many = ids.length > 1;
+  return (
+    <div className="layout-arrange">
+      <div className="layout-arrange-row" role="group" aria-label="Stacking order">
+        {Z_OPS.map(([op, label]) => (
+          <Button key={op} variant="secondary" size="sm"
+            onClick={() => edit((l) => ({ ...l, items: reorderItems(l.items, ids, op) }))}>{label}</Button>
+        ))}
+      </div>
+      <div className="layout-arrange-row" role="group"
+        aria-label={many ? "Align the selected items" : "Align on the page (margins)"}>
+        <span className="layout-seg-label">{many ? "Align" : "Align on page"}</span>
+        {ALIGN.map(([edge, label]) => (
+          <Button key={edge} variant="secondary" size="sm" aria-label={`Align ${label.toLowerCase()}`}
+            onClick={() => edit((l) => ({ ...l, items: alignItems(l.items, ids, edge, contentRect(l.page)) }))}>
+            {label}</Button>
+        ))}
+      </div>
+      {ids.length > 2 && (
+        <div className="layout-arrange-row" role="group" aria-label="Distribute the selected items">
+          <span className="layout-seg-label">Equal gaps</span>
+          <Button variant="secondary" size="sm" onClick={() => edit((l) => ({ ...l, items: distributeItems(l.items, ids, "h") }))}>
+            Across</Button>
+          <Button variant="secondary" size="sm" onClick={() => edit((l) => ({ ...l, items: distributeItems(l.items, ids, "v") }))}>
+            Down</Button>
+        </div>
+      )}
+    </div>
   );
 }

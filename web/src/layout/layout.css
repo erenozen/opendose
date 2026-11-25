@@ -200,3 +200,6 @@ main.layout-main {
 @media (max-width: 760px) {
   main.layout-main { padding: var(--space-12); }
 }
+.layout-arrange { display: grid; gap: var(--space-8); margin: var(--space-8) 0; }
+.layout-arrange-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); }
+.layout-seg-label { font-size: var(--text-body-s); color: var(--muted); min-width: 64px; }
